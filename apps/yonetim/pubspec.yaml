@@ -1,0 +1,28 @@
+name: yonetim
+description: "BogaMail Yönetim — Bogahost posta sunucusu yönetimi"
+publish_to: 'none'
+version: 1.0.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  boga_ortak:
+    path: ../../packages/boga_ortak
+  intl: any
+  url_launcher: ^6.3.3
+  fl_chart: ^1.3.1
+  shared_preferences: ^2.5.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

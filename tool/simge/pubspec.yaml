@@ -1,0 +1,14 @@
+name: simge
+description: BogaMail uygulama simgelerini işaretten üretir (elle çalıştırılır).
+publish_to: 'none'
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+dependencies:
+  flutter:
+    sdk: flutter
+  boga_ortak:
+    path: ../../packages/boga_ortak
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

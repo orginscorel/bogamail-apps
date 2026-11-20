@@ -1,0 +1,9 @@
+name: bogamail_apps
+publish_to: 'none'
+environment:
+  sdk: ^3.13.0
+workspace:
+  - packages/boga_ortak
+  - apps/posta
+  - apps/yonetim
+  - tool/simge

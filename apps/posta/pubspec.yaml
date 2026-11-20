@@ -1,0 +1,37 @@
+name: posta
+description: "BogaMail — Bogahost kurumsal e-posta"
+publish_to: 'none'
+version: 1.0.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  boga_ortak:
+    path: ../../packages/boga_ortak
+  intl: any
+  url_launcher: ^6.3.3
+  flutter_inappwebview: ^6.1.5
+  file_picker: ^13.4.0
+  open_filex: ^5.0.0
+  share_plus: ^13.3.1
+  flutter_local_notifications: ^23.0.3
+  workmanager: ^0.10.10
+  html: ^0.15.7
+  shared_preferences: ^2.5.6
+  dio: ^5.11.1
+  path_provider: ^2.1.6
+  flutter_slidable: ^5.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

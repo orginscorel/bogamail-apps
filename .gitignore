@@ -1,0 +1,29 @@
+# Flutter / Dart
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+*.iml
+.idea/
+.vscode/
+pubspec_overrides.yaml
+# Platform derleme çıktıları
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/app/imza.p12
+*.jks
+*.keystore
+*.p12
+*.p8
+*.pem
+.DS_Store
+# Araç ikilileri
+tool/**/asc
+tool/**/gizli

@@ -1,0 +1,40 @@
+name: boga_ortak
+description: "BogaMail uygulamalarının ortak çekirdeği: API istemcisi, tema, açılış, giriş, bildirim."
+version: 1.0.0
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.11.1
+  dio_cookie_manager: ^3.5.0
+  cookie_jar: ^4.0.9
+  path_provider: ^2.1.6
+  shared_preferences: ^2.5.6
+  intl: any
+  package_info_plus: ^10.2.2
+  device_info_plus: ^13.3.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
+flutter:
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+    - family: Jakarta
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans.ttf
