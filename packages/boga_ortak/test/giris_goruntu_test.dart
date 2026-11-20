@@ -20,9 +20,10 @@ Future<void> _font(String aile, List<String> dosyalar) async {
 void main() {
   final dizin = Platform.environment['GORUNTU_DIZIN'];
   setUpAll(() async {
+    if (dizin == null) return; // fontlar yalnız görüntü üretirken (yerel yollar) yüklenir
     await _font('packages/boga_ortak/Poppins', ['assets/fonts/Poppins-Regular.ttf', 'assets/fonts/Poppins-Medium.ttf', 'assets/fonts/Poppins-SemiBold.ttf', 'assets/fonts/Poppins-Bold.ttf']);
     await _font('packages/boga_ortak/Jakarta', ['assets/fonts/PlusJakartaSans.ttf']);
-    await _font('MaterialIcons', ['/opt/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
+    await _font('MaterialIcons', ['${Platform.environment['FLUTTER_ROOT'] ?? '/opt/flutter'}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
   });
   for (final (k, isaret) in [(Kimlik.posta, AcilisIsaret.posta), (Kimlik.yonetim, AcilisIsaret.yonetim)]) {
     for (final (ad, boyut) in [('telefon', const Size(390, 844)), ('genis', const Size(1280, 800))]) {
