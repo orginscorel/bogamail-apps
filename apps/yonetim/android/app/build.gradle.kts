@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.bogahost.yonetim"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
