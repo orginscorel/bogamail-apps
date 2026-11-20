@@ -184,10 +184,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
                             if (m.yanitlandi) simge(Simge.yanitla, 'Yanıtlandı'),
                             if (m.iletildi) simge(Simge.ilet, 'İletildi'),
                             const SizedBox(width: 6),
-                            if (_uzerinde && !widget.secimModu)
-                              ..._fareEylemleri(r)
-                            else
-                              Text(
+                            Text(
                                 kisaZaman(m.tarih),
                                 style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400),
                               ),
@@ -256,6 +253,31 @@ class _IletiSatiriState extends State<IletiSatiri> {
                 ],
               ),
             ),
+            // Fare üzerindeyken eylemler satırın sağ üstünde yüzer; yerleşim (ad, tarih, yükseklik) hiç kaymaz.
+            if (!widget.secimModu)
+              Positioned(
+                top: context.genis ? 3 : 5,
+                right: 8,
+                child: IgnorePointer(
+                  ignoring: !_uzerinde,
+                  child: AnimatedOpacity(
+                    opacity: _uzerinde ? 1 : 0,
+                    duration: const Duration(milliseconds: 120),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: r.kart,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: r.kenar),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 6, offset: const Offset(0, 1))],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: _fareEylemleri(r)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Sol kenardaki ince vurgu çizgisi: okunmamış (veya okuyucuda açık) iletiler.
             if (okunmamis || widget.acik)
               Positioned(

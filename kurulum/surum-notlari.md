@@ -1,3 +1,7 @@
+## 1.4.1
+
+- Posta listesi: fare iletinin üzerine gelince satır artık kaymıyor; işlem düğmeleri sağ üstte yüzerek belirir.
+
 ## 1.4.0
 
 **BogaMail (posta)**
