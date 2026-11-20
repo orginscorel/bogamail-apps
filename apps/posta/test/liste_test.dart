@@ -73,14 +73,14 @@ void main() {
   });
 
   group('ileti satırı', () {
-    testWidgets('okunmamış: nokta, sol çizgi, kalın gönderen ve konu', (t) async {
+    testWidgets('okunmamış: nokta, sol çizgi, yarı kalın gönderen (600) ve konu (500)', (t) async {
       await t.pumpWidget(_uygulama(_satir(IletiOzet(id: 'a', kimden: 'Ayşe <ayse@ornek.com>', konu: 'Merhaba', okundu: false, ekVar: true))));
       expect(find.byKey(const ValueKey('okunmamis-nokta')), findsOneWidget);
       expect(find.byKey(const ValueKey('okunmamis-serit')), findsOneWidget);
       final ad = t.widget<Text>(find.text('Ayşe'));
-      expect(ad.style!.fontWeight, FontWeight.w800);
-      expect(t.widget<Text>(find.text('Merhaba')).style!.fontWeight, FontWeight.w700);
-      expect(find.byIcon(Icons.attach_file_rounded), findsOneWidget);
+      expect(ad.style!.fontWeight, FontWeight.w600);
+      expect(t.widget<Text>(find.text('Merhaba')).style!.fontWeight, FontWeight.w500);
+      expect(find.byIcon(Simge.ek), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp('^Okunmamış')), findsOneWidget);
     });
 
@@ -93,7 +93,7 @@ void main() {
       expect(ad.style!.fontWeight, FontWeight.w400);
       expect(ad.style!.color, r.soluk);
       expect(t.widget<Text>(find.text('Rapor')).style!.color, r.soluk);
-      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+      expect(find.byIcon(Simge.yildizDolu), findsOneWidget);
     });
   });
 
@@ -105,7 +105,7 @@ void main() {
         expect(find.text(ad), findsOneWidget);
       }
       expect(find.text('7'), findsOneWidget);
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget, reason: 'etkin bölüm onay işaretiyle belirgin');
+      expect(find.byIcon(Simge.onay), findsNothing, reason: 'etkin bölüm dolu zeminle belirgin; onay simgesi yer kaplamaz (etiketler kesilmez)');
       await t.tap(find.byKey(const ValueKey('filtre-yildizli')));
       expect(secilen, ListeFiltresi.yildizli);
     });

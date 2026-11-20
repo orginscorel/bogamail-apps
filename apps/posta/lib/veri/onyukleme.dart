@@ -5,9 +5,11 @@
 
 import 'dart:async';
 
+import 'html_temizle.dart';
 import 'modeller.dart';
 import 'onbellek.dart';
 import 'posta_servisi.dart';
+import 'tercihler.dart';
 
 class Onyukleme {
   Onyukleme._();
@@ -47,6 +49,31 @@ class Onyukleme {
   /// Başka oturumda değişti: önbellekteki kopya bir sonraki önyüklemede yenilenir (açılınca zaten tazelenir).
   void eskit(String id) => _eski.add(id);
 
+  /// Uzak görseller de önyüklenir mi: kullanıcı "uzak görselleri otomatik göster"i açtıysa (okuyucuyla aynı kural).
+  static bool Function() gorselIzni = () => Tercihler.uzakGorseller.value;
+
+  /// İleti başına en çok bu kadar görsel önyüklenir.
+  static int azamiGorsel = 12;
+
+  /// Okuyucunun otomatik göstereceği görselleri yerel önbelleğe alır (gereksiz/tehditli iletilerde yapılmaz).
+  void _gorselleriOnyukle(Object? ham) {
+    if (!gorselIzni()) return;
+    try {
+      final d = IletiDetay.json(ham);
+      if (d.ozet.klasorRolu == 'junk' || d.tehditler.isNotEmpty) return;
+      final l = uzakGorseller(d.gorunum.html).take(azamiGorsel).toList();
+      if (l.isEmpty) return;
+      // İki işçi: görseller de HTTP/2 bağlantısında çoğullanır, okuyucunun isteklerini boğmaz.
+      Future<void> isci() async {
+        while (l.isNotEmpty) {
+          await Posta.uzakGorselVeri(l.removeAt(0));
+        }
+      }
+
+      unawaited(Future.wait([isci(), isci()]));
+    } catch (_) {}
+  }
+
   void iptal() {
     _kuyruk.clear();
     _eski.clear();
@@ -63,11 +90,16 @@ class Onyukleme {
       _eski.remove(id);
       final s = Stopwatch()..start();
       unawaited(
-        Posta.iletiHam(id).then((_) => zamanLogu('önyükleme', s), onError: (_) {}).whenComplete(() {
-          _calisan--;
-          _suruyor.remove(id);
-          _calis();
-        }),
+        Posta.iletiHam(id)
+            .then((ham) {
+              zamanLogu('önyükleme', s);
+              _gorselleriOnyukle(ham);
+            }, onError: (_) {})
+            .whenComplete(() {
+              _calisan--;
+              _suruyor.remove(id);
+              _calis();
+            }),
       );
     }
   }

@@ -4,10 +4,14 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import '../oturum.dart';
-import '../veri/bicim.dart';
 import '../veri/json.dart';
 import 'bolumler.dart';
+import 'bildirim_izni.dart';
+import 'hesap_blogu.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
+import '../veri/arkaplan.dart';
+import '../veri/bildirim.dart';
 import '../ortak/tablo.dart' show trBuyuk;
 
 /// Ana kabuk: geniş ekranda gruplu yan menü (rozetler, sürüm, çıkış), telefonda alt gezinme çubuğu (ilk dört bölüm)
@@ -24,7 +28,9 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   bool _dahaFazla = false;
   final _acilan = <Bolum>{Bolum.ozet};
   StreamSubscription<Map<String, dynamic>>? _push;
+  StreamSubscription<String>? _yerelBildirim;
   Timer? _rozetSayaci;
+  final _izleyici = UygulamaIzleyici();
 
   @override
   void initState() {
@@ -33,6 +39,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     kabukKurucu ??= () => const Kabuk();
     bolumIstegi.addListener(_istek);
     _pushHazirla();
+    _arkaplanHazirla();
     Guncelleme.denetle(Uyg.api);
     _rozetleriYenile();
     _rozetSayaci = Timer.periodic(const Duration(minutes: 2), (_) => _rozetleriYenile());
@@ -43,6 +50,8 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     bolumIstegi.removeListener(_istek);
     _push?.cancel();
+    _yerelBildirim?.cancel();
+    _izleyici.durdur();
     _rozetSayaci?.cancel();
     super.dispose();
   }
@@ -52,6 +61,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       Guncelleme.denetle(Uyg.api);
       _rozetleriYenile();
+      Bildirim.yenile(); // kullanıcı sistem ayarlarından izni açmış olabilir
     }
   }
 
@@ -85,6 +95,25 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     if (ilk != null) _bildirimAcildi(ilk);
     // Kabuk açıldıktan sonra cihaz bir kez kaydedilir (izin daha önce sorulmadıysa sistem sorar).
     await Push.kaydet(Uyg.api, yol: Uyg.pushYolu, konu: Uyg.pushKonu);
+  }
+
+  /// Bildirim izni tanıtımı, Android ön plan hizmeti / girişte başlat, uygulama içi alarm yoklaması.
+  Future<void> _arkaplanHazirla() async {
+    _yerelBildirim = Bildirim.platform.acildi.listen(_yerelAcildi);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await bildirimTanitimi(context);
+      await Arkaplan.oturumAcildi();
+      if (mounted) _izleyici.baslat();
+    });
+    final ilk = await Bildirim.platform.baslangic();
+    if (ilk != null) _yerelAcildi(ilk);
+  }
+
+  void _yerelAcildi(String yuk) {
+    if (!mounted || !yuk.startsWith(alarmYukOneki)) return;
+    Arkaplan.platform.pencereyiGoster();
+    bolumeGit(Bolum.alarmlar);
   }
 
   void _bildirimAcildi(Map<String, dynamic> v) {
@@ -133,6 +162,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   Widget _bantli(Widget govde) => Column(
     children: [
       const TaklitBandi(),
+      const BildirimBandi(),
       GuncellemeBandi(api: Uyg.api),
       Expanded(child: govde),
     ],
@@ -182,7 +212,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
             destinations: [
               for (final b in alt) NavigationDestination(icon: ikon(b, b.ikon), selectedIcon: ikon(b, b.secikIkon), label: _kisa(b), tooltip: b.baslik),
               NavigationDestination(
-                icon: digerRozet > 0 ? const Badge(smallSize: 8, child: Icon(Icons.menu_rounded)) : const Icon(Icons.menu_rounded),
+                icon: digerRozet > 0 ? const Badge(smallSize: 8, child: Icon(Simgeler.menu)) : const Icon(Simgeler.menu),
                 label: 'Daha fazla',
                 tooltip: 'Diğer bölümler ve ayarlar',
               ),
@@ -210,7 +240,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
             width: 272,
             child: YanMenu(secili: _bolum, ac: _ac),
           ),
-          VerticalDivider(width: 1, color: r.kenar),
+          VerticalDivider(width: 1, color: r.kenar.withValues(alpha: .6)),
           Expanded(child: _bantli(_govde(hepsi))),
         ],
       ),
@@ -238,12 +268,12 @@ class _YanMenuState extends State<YanMenu> {
       color: r.kart,
       child: Column(
         children: [
-          const PanelBasligi(dolgu: EdgeInsets.fromLTRB(16, 16, 14, 8)),
+          const PanelBasligi(dolgu: EdgeInsets.fromLTRB(16, 16, 16, 8)),
           Expanded(
             child: ValueListenableBuilder<Map<Bolum, int>>(
               valueListenable: bolumRozetleri,
               builder: (context, rozet, _) => ListView(
-                padding: const EdgeInsets.fromLTRB(10, 4, 10, 12),
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
                 children: [
                   for (final (grup, bolumler) in Bolum.gruplar) ...[
                     _grupBasligi(context, grup, bolumler),
@@ -254,27 +284,9 @@ class _YanMenuState extends State<YanMenu> {
               ),
             ),
           ),
-          Divider(height: 1, color: r.kenar),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 6, 8),
-            child: Row(
-              children: [
-                const Expanded(child: SurumEtiketi()),
-                IconButton(
-                  tooltip: 'Ayarlar ve profil',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => widget.ac(Bolum.ayarlar),
-                  icon: Icon(Icons.settings_outlined, size: 20, color: r.soluk),
-                ),
-                IconButton(
-                  tooltip: 'Çıkış yap',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => cikisOnayi(context),
-                  icon: const Icon(Icons.logout_rounded, size: 20, color: Marka.gul),
-                ),
-              ],
-            ),
-          ),
+          Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
+          HesapBlogu(ac: widget.ac, dolgu: const EdgeInsets.fromLTRB(8, 8, 8, 0)),
+          const Padding(padding: EdgeInsets.fromLTRB(24, 0, 16, 8), child: SurumEtiketi()),
         ],
       ),
     );
@@ -288,16 +300,16 @@ class _YanMenuState extends State<YanMenu> {
       borderRadius: BorderRadius.circular(8),
       onTap: katlanir ? () => setState(() => kapali ? _kapali.remove(g) : _kapali.add(g)) : null,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 14, 8, 6),
+        padding: const EdgeInsets.fromLTRB(12, 16, 8, 8),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 trBuyuk(g.baslik),
-                style: TextStyle(color: r.silik, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                style: TextStyle(color: r.silik, fontSize: 10.5, fontWeight: FontWeight.w600, letterSpacing: 1.2),
               ),
             ),
-            if (katlanir) Icon(kapali ? Icons.expand_more_rounded : Icons.expand_less_rounded, size: 16, color: r.silik),
+            if (katlanir) Icon(kapali ? SimgelerKalin.expandMore : SimgelerKalin.expandLess, size: 16, color: r.silik),
           ],
         ),
       ),
@@ -327,7 +339,7 @@ class _YanMenuState extends State<YanMenu> {
                     b.baslik,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13.5, fontWeight: secili ? FontWeight.w700 : FontWeight.w500, color: secili ? r.metin : r.soluk),
+                    style: TextStyle(fontSize: 13.5, fontWeight: secili ? FontWeight.w600 : FontWeight.w500, color: secili ? r.metin : r.soluk),
                   ),
                 ),
                 if (rozet > 0)
@@ -336,7 +348,7 @@ class _YanMenuState extends State<YanMenu> {
                     decoration: BoxDecoration(color: kritik ? Marka.gul : r.ic, borderRadius: BorderRadius.circular(20)),
                     child: Text(
                       rozet > 999 ? '999+' : sayiYaz(rozet),
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kritik ? Colors.white : r.soluk),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kritik ? Colors.white : r.soluk),
                     ),
                   ),
               ],
@@ -350,13 +362,12 @@ class _YanMenuState extends State<YanMenu> {
 
 /// Panel bağlamı: kimin paneli, kullanıcı adı ve rolü.
 class PanelBasligi extends StatelessWidget {
-  const PanelBasligi({super.key, this.dolgu = const EdgeInsets.fromLTRB(20, 18, 16, 6)});
+  const PanelBasligi({super.key, this.dolgu = const EdgeInsets.fromLTRB(20, 16, 16, 8)});
   final EdgeInsets dolgu;
 
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final ad = Uyg.ad.isNotEmpty ? Uyg.ad : Uyg.adres;
     final taklit = Uyg.taklit != null;
     return Padding(
       padding: dolgu,
@@ -366,22 +377,22 @@ class PanelBasligi extends StatelessWidget {
           Row(
             children: [
               const BogaIsaret(boyut: 34, isaret: AcilisIsaret.yonetim),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('BogaMail', style: gosterim(16, agirlik: FontWeight.w800)),
+                    Text('BogaMail', style: gosterim(16, agirlik: FontWeight.w600)),
                     Text(
                       'YÖNETİM',
-                      style: TextStyle(color: r.vurgu, fontSize: 10.5, letterSpacing: 2, fontWeight: FontWeight.w800),
+                      style: TextStyle(color: r.vurgu, fontSize: 10.5, letterSpacing: 2, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(14)),
@@ -392,7 +403,7 @@ class PanelBasligi extends StatelessWidget {
                   Uyg.panelAdi,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
                 ),
                 if (Uyg.panelAlt.isNotEmpty)
                   Text(
@@ -401,33 +412,7 @@ class PanelBasligi extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Avatar(ad, boyut: 30, tohum: Uyg.adres),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            ad,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
-                          ),
-                          Text(
-                            rolEtiketi(Uyg.rol),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Color(0xFF7CF0B5), fontSize: 11.5, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (taklit) ...[const SizedBox(height: 8), const Rozet('Müşteri görünümü', renk: Marka.kehribar, ikon: Icons.visibility_rounded)],
+                if (taklit) ...[const SizedBox(height: 8), const Rozet('Müşteri görünümü', renk: Marka.kehribar, ikon: Simgeler.visibility)],
               ],
             ),
           ),
@@ -461,9 +446,9 @@ class DahaFazlaEkrani extends StatelessWidget {
             const PanelBasligi(dolgu: EdgeInsets.fromLTRB(4, 0, 4, 8)),
             for (final (g, liste) in gruplar) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
+                padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
                 child: Text(trBuyuk(g.baslik),
-                    style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 1)),
               ),
               Kutu(
                 padding: EdgeInsets.zero,
@@ -484,7 +469,7 @@ class DahaFazlaEkrani extends StatelessWidget {
                                 label: Text(sayiYaz(rozet[b])),
                               ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.chevron_right_rounded),
+                            const Icon(Simgeler.chevronRight),
                           ],
                         ),
                         onTap: () => ac(b),
@@ -495,26 +480,7 @@ class DahaFazlaEkrani extends StatelessWidget {
               ),
             ],
             const Baslik('Hesap'),
-            Kutu(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Icon(Bolum.ayarlar.ikon, color: r.birincil),
-                    title: const Text('Ayarlar ve profil'),
-                    subtitle: const Text('Tema, bildirimler, oturumlar, güncelleme'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => ac(Bolum.ayarlar),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  ListTile(
-                    leading: const Icon(Icons.logout_rounded, color: Marka.gul),
-                    title: Text(Uyg.taklit != null ? 'Görünümden çık' : 'Çıkış yap', style: const TextStyle(color: Marka.gul)),
-                    onTap: () => cikisOnayi(context),
-                  ),
-                ],
-              ),
-            ),
+            Kutu(padding: EdgeInsets.zero, child: HesapBlogu(ac: ac, dolgu: const EdgeInsets.all(4))),
             const SizedBox(height: 16),
             const SurumEtiketi(ortala: true),
           ],

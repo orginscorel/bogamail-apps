@@ -10,6 +10,7 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/operasyon.dart';
 import 'liste_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Karantina (GET /quarantine): virüs / engellenen ek / spam nedeniyle tutulan iletiler. Sunucu en yeni 200 kaydı
 /// döndürür; tablo yerelde sayfalanır.
@@ -66,24 +67,24 @@ class _KarantinaEkraniState extends State<KarantinaEkrani> {
                   ? 'Virüs tarayıcısı yapılandırılmamış; yalnızca ek ve spam kuralları uygulanıyor.'
                   : 'Virüs tarayıcısına ulaşılamıyor; tarama yapılamayan iletiler geçici hatayla ertelenebilir.',
               renk: tarayiciKapali ? Marka.kehribar : Marka.gul,
-              ikon: Icons.coronavirus_outlined,
+              ikon: Simgeler.coronavirus,
             ),
           ),
         if (_ozet.isNotEmpty)
           Padding(
-            padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 2),
+            padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 2),
             child: Izgara(
               enAz: 170,
               bosluk: 8,
               children: [
-                OzetKutusu('Bekleyen', sayiYaz(tamsayi(_ozet['held'])), ikon: Icons.inventory_2_outlined, renk: tamsayi(_ozet['held']) > 0 ? Marka.mor : null),
+                OzetKutusu('Bekleyen', sayiYaz(tamsayi(_ozet['held'])), ikon: Simgeler.inventory2, renk: tamsayi(_ozet['held']) > 0 ? Marka.mor : null),
                 OzetKutusu(
                   'Virüs (7 gün)',
                   sayiYaz(tamsayi(_ozet['virus_7d'])),
-                  ikon: Icons.coronavirus_outlined,
+                  ikon: Simgeler.coronavirus,
                   renk: tamsayi(_ozet['virus_7d']) > 0 ? Marka.gul : null,
                 ),
-                OzetKutusu('Engellenen ek (7 gün)', sayiYaz(tamsayi(_ozet['blocked_7d'])), ikon: Icons.attach_file_rounded),
+                OzetKutusu('Engellenen ek (7 gün)', sayiYaz(tamsayi(_ozet['blocked_7d'])), ikon: Simgeler.attachFile),
                 OzetKutusu(
                   'Virüs tarayıcısı',
                   switch (metin(_tarayici['status'])) {
@@ -91,7 +92,7 @@ class _KarantinaEkraniState extends State<KarantinaEkrani> {
                     'down' => 'Ulaşılamıyor',
                     _ => 'Kapalı',
                   },
-                  ikon: Icons.health_and_safety_outlined,
+                  ikon: Simgeler.healthAndSafety,
                   renk: switch (metin(_tarayici['status'])) {
                     'ok' => Marka.zumrut,
                     'down' => Marka.gul,
@@ -101,20 +102,20 @@ class _KarantinaEkraniState extends State<KarantinaEkrani> {
               ],
             ),
           ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         FiltreCubugu(
           arama: AramaAlani(ipucu: 'Konu, gönderen veya alıcı…', degisti: (v) => _filtre(() => _q = v)),
           filtreler: [
             FiltreDugmesi<String>(
               etiket: 'Durum',
-              ikon: Icons.flag_outlined,
+              ikon: Simgeler.flag,
               secenekler: [for (final e in durumlar.entries) (e.key, e.value)],
               secili: _durum,
               secildi: (v) => _filtre(() => _durum = v),
             ),
             FiltreDugmesi<String>(
               etiket: 'Neden',
-              ikon: Icons.report_outlined,
+              ikon: Simgeler.report,
               secenekler: [('', 'Tüm nedenler'), for (final e in karantinaNedenleri.entries) (e.key, e.value)],
               secili: _neden,
               secildi: (v) => _filtre(() => _neden = v),
@@ -142,8 +143,8 @@ class _KarantinaEkraniState extends State<KarantinaEkrani> {
       govde: VeriTablosu<KarantinaOgesi>(
         yukleyici: _y,
         onTap: _ac,
-        eylemler: (k) => [SatirEylemi(Icons.open_in_new_rounded, 'Ayrıntı ve işlemler', () => _ac(k))],
-        bosIkon: Icons.shield_outlined,
+        eylemler: (k) => [SatirEylemi(Simgeler.openInNew, 'Ayrıntı ve işlemler', () => _ac(k))],
+        bosIkon: Simgeler.shield,
         bosMetin: _durum == 'held' && _neden.isEmpty && _q.isEmpty ? 'Karantinada bekleyen ileti yok.' : 'Eşleşen kayıt yok.',
         ust: ust,
         sutunlar: [
@@ -186,9 +187,9 @@ class KarantinaIkonu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (ikon, renk) = switch (neden) {
-      'virus' => (Icons.coronavirus_rounded, Marka.gul),
-      'blocked_attachment' => (Icons.attach_file_rounded, Marka.kehribar),
-      _ => (Icons.report_rounded, Marka.mor),
+      'virus' => (Simgeler.coronavirus, Marka.gul),
+      'blocked_attachment' => (Simgeler.attachFile, Marka.kehribar),
+      _ => (Simgeler.report, Marka.mor),
     };
     return Container(
       width: 40,
@@ -300,14 +301,14 @@ class _KarantinaDetayState extends State<KarantinaDetay> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(karantinaNedenleri[k.neden] ?? k.neden, style: gosterim(16, agirlik: FontWeight.w700)),
+                          Text(karantinaNedenleri[k.neden] ?? k.neden, style: gosterim(16, agirlik: FontWeight.w600)),
                           Text(karantinaDurumlari[k.durum] ?? k.durum, style: TextStyle(color: r.silik, fontSize: 12.5)),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 BilgiSatiri('Konu', k.konu.isEmpty ? '(konu yok)' : k.konu),
                 BilgiSatiri('Kimden', kimden.isNotEmpty ? kimden : (k.kimden.isEmpty ? '—' : k.kimden)),
                 BilgiSatiri('Zarf göndereni', k.zarfGonderen.isEmpty ? '<>' : k.zarfGonderen),
@@ -335,11 +336,11 @@ class _KarantinaDetayState extends State<KarantinaDetay> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(
-                            k.neden == 'virus' ? Icons.coronavirus_outlined : Icons.warning_amber_rounded,
+                            k.neden == 'virus' ? Simgeler.coronavirus : Simgeler.warningAmber,
                             size: 18,
                             color: k.neden == 'virus' ? Marka.gul : Marka.kehribar,
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,18 +361,18 @@ class _KarantinaDetayState extends State<KarantinaDetay> {
           if (k.durum == 'held' && _yetkili) ...[
             const Baslik('İşlemler'),
             if (_serbestBirakabilir) ...[
-              EylemSatiri(ikon: Icons.mark_email_read_rounded, baslik: 'Serbest bırak', ipucu: 'Alıcılara teslim et', onTap: _serbest),
+              EylemSatiri(ikon: Simgeler.markEmailRead, baslik: 'Serbest bırak', ipucu: 'Alıcılara teslim et', onTap: _serbest),
               const SizedBox(height: 8),
             ] else
               const Padding(padding: EdgeInsets.only(bottom: 8), child: Bant('Virüslü iletiyi yalnızca platform yöneticisi serbest bırakabilir.')),
-            EylemSatiri(ikon: Icons.delete_outline_rounded, baslik: 'Sil', ipucu: 'Teslim etmeden kalıcı olarak sil', tehlikeli: true, onTap: _sil),
+            EylemSatiri(ikon: Simgeler.deleteOutline, baslik: 'Sil', ipucu: 'Teslim etmeden kalıcı olarak sil', tehlikeli: true, onTap: _sil),
           ],
           const Baslik('İçerik'),
           if (_hata != null)
             Bant(
               _hata!,
               renk: Marka.gul,
-              ikon: Icons.error_outline_rounded,
+              ikon: Simgeler.errorOutline,
               eylem: TextButton(onPressed: _yukle, child: const Text('Tekrar dene')),
             )
           else if (g == null)
@@ -383,14 +384,14 @@ class _KarantinaDetayState extends State<KarantinaDetay> {
                     'İleti içeriği güvenlik nedeniyle gizli. Açtığınızda görüntüleme denetim kaydına yazılır.',
                     style: TextStyle(color: r.soluk, fontSize: 13),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton.icon(
                       onPressed: _yukleniyor ? null : _yukle,
                       icon: _yukleniyor
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.visibility_rounded, size: 18),
+                          : const Icon(Simgeler.visibility, size: 18),
                       label: const Text('İçeriği göster'),
                     ),
                   ),
@@ -421,11 +422,11 @@ class _KarantinaDetayState extends State<KarantinaDetay> {
                     ),
                     for (final e in ekler)
                       Padding(
-                        padding: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.only(top: 8),
                         child: Row(
                           children: [
-                            Icon(Icons.attach_file_rounded, size: 17, color: r.silik),
-                            const SizedBox(width: 6),
+                            Icon(Simgeler.attachFile, size: 17, color: r.silik),
+                            const SizedBox(width: 8),
                             Expanded(child: Text(metin(e['filename'], '(adsız)'), overflow: TextOverflow.ellipsis)),
                             Text('${metin(e['content_type'])} · ${boyutYaz(tamsayi(e['size']))}', style: TextStyle(color: r.silik, fontSize: 12)),
                           ],

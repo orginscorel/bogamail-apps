@@ -8,6 +8,7 @@ import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import '../veri/tehdit_modeller.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 // Tehdit Koruması: tıklama engel listesi, korunan kişiler (VIP) + müşteri ayarları, bağlantı listesi, IP/ASN itibarı.
 
@@ -69,7 +70,7 @@ class _ListeEkleDialogState extends State<_ListeEkleDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text(widget.baslik, style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 460,
       child: SingleChildScrollView(
@@ -77,17 +78,17 @@ class _ListeEkleDialogState extends State<_ListeEkleDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.aciklama != null) ...[Aciklama(widget.aciklama!), const SizedBox(height: 14)],
+            if (widget.aciklama != null) ...[Aciklama(widget.aciklama!), const SizedBox(height: 16)],
             if (widget.turSec) ...[
               SegmentedButton<String>(
                 segments: [
-                  const ButtonSegment(value: 'block', icon: Icon(Icons.gpp_bad_outlined, size: 18), label: Text('Engel')),
-                  if (Uyg.ortak) const ButtonSegment(value: 'allow', icon: Icon(Icons.verified_outlined, size: 18), label: Text('İzin')),
+                  const ButtonSegment(value: 'block', icon: Icon(Simgeler.gppBad, size: 18), label: Text('Engel')),
+                  if (Uyg.ortak) const ButtonSegment(value: 'allow', icon: Icon(Simgeler.verified, size: 18), label: Text('İzin')),
                 ],
                 selected: {_tur},
                 onSelectionChanged: (s) => setState(() => _tur = s.first),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
             ],
             TextField(
               controller: _deger,
@@ -121,7 +122,7 @@ class _ListeEkleDialogState extends State<_ListeEkleDialog> {
   );
 }
 
-Widget _ekleDugmesi(String etiket, VoidCallback fn) => FilledButton.tonalIcon(onPressed: fn, icon: const Icon(Icons.add_rounded, size: 18), label: Text(etiket));
+Widget _ekleDugmesi(String etiket, VoidCallback fn) => FilledButton.tonalIcon(onPressed: fn, icon: const Icon(Simgeler.add, size: 18), label: Text(etiket));
 
 // ---- tıklama engel listesi ----------------------------------------------------------------------------------
 
@@ -168,14 +169,14 @@ class _TiklamaEngelListesiState extends State<TiklamaEngelListesi> {
   }
 
   List<SatirEylemi> _eylemler(ListeKaydi k) => [
-    if (_yonetir && (Uyg.platformYoneticisi || k.orgId != null)) SatirEylemi(Icons.delete_outline_rounded, 'Kaldır', () => _sil(k), tehlikeli: true),
+    if (_yonetir && (Uyg.platformYoneticisi || k.orgId != null)) SatirEylemi(Simgeler.deleteOutline, 'Kaldır', () => _sil(k), tehlikeli: true),
   ];
 
   @override
   Widget build(BuildContext context) => VeriTablosu<ListeKaydi>(
     yukleyici: _y,
     bosMetin: 'Tıklama engel listesi boş.',
-    bosIkon: Icons.block_rounded,
+    bosIkon: Simgeler.block,
     eylemler: _eylemler,
     ust: FiltreCubugu(
       arama: const Aciklama('Listedeki bir bağlantıya tıklandığında, ileti teslim edildikten sonra eklenmiş olsa bile sayfa açılmaz.'),
@@ -243,7 +244,7 @@ class _TehditKorunanKisilerState extends State<TehditKorunanKisiler> {
   }
 
   List<SatirEylemi> _eylemler(KorunanKisi k) => [
-    if (_yonetir) SatirEylemi(Icons.person_remove_outlined, 'Listeden çıkar', () => _sil(k), tehlikeli: true),
+    if (_yonetir) SatirEylemi(Simgeler.personRemove, 'Listeden çıkar', () => _sil(k), tehlikeli: true),
   ];
 
   @override
@@ -252,13 +253,13 @@ class _TehditKorunanKisilerState extends State<TehditKorunanKisiler> {
     return VeriTablosu<KorunanKisi>(
       yukleyici: _y,
       bosMetin: 'Korunan kişi listesi boş.',
-      bosIkon: Icons.badge_outlined,
+      bosIkon: Simgeler.badge,
       eylemler: _eylemler,
       ust: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 10, 16, 6),
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Aciklama(
               'Dışarıdan gelen bir iletinin görünen adı bu kişilerle eşleşirse (büyük/küçük harf, Türkçe karakter, benzer görünen harfler ve '
               'boşluklar yok sayılır) ileti puanlanır ve alıcıya "… gibi görünüyor ama dışarıdan geldi" uyarısı gösterilir. Kişinin gerçekten '
@@ -280,7 +281,7 @@ class _TehditKorunanKisilerState extends State<TehditKorunanKisiler> {
                 ),
               if (_orgId != null)
                 ActionChip(
-                  avatar: const Icon(Icons.tune_rounded, size: 17),
+                  avatar: const Icon(Simgeler.tune, size: 17),
                   label: const Text('Müşteri ayarları'),
                   visualDensity: VisualDensity.compact,
                   onPressed: () => showDialog<void>(context: context, builder: (_) => MusteriTehditAyarlari(orgId: _orgId!)),
@@ -355,7 +356,7 @@ class _KisiEkleDialogState extends State<_KisiEkleDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text('Korunan kişi ekle', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Korunan kişi ekle', style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 460,
       child: SingleChildScrollView(
@@ -374,7 +375,7 @@ class _KisiEkleDialogState extends State<_KisiEkleDialog> {
                 helperText: 'Virgül veya boşlukla ayırın (en fazla 10).',
               ),
             ),
-            if (_hata != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 12.5))),
+            if (_hata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 12.5))),
           ],
         ),
       ),
@@ -452,10 +453,10 @@ class _MusteriTehditAyarlariState extends State<MusteriTehditAyarlari> {
           Align(
             alignment: Alignment.centerLeft,
             child: mantik(v['feature_enabled'])
-                ? const Rozet('Kimlik taklidi koruması pakette açık', renk: Marka.zumrut, ikon: Icons.check_rounded)
+                ? const Rozet('Kimlik taklidi koruması pakette açık', renk: Marka.zumrut, ikon: Simgeler.check)
                 : const Rozet('Kimlik taklidi koruması pakette yok', renk: Marka.kehribar),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const Aciklama(
             'DKIM/DMARC doğrulaması, kendi alan adınızı taklit eden iletiler ve bağlantı denetimi tüm paketlerde çalışır. Görünen ad (VIP) ve '
             'benzer alan adı denetimi "Kimlik taklidi ve benzer alan adı koruması" paket özelliğiyle açılır.',
@@ -488,13 +489,13 @@ class _MusteriTehditAyarlariState extends State<MusteriTehditAyarlari> {
           ),
           if (_salt) ...[
             const SizedBox(height: 8),
-            const Bant('Bu ayarlar platform politikasıdır; yalnızca platform ya da bayi yöneticisi değiştirebilir.', ikon: Icons.policy_outlined),
+            const Bant('Bu ayarlar platform politikasıdır; yalnızca platform ya da bayi yöneticisi değiştirebilir.', ikon: Simgeler.policy),
           ],
         ],
       );
     }
     return AlertDialog(
-      title: Text('Müşteri tehdit ayarları', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Müşteri tehdit ayarları', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(width: 520, child: SingleChildScrollView(child: govde)),
       actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Kapat'))],
     );
@@ -546,18 +547,18 @@ class _TehditBaglantiListesiState extends State<TehditBaglantiListesi> {
   }
 
   List<SatirEylemi> _eylemler(ListeKaydi k) => [
-    if (_yonetir && (Uyg.platformYoneticisi || k.orgId != null)) SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), tehlikeli: true),
+    if (_yonetir && (Uyg.platformYoneticisi || k.orgId != null)) SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(k), tehlikeli: true),
   ];
 
   Widget _turRozeti(ListeKaydi k) => k.tur == 'allow'
-      ? const Rozet('İzin', renk: Marka.zumrut, ikon: Icons.verified_outlined)
-      : const Rozet('Engel', renk: Marka.gul, ikon: Icons.gpp_bad_outlined);
+      ? const Rozet('İzin', renk: Marka.zumrut, ikon: Simgeler.verified)
+      : const Rozet('Engel', renk: Marka.gul, ikon: Simgeler.gppBad);
 
   @override
   Widget build(BuildContext context) => VeriTablosu<ListeKaydi>(
     yukleyici: _y,
     bosMetin: 'Bağlantı listesi boş.',
-    bosIkon: Icons.link_rounded,
+    bosIkon: Simgeler.link,
     eylemler: _eylemler,
     ust: FiltreCubugu(
       arama: const Aciklama('Engel: +8 puan. İzin: o bağlantıya hiçbir bağlantı kuralı uygulanmaz (ör. bülten servisinizin yönlendirme alan adı).'),
@@ -656,7 +657,7 @@ class _TehditItibarState extends State<TehditItibar> {
       icerik: [
         if (a.liste != 'block')
           EylemSatiri(
-            ikon: Icons.block_rounded,
+            ikon: Simgeler.block,
             baslik: 'Engel listesine ekle',
             ipucu: 'Bu AS\'den gelen her ileti +10 puan alır (platform geneli).',
             tehlikeli: true,
@@ -665,7 +666,7 @@ class _TehditItibarState extends State<TehditItibar> {
         if (a.liste != 'allow') ...[
           const SizedBox(height: 8),
           EylemSatiri(
-            ikon: Icons.how_to_reg_outlined,
+            ikon: Simgeler.howToReg,
             baslik: 'İzin listesine ekle',
             ipucu: '−3 puan; DMARC ve diğer denetimler yine uygulanır.',
             onTap: () => sec('allow'),
@@ -673,7 +674,7 @@ class _TehditItibarState extends State<TehditItibar> {
         ],
         if (a.liste != null) ...[
           const SizedBox(height: 8),
-          EylemSatiri(ikon: Icons.delete_outline_rounded, baslik: 'Listeden çıkar', ipucu: 'ASN için özel puan uygulanmaz.', onTap: () => sec(null)),
+          EylemSatiri(ikon: Simgeler.deleteOutline, baslik: 'Listeden çıkar', ipucu: 'ASN için özel puan uygulanmaz.', onTap: () => sec(null)),
         ],
       ],
     );
@@ -688,13 +689,13 @@ class _TehditItibarState extends State<TehditItibar> {
   @override
   Widget build(BuildContext context) {
     final secici = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Align(
         alignment: Alignment.centerLeft,
         child: SegmentedButton<int>(
           segments: const [
-            ButtonSegment(value: 0, icon: Icon(Icons.hub_outlined, size: 18), label: Text('ASN itibarı')),
-            ButtonSegment(value: 1, icon: Icon(Icons.dns_outlined, size: 18), label: Text('IP itibarı')),
+            ButtonSegment(value: 0, icon: Icon(Simgeler.hub, size: 18), label: Text('ASN itibarı')),
+            ButtonSegment(value: 1, icon: Icon(Simgeler.dns, size: 18), label: Text('IP itibarı')),
           ],
           selected: {_gorunum},
           onSelectionChanged: (s) => setState(() => _gorunum = s.first),
@@ -706,7 +707,7 @@ class _TehditItibarState extends State<TehditItibar> {
         key: const ValueKey('asn'),
         yukleyici: _asn,
         bosMetin: 'Veri yok. İlk iletiler geldikçe dolar.',
-        bosIkon: Icons.hub_outlined,
+        bosIkon: Simgeler.hub,
         siralama: _asnSira,
         artan: _asnArtan,
         siralamaDegisti: (a, b) {
@@ -717,13 +718,13 @@ class _TehditItibarState extends State<TehditItibar> {
           _asn.yenile();
         },
         onTap: _yonet,
-        eylemler: (a) => [SatirEylemi(Icons.tune_rounded, 'Listeyi yönet', () => _yonet(a))],
+        eylemler: (a) => [SatirEylemi(Simgeler.tune, 'Listeyi yönet', () => _yonet(a))],
         ust: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             secici,
             const Padding(
-              padding: EdgeInsets.fromLTRB(16, 6, 16, 4),
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Aciklama(
                 'İstemci IP\'sinin AS numarası Team Cymru DNS servisiyle bulunur ve 24 saat önbelleğe alınır. Oranlar yalnızca bizim sunucumuza '
                 'gelen iletilerden hesaplanır. Engel listesi +10 puan (tek başına Önemsiz), izin listesi −3 puan.',
@@ -747,7 +748,7 @@ class _TehditItibarState extends State<TehditItibar> {
             hucre: (c, a) => Row(
               children: [
                 Text('AS${a.asn}', style: const TextStyle(fontFamily: 'monospace', fontSize: 13, fontWeight: FontWeight.w600)),
-                if (_listeRozeti(a) != null) ...[const SizedBox(width: 6), _listeRozeti(a)!],
+                if (_listeRozeti(a) != null) ...[const SizedBox(width: 8), _listeRozeti(a)!],
                 const SizedBox(width: 8),
                 Expanded(child: SolukMetin(a.ad)),
               ],
@@ -777,7 +778,7 @@ class _TehditItibarState extends State<TehditItibar> {
       key: const ValueKey('ip'),
       yukleyici: _ip,
       bosMetin: 'Veri yok.',
-      bosIkon: Icons.dns_outlined,
+      bosIkon: Simgeler.dns,
       siralama: _ipSira,
       artan: _ipArtan,
       siralamaDegisti: (a, b) {
@@ -792,7 +793,7 @@ class _TehditItibarState extends State<TehditItibar> {
         children: [
           secici,
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 6, 16, 4),
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Aciklama(
               'Puan = spam veya ret oranı (%). En az 10 iletisi olan IP\'lerde %80 ve üzeri +2, %50 ve üzeri +1 puan; 20+ temiz iletide −0,5 puan. '
               'IP engellemek için Spam Güvenliği listelerini kullanın.',
@@ -819,7 +820,7 @@ class _TehditItibarState extends State<TehditItibar> {
           genislik: 80,
           siralama: 'score',
           sagaYasla: true,
-          hucre: (c, i) => Text(i.puan.toStringAsFixed(0), style: TextStyle(fontWeight: FontWeight.w700, color: i.puan >= 50 ? Marka.gul : null)),
+          hucre: (c, i) => Text(i.puan.toStringAsFixed(0), style: TextStyle(fontWeight: FontWeight.w600, color: i.puan >= 50 ? Marka.gul : null)),
         ),
       ],
       kart: (c, i) => VeriKarti(

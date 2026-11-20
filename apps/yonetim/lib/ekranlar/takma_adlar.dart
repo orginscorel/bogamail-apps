@@ -11,6 +11,7 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import 'liste_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Takma adlar ve yönlendirme: takma adlar, dağıtım listeleri (GET/POST/PATCH/DELETE /aliases), alan adı bazında
 /// catch-all (GET /catchall, PUT /domains/{id}/catchall) ve posta kutusu yönlendirmeleri (/mailboxes/{id}/forwarding).
@@ -57,16 +58,16 @@ class _TakmaAdlarEkraniState extends State<TakmaAdlarEkrani> with SingleTickerPr
       baslik: widget.alanAdi == null ? 'Takma Adlar ve Yönlendirme' : 'Takma Adlar · ${widget.alanAdi}',
       alt: 'Takma adlar, dağıtım listeleri, catch-all ve posta kutusu yönlendirmeleri',
       yenile: _yenile,
-      birincil: _yonetir && i < 2 ? BirincilEylem(Icons.add_rounded, i == 1 ? 'Yeni liste' : 'Yeni takma ad', _yeni) : null,
+      birincil: _yonetir && i < 2 ? BirincilEylem(Simgeler.add, i == 1 ? 'Yeni liste' : 'Yeni takma ad', _yeni) : null,
       sekmeler: TabBar(
         controller: _sekme,
         isScrollable: true,
         tabAlignment: TabAlignment.start,
         tabs: const [
-          Tab(icon: Icon(Icons.alternate_email_rounded, size: 18), text: 'Takma adlar', iconMargin: EdgeInsets.zero),
-          Tab(icon: Icon(Icons.groups_rounded, size: 18), text: 'Dağıtım listeleri', iconMargin: EdgeInsets.zero),
-          Tab(icon: Icon(Icons.inbox_rounded, size: 18), text: 'Catch-all', iconMargin: EdgeInsets.zero),
-          Tab(icon: Icon(Icons.forward_to_inbox_rounded, size: 18), text: 'Yönlendirme', iconMargin: EdgeInsets.zero),
+          Tab(icon: Icon(Simgeler.alternateEmail, size: 18), text: 'Takma adlar', iconMargin: EdgeInsets.zero),
+          Tab(icon: Icon(Simgeler.groups, size: 18), text: 'Dağıtım listeleri', iconMargin: EdgeInsets.zero),
+          Tab(icon: Icon(Simgeler.inbox, size: 18), text: 'Catch-all', iconMargin: EdgeInsets.zero),
+          Tab(icon: Icon(Simgeler.forwardToInbox, size: 18), text: 'Yönlendirme', iconMargin: EdgeInsets.zero),
         ],
       ),
       govde: TabBarView(
@@ -161,14 +162,14 @@ class _TakmaAdTablosuState extends State<_TakmaAdTablosu> with AutomaticKeepAliv
   }
 
   List<SatirEylemiDugmesi> _eylemDugmeleri(TakmaAd t) => [
-    SatirEylemiDugmesi(Icons.edit_outlined, 'Düzenle', () => _duzenle(t), ipucu: t.liste ? 'Üyeler, ad, gönderim izni' : 'Hedef adresler'),
+    SatirEylemiDugmesi(Simgeler.edit, 'Düzenle', () => _duzenle(t), ipucu: t.liste ? 'Üyeler, ad, gönderim izni' : 'Hedef adresler'),
     SatirEylemiDugmesi(
-      Icons.power_settings_new_rounded,
+      Simgeler.powerSettingsNew,
       t.etkin ? 'Devre dışı bırak' : 'Etkinleştir',
       () => _ac2(t),
       ipucu: t.etkin ? 'Gelen posta reddedilir' : 'Postayı yeniden dağıt',
     ),
-    SatirEylemiDugmesi(Icons.delete_outline_rounded, 'Sil', () => _sil(t), ipucu: 'Adres boşa çıkar', tehlikeli: true),
+    SatirEylemiDugmesi(Simgeler.deleteOutline, 'Sil', () => _sil(t), ipucu: 'Adres boşa çıkar', tehlikeli: true),
   ];
 
   Future<void> _ac2(TakmaAd t) async {
@@ -203,7 +204,7 @@ class _TakmaAdTablosuState extends State<_TakmaAdTablosu> with AutomaticKeepAliv
       width: 36,
       height: 36,
       decoration: BoxDecoration(color: r.birincilYumusak, borderRadius: BorderRadius.circular(10)),
-      child: Icon(liste ? Icons.groups_rounded : Icons.alternate_email_rounded, color: r.birincil, size: 18),
+      child: Icon(liste ? Simgeler.groups : Simgeler.alternateEmail, color: r.birincil, size: 18),
     );
     return VeriTablosu<TakmaAd>(
       yukleyici: _y,
@@ -214,7 +215,7 @@ class _TakmaAdTablosuState extends State<_TakmaAdTablosu> with AutomaticKeepAliv
           : liste
           ? 'Henüz dağıtım listesi yok. Örn. satis@ adresine gelen postayı ekibin tamamına dağıtın.'
           : 'Henüz takma ad yok. Örn. info@ adresini bir veya birden çok posta kutusuna yönlendirin.',
-      bosIkon: liste ? Icons.groups_rounded : Icons.alternate_email_rounded,
+      bosIkon: liste ? Simgeler.groups : Simgeler.alternateEmail,
       ust: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -230,7 +231,7 @@ class _TakmaAdTablosuState extends State<_TakmaAdTablosu> with AutomaticKeepAliv
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Durum',
-                ikon: Icons.toggle_on_outlined,
+                ikon: Simgeler.toggleOn,
                 secenekler: const [('', 'Tümü'), ('on', 'Etkin'), ('off', 'Devre dışı')],
                 secili: _durum,
                 secildi: (v) {
@@ -253,7 +254,7 @@ class _TakmaAdTablosuState extends State<_TakmaAdTablosu> with AutomaticKeepAliv
               child: const Bant(
                 'Dış adreslere yönlendirme kapalı: sunucu giden posta modu doğrudan gönderim değil. Yalnızca kurum içi adresler hedef olabilir.',
                 renk: Marka.kehribar,
-                ikon: Icons.warning_amber_rounded,
+                ikon: Simgeler.warningAmber,
               ),
             ),
         ],
@@ -361,11 +362,11 @@ class _CatchAllTablosuState extends State<_CatchAllTablosu> with AutomaticKeepAl
     return VeriTablosu<_CatchAll>(
       yukleyici: _y,
       onTap: widget.yonetir ? _duzenle : null,
-      eylemler: widget.yonetir ? (c) => [SatirEylemi(Icons.edit_outlined, 'Catch-all kutusunu seç', () => _duzenle(c))] : null,
+      eylemler: widget.yonetir ? (c) => [SatirEylemi(Simgeler.edit, 'Catch-all kutusunu seç', () => _duzenle(c))] : null,
       bosMetin: _q.isEmpty
           ? 'Barındırılan alan adı yok. Catch-all yalnızca posta barındırma (hosting) alan adlarında kullanılabilir.'
           : 'Eşleşen alan adı yok.',
-      bosIkon: Icons.inbox_rounded,
+      bosIkon: Simgeler.inbox,
       ust: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -401,7 +402,7 @@ class _CatchAllTablosuState extends State<_CatchAllTablosu> with AutomaticKeepAl
         baslik: x.alan,
         alt: Uyg.musteri ? null : x.orgAdi,
         rozetler: [x.kutu == null ? Rozet('Kapalı', renk: c.r.silik) : Rozet('→ ${x.kutu}', renk: Marka.zumrut)],
-        eylemler: widget.yonetir ? [SatirEylemi(Icons.edit_outlined, 'Catch-all kutusunu seç', () => _duzenle(x))] : const [],
+        eylemler: widget.yonetir ? [SatirEylemi(Simgeler.edit, 'Catch-all kutusunu seç', () => _duzenle(x))] : const [],
         onTap: widget.yonetir ? () => _duzenle(x) : null,
       ),
     );
@@ -475,9 +476,9 @@ class _YonlendirmeTablosuState extends State<_YonlendirmeTablosu> with Automatic
         });
         _y.yenile();
       },
-      eylemler: (m) => [SatirEylemi(Icons.forward_to_inbox_rounded, 'Yönlendirme', () => _ac(m))],
+      eylemler: (m) => [SatirEylemi(Simgeler.forwardToInbox, 'Yönlendirme', () => _ac(m))],
       bosMetin: _q.isEmpty ? 'Posta kutusu yok.' : 'Eşleşen posta kutusu yok.',
-      bosIkon: Icons.forward_to_inbox_rounded,
+      bosIkon: Simgeler.forwardToInbox,
       ust: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -492,7 +493,7 @@ class _YonlendirmeTablosuState extends State<_YonlendirmeTablosu> with Automatic
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(yatay, 0, yatay, 6),
+            padding: EdgeInsets.fromLTRB(yatay, 0, yatay, 8),
             child: Text(
               'Bir posta kutusunun gelen postasını başka adrese iletin. Kullanıcılar (paket izin veriyorsa) kendi yönlendirmelerini webmail ayarlarından da yönetebilir. Döngüler engellenir; dış yönlendirmeler günlük üst sınıra tabidir.',
               style: TextStyle(color: context.r.silik, fontSize: 12.5),
@@ -514,7 +515,7 @@ class _YonlendirmeTablosuState extends State<_YonlendirmeTablosu> with Automatic
         baslik: m.adres,
         alt: [m.gorunenAd, if (!Uyg.musteri) m.orgAdi].where((x) => x.isNotEmpty).join(' · '),
         rozetler: [if (m.durum != 'active') DurumRozeti(m.durum)],
-        eylemler: [SatirEylemi(Icons.forward_to_inbox_rounded, 'Yönlendirme', () => _ac(m))],
+        eylemler: [SatirEylemi(Simgeler.forwardToInbox, 'Yönlendirme', () => _ac(m))],
         onTap: () => _ac(m),
       ),
     );
@@ -593,7 +594,7 @@ class _YonlendirmeDialogState extends State<YonlendirmeDialog> {
     final r = context.r;
     final duzenler = widget.yonetir && _izinli;
     return AlertDialog(
-      title: Text('Yönlendirme', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Yönlendirme', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 440,
         child: !_yuklendi
@@ -606,8 +607,8 @@ class _YonlendirmeDialogState extends State<YonlendirmeDialog> {
                   const SizedBox(height: 12),
                   if (!_izinli)
                     const Padding(
-                      padding: EdgeInsets.only(bottom: 10),
-                      child: Bant('Yönlendirme bu posta kutusu için kapalı (paket veya kutu ayarı).', renk: Marka.kehribar, ikon: Icons.lock_outline_rounded),
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Bant('Yönlendirme bu posta kutusu için kapalı (paket veya kutu ayarı).', renk: Marka.kehribar, ikon: Simgeler.lockOutline),
                     ),
                   TextField(
                     controller: _hedef,
@@ -620,7 +621,7 @@ class _YonlendirmeDialogState extends State<YonlendirmeDialog> {
                       helperText: _disIzinli ? null : 'Bu posta kutusu yalnızca iç adreslere yönlendirilebilir.',
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     value: _sakla,
@@ -632,7 +633,7 @@ class _YonlendirmeDialogState extends State<YonlendirmeDialog> {
                       'Son ayarlayan: ${_ayarlayan.startsWith('admin:') ? 'yönetici (${_ayarlayan.substring(6)})' : (_ayarlayan == 'user' ? 'kullanıcı (webmail)' : _ayarlayan)}',
                       style: TextStyle(color: r.silik, fontSize: 12),
                     ),
-                  if (_hata != null) ...[const SizedBox(height: 10), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+                  if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
                 ],
               ),
       ),
@@ -728,7 +729,7 @@ class _TakmaAdDialogState extends State<TakmaAdDialog> {
         widget.mevcut?.adres ?? (widget.liste ? 'Yeni dağıtım listesi' : 'Yeni takma ad'),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: gosterim(19, agirlik: FontWeight.w700),
+        style: gosterim(19, agirlik: FontWeight.w600),
       ),
       content: SizedBox(
         width: 460,
@@ -802,7 +803,7 @@ class _TakmaAdDialogState extends State<TakmaAdDialog> {
                   'Kimler gönderebilir?',
                   style: TextStyle(color: context.r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 SecimCipleri<String>(
                   secenekler: [for (final e in gonderimIzinleri.entries) (e.key, e.value)],
                   secili: _izin,
@@ -811,7 +812,7 @@ class _TakmaAdDialogState extends State<TakmaAdDialog> {
               ],
               if (_hata != null && !{'domain_id', 'local_part', 'destinations'}.contains(_alan)) ...[
                 const SizedBox(height: 12),
-                Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ],
           ),

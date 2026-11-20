@@ -18,6 +18,9 @@ import UserNotifications
     if let r = engineBridge.pluginRegistry.registrar(forPlugin: "BogaPush") {
       BogaPush.register(with: r)
     }
+    // Eklentiler (flutter_local_notifications vb.) temsilciyi değiştirmiş olabilir: APNs dokunma/öndeyken gösterme
+    // BogaPush'ta kalsın.
+    UNUserNotificationCenter.current().delegate = BogaPush.shared
   }
 }
 
@@ -47,6 +50,17 @@ final class BogaPush: NSObject, FlutterPlugin, UNUserNotificationCenterDelegate 
           UIApplication.shared.registerForRemoteNotifications()
           DispatchQueue.main.asyncAfter(deadline: .now() + 20) { self.bitir(nil) }
         }
+      }
+    case "izin":
+      // Bildirim izin durumu: verildi | reddedildi | sorulmadi (Dart: lib/veri/bildirim_izni.dart).
+      UNUserNotificationCenter.current().getNotificationSettings { s in
+        let v: String
+        switch s.authorizationStatus {
+        case .authorized, .provisional: v = "verildi"
+        case .denied: v = "reddedildi"
+        default: v = "sorulmadi"
+        }
+        DispatchQueue.main.async { result(v) }
       }
     case "baslangic":
       result(acilis)
@@ -88,10 +102,26 @@ final class BogaPush: NSObject, FlutterPlugin, UNUserNotificationCenterDelegate 
     return o
   }
 
+  /// Öndeyken: Dart'a o oda/ileti açık mı diye sorulur (300 ms içinde yanıt yoksa gösterilir). Açıksa yalnız
+  /// bildirim merkezine düşer, banner/ses yok.
   func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-    channel?.invokeMethod("geldi", arguments: temiz(notification.request.content.userInfo))
-    completionHandler([.banner, .list, .sound, .badge])
+    let bilgi = temiz(notification.request.content.userInfo)
+    channel?.invokeMethod("geldi", arguments: bilgi)
+    guard let ch = channel else {
+      completionHandler([.banner, .list, .sound, .badge])
+      return
+    }
+    var bitti = false
+    let bitir: (Bool) -> Void = { goster in
+      if bitti { return }
+      bitti = true
+      completionHandler(goster ? [.banner, .list, .sound, .badge] : [.list, .badge])
+    }
+    ch.invokeMethod("gosterilsinMi", arguments: bilgi) { r in
+      DispatchQueue.main.async { bitir((r as? Bool) ?? true) }
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { bitir(true) }
   }
 
   func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,

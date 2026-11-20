@@ -7,6 +7,7 @@ import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import '../veri/tehdit_modeller.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Tehdit Koruması platform ayarları (süper yönetici): denetimler, URI kara listeleri, ARC güvenilir ileticileri
 /// (PATCH /threat/settings), gelişmiş tehdit koruması ve döngü tespiti (PATCH /security2/settings).
@@ -132,7 +133,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
         const SizedBox(height: 12),
         BolumKarti(
           baslik: 'Denetimler',
-          ikon: Icons.fact_check_outlined,
+          ikon: Simgeler.factCheck,
           altBaslik: 'Gelen her iletide uygulanır (Spam Güvenliği açıkken). ARC zinciri her iletide doğrulanır.',
           child: Column(
             children: [
@@ -144,7 +145,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'DNS URI kara listeleri (DBL / URIBL / SURBL)',
-          ikon: Icons.dns_outlined,
+          ikon: Simgeler.dns,
           altBaslik: 'Varsayılan kapalı. Bu listeler genellikle kayıt ister ve ticari kullanımda lisans gerektirir; kullanım koşullarını kabul '
               'ettiyseniz bölge adını ekleyin. 127.0.0.1 ve 127.255.255.x yanıtları hata kodu sayılır. En fazla 5 bölge.',
           child: Column(
@@ -157,19 +158,19 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    leading: const Icon(Icons.public_rounded, size: 20),
+                    leading: const Icon(Simgeler.public, size: 20),
                     title: Text(e.key, style: const TextStyle(fontFamily: 'monospace')),
                     subtitle: Text('+${puanYaz(e.value)} puan'),
                     trailing: IconButton(
                       tooltip: 'Kaldır',
-                      icon: const Icon(Icons.delete_outline_rounded),
+                      icon: const Icon(Simgeler.deleteOutline),
                       onPressed: _mesgul ? null : () => _kaydet({'uribl_zones': Map.of(bolgeler)..remove(e.key)}),
                     ),
                   ),
               const SizedBox(height: 8),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 8,
+                runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.end,
                 children: [
                   SizedBox(
@@ -180,7 +181,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
                     width: 100,
                     child: TextField(controller: _puan, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Puan')),
                   ),
-                  FilledButton.tonalIcon(onPressed: _mesgul ? null : _bolgeEkle, icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Ekle')),
+                  FilledButton.tonalIcon(onPressed: _mesgul ? null : _bolgeEkle, icon: const Icon(Simgeler.add, size: 18), label: const Text('Ekle')),
                 ],
               ),
             ],
@@ -189,7 +190,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'ARC: güvenilir ileticiler',
-          ikon: Icons.forward_to_inbox_outlined,
+          ikon: Simgeler.forwardToInbox,
           altBaslik: 'DMARC başarısız olduğunda ARC zinciri geçerliyse ve son mühürleyen (ARC-Seal d=) bu listedeyse DMARC politikası uygulanmaz '
               '(ör. posta listeleri, yönlendirme servisleri). Alt alan adları da eşleşir. Yalnızca gerçekten güvendiğiniz ileticileri ekleyin.',
           child: Column(
@@ -202,7 +203,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
                 onChanged: (_) => setState(() => _arcDegisti = true),
                 decoration: const InputDecoration(labelText: 'Alan adları (her satıra bir tane, en fazla 50)', hintText: 'google.com\noutlook.com'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton(
@@ -221,7 +222,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'Gelişmiş tehdit koruması',
-          ikon: Icons.science_outlined,
+          ikon: Simgeler.science,
           altBaslik: 'Yalnızca "Gelişmiş tehdit koruması" paket özelliği açık müşterilere uygulanır.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -267,7 +268,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12), border: Border.all(color: r.kenar)),
@@ -284,7 +285,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
                     ),
                     const SizedBox(height: 4),
                     Text(metin(patlatma['detail']), style: TextStyle(color: r.silik, fontSize: 12)),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     const Wrap(
                       spacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
@@ -304,7 +305,7 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'Posta döngüsü tespiti',
-          ikon: Icons.loop_rounded,
+          ikon: Simgeler.loop,
           altBaslik: '25\'ten fazla Received başlığı, kendi X-BogaMail-Loop işaretimiz veya aynı (gönderen, alıcı, Message-ID) üçlüsünün kısa '
               'sürede tekrar gelmesi 554 5.4.6 ile reddedilir.',
           child: Column(
@@ -328,13 +329,13 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
                   ),
                 ],
               ),
-              if (_formHata != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_formHata!, style: const TextStyle(color: Marka.gul, fontSize: 12.5))),
+              if (_formHata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_formHata!, style: const TextStyle(color: Marka.gul, fontSize: 12.5))),
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
                   onPressed: _mesgul ? null : _gelismisKaydet,
-                  icon: const Icon(Icons.save_outlined, size: 18),
+                  icon: const Icon(Simgeler.save, size: 18),
                   label: const Text('Gelişmiş ayarları kaydet'),
                 ),
               ),
@@ -344,19 +345,19 @@ class _AyarGovdesiState extends State<_AyarGovdesi> {
         const SizedBox(height: 16),
         const BolumKarti(
           baslik: 'Puanlar ve yanlış pozitifler',
-          ikon: Icons.gpp_maybe_outlined,
+          ikon: Simgeler.gppMaybe,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Aciklama(
                 'Kendi alan adını taklit (doğrulamasız) +6 · VIP adı +5 · posta kutusu adı +1,5 · benzer From alan adı +5 · Reply-To ücretsiz posta +2 · DMARC başarısız (reject) +5.',
               ),
-              SizedBox(height: 6),
+              SizedBox(height: 8),
               Aciklama(
                 'Kurum adına dışarıdan gönderim yapan servisler (CRM, fatura, bülten) SPF/DKIM ile yetkilendirilmemişse "kendi alan adını taklit" sayılır: '
                 'bu servisleri SPF/DKIM\'e ekleyin veya izin listesine alın.',
               ),
-              SizedBox(height: 6),
+              SizedBox(height: 8),
               Aciklama(
                 'Yönlendirilen (forward) iletiler SPF\'i bozar; DKIM imzası bozulmadıysa DMARC yine geçer. Posta listeleri imzayı bozabilir: önemli listeleri izin listesine ekleyin.',
               ),

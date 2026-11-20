@@ -101,7 +101,7 @@ class _TasimaAyariState extends State<TasimaAyari> {
       yenile: _yukle,
       children: [
         AyarKarti(
-          ikon: Icons.move_down_rounded,
+          ikon: Simge.aktar,
           baslik: 'Taşıma (IMAP)',
           aciklama: 'Eski e-posta sağlayıcınızdaki iletileri klasörleriyle birlikte bu kutuya aktarın. Taşıma arka planda sürer; sayfadan ayrılabilirsiniz.',
           child: icerik,
@@ -130,7 +130,7 @@ class _TasimaAyariState extends State<TasimaAyari> {
           const SizedBox(height: 2),
           Text(
             deger,
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: c),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: c),
           ),
         ],
       ),
@@ -247,21 +247,21 @@ class _TasimaAyariState extends State<TasimaAyari> {
                   }
                   await _eylem(Ayar.tasimaIptal, 'Taşıma iptal edildi');
                 },
-                icon: const Icon(Icons.close_rounded, size: 18),
+                icon: const Icon(Simge.kapat, size: 18),
                 label: const Text('İptal et'),
               ),
             if (j.durum == 'paused' && !j.iptalIstendi)
               FilledButton.icon(
                 key: const ValueKey('tasima-devam'),
                 onPressed: () => _eylem(Ayar.tasimaDevam, 'Taşıma devam ettiriliyor'),
-                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                icon: const Icon(Simge.oynat, size: 18),
                 label: const Text('Devam ettir'),
               ),
             if (!j.etkin && (_acik ?? false))
               FilledButton.icon(
                 key: const ValueKey('tasima-yeni'),
                 onPressed: () => setState(() => _yeniForm = true),
-                icon: const Icon(Icons.add_rounded, size: 18),
+                icon: const Icon(Simge.ekle, size: 18),
                 label: const Text('Yeni taşıma'),
               ),
           ],
@@ -466,7 +466,7 @@ class _TasimaFormuState extends State<_TasimaFormu> {
                   errorText: _alanHatasi('password'),
                   suffixIcon: IconButton(
                     tooltip: _goster ? 'Şifreyi gizle' : 'Şifreyi göster',
-                    icon: Icon(_goster ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                    icon: Icon(_goster ? Simge.gizle : Simge.goster),
                     onPressed: () => setState(() => _goster = !_goster),
                   ),
                 ),

@@ -10,6 +10,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'trafik_ortak.dart';
+import '../ortak/simgeler.dart';
 
 const _olayFiltreleri = <(String, String)>[
   ('', 'Tümü'),
@@ -77,7 +78,7 @@ class _MesajTakibiEkraniState extends State<MesajTakibiEkrani> {
   void _olayDetayi(PostaOlayi e) => showDialog<void>(
     context: context,
     builder: (c) => AlertDialog(
-      title: Text('Bağlantı olayı', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Bağlantı olayı', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 460,
         child: SingleChildScrollView(
@@ -139,7 +140,7 @@ class _MesajTakibiEkraniState extends State<MesajTakibiEkrani> {
       govde: VeriTablosu<PostaOlayi>(
         yukleyici: _y,
         bosMetin: 'Kayıt yok. Sunucuya SMTP ile ileti geldiğinde burada görünür.',
-        bosIkon: Icons.manage_search_rounded,
+        bosIkon: Simgeler.manageSearch,
         onTap: _ac,
         siralama: 'at',
         artan: _artan,
@@ -162,7 +163,7 @@ class _MesajTakibiEkraniState extends State<MesajTakibiEkrani> {
               filtreler: [
                 FiltreDugmesi<String>(
                   etiket: 'Olay',
-                  ikon: Icons.filter_list_rounded,
+                  ikon: Simgeler.filterList,
                   secenekler: _olayFiltreleri,
                   secili: _olay,
                   secildi: (v) {
@@ -170,7 +171,7 @@ class _MesajTakibiEkraniState extends State<MesajTakibiEkrani> {
                     _y.yenile();
                   },
                 ),
-                FiltreDugmesi<String>(etiket: 'Yön', ikon: Icons.swap_horiz_rounded, secenekler: _yonFiltreleri, secili: _yon, secildi: _yonSec),
+                FiltreDugmesi<String>(etiket: 'Yön', ikon: Simgeler.swapHoriz, secenekler: _yonFiltreleri, secili: _yon, secildi: _yonSec),
               ],
               etkinler: etkinler,
             ),
@@ -306,7 +307,7 @@ class _GecikmeSeridiState extends State<_GecikmeSeridi> {
                 padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                 child: Row(
                   children: [
-                    Icon(Icons.timer_outlined, size: 17, color: r.vurgu),
+                    Icon(Simgeler.timer, size: 17, color: r.vurgu),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -314,7 +315,7 @@ class _GecikmeSeridiState extends State<_GecikmeSeridi> {
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    Icon(_acik ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20, color: r.soluk),
+                    Icon(_acik ? Simgeler.expandLess : Simgeler.expandMore, size: 20, color: r.soluk),
                   ],
                 ),
               ),
@@ -324,14 +325,14 @@ class _GecikmeSeridiState extends State<_GecikmeSeridi> {
                 height: 86,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                   itemCount: l.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (c, i) {
                     final s = l[i];
                     return Container(
                       width: 190,
-                      padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                       decoration: BoxDecoration(color: r.ic.withValues(alpha: .6), borderRadius: BorderRadius.circular(10)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,7 +349,7 @@ class _GecikmeSeridiState extends State<_GecikmeSeridi> {
                           Text.rich(
                             TextSpan(
                               children: [
-                                TextSpan(text: 'p50 ${msYaz(s.p50)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                TextSpan(text: 'p50 ${msYaz(s.p50)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                                 TextSpan(text: '   p95 ${msYaz(s.p95)}'),
                               ],
                             ),
@@ -556,8 +557,8 @@ class _IletiYolculuguState extends State<IletiYolculugu> {
           ],
         ),
         actions: [
-          IconButton(tooltip: 'Kuyruk kimliğini kopyala', onPressed: () => kopyala(widget.queueId), icon: const Icon(Icons.copy_rounded)),
-          IconButton(tooltip: 'Yenile', onPressed: () => _anahtar.currentState?.yenile(), icon: const Icon(Icons.refresh_rounded)),
+          IconButton(tooltip: 'Kuyruk kimliğini kopyala', onPressed: () => kopyala(widget.queueId), icon: const Icon(Simgeler.copy)),
+          IconButton(tooltip: 'Yenile', onPressed: () => _anahtar.currentState?.yenile(), icon: const Icon(Simgeler.refresh)),
           const SizedBox(width: 4),
         ],
       ),
@@ -575,17 +576,17 @@ class _IletiYolculuguState extends State<IletiYolculugu> {
         if (v.yalnizKayit)
           const Padding(
             padding: EdgeInsets.only(bottom: 12),
-            child: Bant('Aşama ayrıntıları alınamadı; iletinin ham takip kayıtları gösteriliyor.', renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
+            child: Bant('Aşama ayrıntıları alınamadı; iletinin ham takip kayıtları gösteriliyor.', renk: Marka.kehribar, ikon: Simgeler.warningAmber),
           ),
         BolumKarti(
           baslik: 'Özet',
-          ikon: Icons.route_rounded,
+          ikon: Simgeler.route,
           sag: v.toplamMs == null
               ? null
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.schedule_rounded, size: 15, color: r.soluk),
+                    Icon(SimgelerKalin.schedule, size: 15, color: r.soluk),
                     const SizedBox(width: 4),
                     Text('toplam ${msYaz(v.toplamMs)}', style: TextStyle(color: r.soluk, fontSize: 12.5)),
                   ],
@@ -594,19 +595,19 @@ class _IletiYolculuguState extends State<IletiYolculugu> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   AciklamaRozeti(v.ozet),
                   if (v.yon.isNotEmpty) Rozet(gelen ? (v.gateway ? 'gelen · gateway' : 'gelen') : 'giden', renk: gelen ? Marka.mavi : Marka.lavanta),
-                  if (v.hatalar > 0) Rozet('${v.hatalar} hata', renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                  if (v.hatalar > 0) Rozet('${v.hatalar} hata', renk: Marka.gul, ikon: Simgeler.errorOutline),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               AciklamaMetni(v.ozet),
               if (v.yavasNotu.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Bant(v.yavasNotu, renk: Marka.kehribar, ikon: Icons.speed_rounded),
+                const SizedBox(height: 8),
+                Bant(v.yavasNotu, renk: Marka.kehribar, ikon: Simgeler.speed),
               ],
               if (v.asamalar.isNotEmpty) ...[const SizedBox(height: 12), _Akis(v.asamalar)],
               if (v.alicilar.length > 1) ...[
@@ -616,7 +617,7 @@ class _IletiYolculuguState extends State<IletiYolculugu> {
                   child: Column(
                     children: [
                       for (final (i, (alici, a)) in v.alicilar.indexed) ...[
-                        if (i > 0) Divider(height: 1, color: r.kenar),
+                        if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           child: Row(
@@ -632,7 +633,7 @@ class _IletiYolculuguState extends State<IletiYolculugu> {
                 ),
               ],
               if (v.eksik.isNotEmpty) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   'Bu ileti için şu süreler kaydedilmemiş (gecikme ölçümü eklenmeden önceki kayıt olabilir): '
                   '${v.eksik.map((m) => _eksikEtiketleri[m] ?? m).join(', ')}.',
@@ -653,7 +654,7 @@ class _IletiYolculuguState extends State<IletiYolculugu> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: () => setState(() => _ham = !_ham),
-              icon: Icon(_ham ? Icons.expand_less_rounded : Icons.expand_more_rounded),
+              icon: Icon(_ham ? Simgeler.expandLess : Simgeler.expandMore),
               label: Text(_ham ? 'Ham kayıtları gizle' : 'Ham kayıtlar (${v.olaylar.length})'),
             ),
           ),
@@ -667,7 +668,7 @@ class _IletiYolculuguState extends State<IletiYolculugu> {
                 for (final (i, e) in v.olaylar.indexed) ...[
                   if (i > 0) Divider(height: 16, color: r.kenar),
                   Wrap(
-                    spacing: 6,
+                    spacing: 8,
                     runSpacing: 4,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
@@ -708,13 +709,13 @@ class _Akis extends StatelessWidget {
     final r = context.r;
     return Wrap(
       spacing: 4,
-      runSpacing: 6,
+      runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (final (i, s) in asamalar.indexed) ...[
-          if (i > 0) Icon(Icons.chevron_right_rounded, size: 16, color: r.silik),
+          if (i > 0) Icon(SimgelerKalin.chevronRight, size: 16, color: r.silik),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             decoration: BoxDecoration(
               color: s.durum == 'bad' || s.durum == 'warn' ? tonRengi(s.durum).withValues(alpha: .1) : null,
               borderRadius: BorderRadius.circular(20),
@@ -727,12 +728,12 @@ class _Akis extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DurumNoktasi(tonRengi(s.durum), boyut: 7),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 180),
                   child: Text(s.etiket, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
                 ),
-                if (s.sureMs != null) ...[const SizedBox(width: 6), Text(msYaz(s.sureMs), style: TextStyle(fontSize: 12, color: r.silik))],
+                if (s.sureMs != null) ...[const SizedBox(width: 8), Text(msYaz(s.sureMs), style: TextStyle(fontSize: 12, color: r.silik))],
               ],
             ),
           ),
@@ -762,7 +763,7 @@ class _AsamaKarti extends StatelessWidget {
             width: 22,
             child: Column(
               children: [
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Container(
                   width: 12,
                   height: 12,
@@ -774,7 +775,7 @@ class _AsamaKarti extends StatelessWidget {
           ),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
+              margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: zemin, borderRadius: BorderRadius.circular(12), border: Border.all(color: kenar)),
               child: Column(
@@ -785,18 +786,18 @@ class _AsamaKarti extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Wrap(
-                          spacing: 6,
+                          spacing: 8,
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(s.etiket, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                            if (s.enYavas) const Rozet('en yavaş', renk: Marka.kehribar, ikon: Icons.speed_rounded),
-                            if (s.durum == 'bad') const Rozet('hata', renk: Marka.gul, ikon: Icons.warning_amber_rounded),
+                            if (s.enYavas) const Rozet('en yavaş', renk: Marka.kehribar, ikon: Simgeler.speed),
+                            if (s.durum == 'bad') const Rozet('hata', renk: Marka.gul, ikon: Simgeler.warningAmber),
                             if (s.alici != null) Text('→ ${s.alici}', style: TextStyle(color: r.silik, fontSize: 12)),
                           ],
                         ),
                       ),
-                      Text(msYaz(s.sureMs), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                      Text(msYaz(s.sureMs), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                     ],
                   ),
                   const SizedBox(height: 2),
@@ -924,13 +925,13 @@ class _DogrulamaKartiState extends State<_DogrulamaKarti> {
       padding: const EdgeInsets.only(top: 12),
       child: BolumKarti(
         baslik: 'Gönderen doğrulaması',
-        ikon: Icons.verified_user_outlined,
+        ikon: Simgeler.verifiedUser,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 Rozet('SPF ${metin(a['spf'])}', renk: _ton(metin(a['spf']))),
                 Rozet('DKIM ${metin(a['dkim'])}', renk: _ton(metin(a['dkim']))),
@@ -1028,7 +1029,7 @@ class _EkAnaliziKartiState extends State<_EkAnaliziKarti> {
     showDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(metinYa(x['filename']) ?? '(adsız)', style: gosterim(18, agirlik: FontWeight.w700)),
+        title: Text(metinYa(x['filename']) ?? '(adsız)', style: gosterim(18, agirlik: FontWeight.w600)),
         content: SizedBox(
           width: 520,
           child: SingleChildScrollView(
@@ -1037,7 +1038,7 @@ class _EkAnaliziKartiState extends State<_EkAnaliziKarti> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Wrap(
-                  spacing: 6,
+                  spacing: 8,
                   children: [
                     Rozet(_hukumEtiketleri[metin(x['verdict'])] ?? metin(x['verdict']), renk: _hukumRengi(metin(x['verdict']))),
                     Rozet('Puan ${ondalik(x['score']).toStringAsFixed(1)}', renk: Marka.mavi),
@@ -1082,7 +1083,7 @@ class _EkAnaliziKartiState extends State<_EkAnaliziKarti> {
       padding: const EdgeInsets.only(top: 12),
       child: BolumKarti(
         baslik: 'Ek analizi',
-        ikon: Icons.find_in_page_outlined,
+        ikon: Simgeler.findInPage,
         altBaslik: 'Statik derin analiz sonuçları (eklerin hiçbiri çalıştırılmaz).',
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(

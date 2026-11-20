@@ -13,6 +13,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'koruma_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Yüzde metni (web pct ile aynı: %98,5; null → —).
 String dmarcYuzde(Object? v, {int basamak = 1}) {
@@ -38,7 +39,7 @@ class PuanRozeti extends StatelessWidget {
       ? Text('denetlenmedi', style: TextStyle(color: context.r.silik, fontSize: 12))
       : Text(
           '$puan/100',
-          style: TextStyle(color: puanRengi(context, puan), fontWeight: FontWeight.w700),
+          style: TextStyle(color: puanRengi(context, puan), fontWeight: FontWeight.w600),
         );
 }
 
@@ -128,12 +129,12 @@ class _DmarcEkraniState extends State<DmarcEkrani> {
       baslik: 'DMARC Merkezi',
       alt: 'Toplu raporlar, hizalanma, yetkisiz göndericiler ve güvenlik puanı',
       yenile: _y.yenile,
-      eylemler: [if (Uyg.platformYoneticisi) IconButton(tooltip: 'Platform rapor adresi', onPressed: _ayarlar, icon: const Icon(Icons.settings_outlined))],
-      birincil: _yonetir && _herhangiAcik ? BirincilEylem(Icons.upload_file_rounded, 'Rapor yükle', _yukle) : null,
+      eylemler: [if (Uyg.platformYoneticisi) IconButton(tooltip: 'Platform rapor adresi', onPressed: _ayarlar, icon: const Icon(Simgeler.settings))],
+      birincil: _yonetir && _herhangiAcik ? BirincilEylem(Simgeler.uploadFile, 'Rapor yükle', _yukle) : null,
       govde: VeriTablosu<DmarcAlani>(
         yukleyici: _y,
         bosMetin: 'Alan adı yok. DMARC raporları alan adlarınız için toplanır; önce Alan Adları bölümünden bir alan adı ekleyin.',
-        bosIkon: Icons.mark_email_read_outlined,
+        bosIkon: Simgeler.markEmailRead,
         onTap: _ac,
         ust: Padding(
           padding: const EdgeInsets.only(bottom: 4),
@@ -161,7 +162,7 @@ class _DmarcEkraniState extends State<DmarcEkrani> {
         kart: (c, d) => VeriKarti(
           baslik: d.ad,
           alt: [if (!Uyg.musteri) d.orgAdi, d.mod == 'gateway' ? 'gateway' : 'barındırma'].join(' · '),
-          sol: const Icon(Icons.mark_email_read_outlined),
+          sol: const Icon(Simgeler.markEmailRead),
           rozetler: [
             if (!d.acilir) const Rozet('Paketinizde yok', renk: Marka.kehribar) else if (d.puan != null) Rozet('${d.puan}/100', renk: puanRengi(c, d.puan)),
           ],
@@ -214,7 +215,7 @@ class _DmarcAyarlariState extends State<_DmarcAyarlari> {
           const SizedBox(height: 8),
           BolumKarti(
             baslik: 'Platform rapor adresi',
-            ikon: Icons.alternate_email_rounded,
+            ikon: Simgeler.alternateEmail,
             altBaslik:
                 'Alıcılar toplu raporları bu adrese gönderir; her alan adı kendi belirteciyle (yerel+belirteç@alan) eşlenir. Boş bırakılırsa ${metin(s['default'])} kullanılır.',
             child: Column(
@@ -227,7 +228,7 @@ class _DmarcAyarlariState extends State<_DmarcAyarlari> {
                   style: const TextStyle(fontFamily: 'monospace'),
                   decoration: InputDecoration(labelText: 'Adres', hintText: metin(s['default']), errorText: _hata, errorMaxLines: 3),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton(
@@ -353,7 +354,7 @@ class _DmarcYuklemeDialogState extends State<DmarcYuklemeDialog> {
   Widget build(BuildContext context) {
     final r = context.r;
     return AlertDialog(
-      title: Text('DMARC raporu yükle', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('DMARC raporu yükle', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(
@@ -372,7 +373,7 @@ class _DmarcYuklemeDialogState extends State<DmarcYuklemeDialog> {
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
                   onPressed: _mesgul || _dosyalar.length >= _enFazlaDosya ? null : _sec,
-                  icon: const Icon(Icons.attach_file_rounded, size: 18),
+                  icon: const Icon(Simgeler.attachFile, size: 18),
                   label: const Text('Dosya seç'),
                 ),
               ),
@@ -380,17 +381,17 @@ class _DmarcYuklemeDialogState extends State<DmarcYuklemeDialog> {
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(f.ad.toLowerCase().endsWith('.xml') ? Icons.description_outlined : Icons.folder_zip_outlined),
+                  leading: Icon(f.ad.toLowerCase().endsWith('.xml') ? Simgeler.description : Simgeler.folderZip),
                   title: Text(f.ad, overflow: TextOverflow.ellipsis),
                   subtitle: Text(boyutYaz(f.bayt.length)),
                   trailing: IconButton(
                     tooltip: 'Çıkar',
-                    icon: const Icon(Icons.close_rounded, size: 18),
+                    icon: const Icon(Simgeler.close, size: 18),
                     onPressed: _mesgul ? null : () => setState(() => _dosyalar.remove(f)),
                   ),
                 ),
               if (_toplam > _enFazlaBayt)
-                Bant('Toplam boyut 25 MB sınırını aşıyor (${boyutYaz(_toplam)}).', renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant('Toplam boyut 25 MB sınırını aşıyor (${boyutYaz(_toplam)}).', renk: Marka.gul, ikon: Simgeler.errorOutline),
               const SizedBox(height: 12),
               TextField(
                 controller: _xml,
@@ -404,7 +405,7 @@ class _DmarcYuklemeDialogState extends State<DmarcYuklemeDialog> {
                 const SizedBox(height: 12),
                 for (final f in haritalar(_sonuc!['files']))
                   if (metinYa(f['error']) != null)
-                    Bant(metin(f['error']), renk: Marka.gul, ikon: Icons.error_outline_rounded)
+                    Bant(metin(f['error']), renk: Marka.gul, ikon: Simgeler.errorOutline)
                   else
                     for (final rp in haritalar(f['reports']))
                       Padding(
@@ -494,7 +495,7 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
       appBar: AppBar(
         title: Text(widget.ad, overflow: TextOverflow.ellipsis),
         actions: [
-          IconButton(tooltip: 'Yenile', onPressed: () => _yukleme.currentState?.yenile(), icon: const Icon(Icons.refresh_rounded)),
+          IconButton(tooltip: 'Yenile', onPressed: () => _yukleme.currentState?.yenile(), icon: const Icon(Simgeler.refresh)),
           const SizedBox(width: 8),
         ],
       ),
@@ -557,14 +558,14 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'Hacim (günlük, UTC)',
-          ikon: Icons.bar_chart_rounded,
+          ikon: Simgeler.barChart,
           altBaslik: 'Alıcıların toplu raporlarındaki, sizin alan adınızla gönderilmiş iletiler.',
           child: DmarcHacimGrafigi(seri: haritalar(d['series'])),
         ),
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'Gönderen kaynaklar',
-          ikon: Icons.dns_outlined,
+          ikon: Simgeler.dns,
           altBaslik: 'IP → ters DNS (PTR) → ASN → bilinen gönderici (platform, bizim göndericiler, tanınan sağlayıcılar).',
           sag: FilterChip(
             label: const Text('Yalnızca sorunlu'),
@@ -616,7 +617,7 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
           children: [
             BolumKarti(
               baslik: 'Raporlayan alıcılar',
-              ikon: Icons.business_rounded,
+              ikon: Simgeler.business,
               child: raporlayanlar.isEmpty
                   ? Text('Bu dönemde rapor yok.', style: TextStyle(color: r.soluk))
                   : Column(
@@ -633,7 +634,7 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
             ),
             BolumKarti(
               baslik: 'Son raporlar',
-              ikon: Icons.receipt_long_outlined,
+              ikon: Simgeler.receiptLong,
               child: raporlar.isEmpty
                   ? Text('Henüz rapor alınmadı.', style: TextStyle(color: r.soluk))
                   : Column(
@@ -701,7 +702,7 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
     final hazir = mantik(p['ready']);
     return BolumKarti(
       baslik: 'Politika yol haritası',
-      ikon: Icons.route_outlined,
+      ikon: Simgeler.route,
       altBaslik:
           'p=none → quarantine → reject. Sonraki adım, meşru kaynaklarınızın iletileri ${tamsayi(p['window_days'])} gün boyunca %${metin(p['threshold'])} ve üzeri DMARC hizalı olduğunda önerilir.',
       child: Column(
@@ -713,7 +714,7 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
             children: [
               for (final a in adimlar)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     color: metin(a['state']) == 'current' ? r.vurguYumusak : null,
@@ -723,11 +724,11 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        metin(a['state']) == 'done' ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                        metin(a['state']) == 'done' ? Simgeler.checkCircle : Simgeler.radioButtonUnchecked,
                         size: 17,
                         color: metin(a['state']) == 'done' ? Marka.zumrut : r.silik,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -752,10 +753,10 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
           Bant(
             '${hazir ? 'Hazır. ' : (metinYa(p['next']) != null ? 'Henüz hazır değil. ' : '')}${metin(p['reason'])}',
             renk: hazir ? Marka.zumrut : Marka.mavi,
-            ikon: hazir ? Icons.check_circle_outline_rounded : Icons.info_outline_rounded,
+            ikon: hazir ? Simgeler.checkCircleOutline : Simgeler.infoOutline,
           ),
           if (metinYa(p['record']) != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               metinYa(p['next']) != null ? 'Yayınlanacak kayıt (p=${metin(p['next'])})' : 'Yayındaki kayıt',
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
@@ -772,16 +773,16 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
     final yetki = harita(d['rua_authorization']);
     return BolumKarti(
       baslik: 'Raporları bu panele yönlendirin',
-      ikon: Icons.forward_to_inbox_outlined,
+      ikon: Simgeler.forwardToInbox,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Alan adınızın rapor adresi (yalnızca ${widget.ad} raporlarını kabul eder):', style: TextStyle(color: r.soluk, fontSize: 12.5)),
           KopyaKutusu(metin(d['rua_address'])),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               mantik(d['rua_published'])
                   ? const Rozet('DMARC kaydında rua var', renk: Marka.zumrut)
@@ -802,12 +803,12 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
           Text('Genel SMTP (25) henüz açık değilse raporları "Rapor yükle" ile elle yükleyebilirsiniz.', style: TextStyle(color: r.silik, fontSize: 12)),
           if (metinYa(d['dns_error']) != null)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 8),
               child: Text(metin(d['dns_error']), style: const TextStyle(color: Marka.gul, fontSize: 12)),
             ),
           if (tamsayi(d['record_count']) > 1)
             const Padding(
-              padding: EdgeInsets.only(top: 6),
+              padding: EdgeInsets.only(top: 8),
               child: Text('Birden fazla DMARC kaydı yayında; alıcılar hiçbirini uygulamaz.', style: TextStyle(color: Marka.gul, fontSize: 12)),
             ),
         ],
@@ -821,14 +822,14 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
     final sorunlar = rp == null ? const <String>[] : metinler(rp['problems']);
     return BolumKarti(
       baslik: 'Alan adı güvenlik puanı',
-      ikon: Icons.shield_outlined,
+      ikon: Simgeler.shield,
       altBaslik:
           'SPF, DKIM, DMARC, MTA-STS, TLS-RPT, DNSSEC ve MX için canlı DNS denetimi. Ölçülemeyen kalemler puana katılmaz.${zaman != null ? ' Son denetim: ${tamZaman(zaman)}.' : ''}',
       sag: OutlinedButton.icon(
         onPressed: _denetleniyor ? null : _denetle,
         icon: _denetleniyor
             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.refresh_rounded, size: 18),
+            : const Icon(Simgeler.refresh, size: 18),
         label: const Text('Şimdi denetle'),
       ),
       child: rp == null
@@ -839,7 +840,7 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(puan == null ? '—' : '$puan', style: gosterim(40, renk: puanRengi(c, puan))),
+                    Text(puan == null ? '—' : '$puan', style: gosterim(40, agirlik: FontWeight.w600, renk: puanRengi(c, puan))),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Padding(
@@ -890,7 +891,7 @@ class _DmarcAlanDetayState extends State<DmarcAlanDetay> {
     };
     final agirlik = tamsayi(f['weight']);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: r.kenar)),
       ),
@@ -930,7 +931,7 @@ class DnsKaydi extends StatelessWidget {
   final String host, tur, deger;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 6),
+    padding: const EdgeInsets.only(top: 8),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1046,7 +1047,7 @@ class DmarcHacimGrafigi extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Wrap(
-          spacing: 14,
+          spacing: 16,
           children: [
             _lejant(context, Marka.zumrut, 'DMARC geçti'),
             _lejant(context, Marka.gul, 'DMARC başarısız'),
@@ -1065,7 +1066,7 @@ class DmarcHacimGrafigi extends StatelessWidget {
         height: 10,
         decoration: BoxDecoration(color: renk, borderRadius: BorderRadius.circular(3)),
       ),
-      const SizedBox(width: 6),
+      const SizedBox(width: 8),
       Text(ad, style: TextStyle(color: c.r.soluk, fontSize: 12.5)),
     ],
   );
@@ -1119,7 +1120,7 @@ class _KaynakDialogState extends State<_KaynakDialog> {
     return AlertDialog(
       title: Text(
         metin(s['ip']),
-        style: gosterim(18, agirlik: FontWeight.w700).copyWith(fontFamily: 'monospace'),
+        style: gosterim(18, agirlik: FontWeight.w600).copyWith(fontFamily: 'monospace'),
       ),
       content: SizedBox(
         width: 520,
@@ -1133,7 +1134,7 @@ class _KaynakDialogState extends State<_KaynakDialog> {
                 '${_sinifEtiketi[sinif] ?? sinif}${metinYa(s['label']) != null ? ' (${metin(s['label'])})' : ''}',
                 style: TextStyle(color: context.r.soluk, fontSize: 13),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               BilgiSatiri('ASN', asn > 0 ? 'AS$asn ${metin(s['as_name'])}${metinYa(s['country']) != null ? ' (${metin(s['country'])})' : ''}' : 'bilinmiyor'),
               BilgiSatiri('İleti', sayiYaz(tamsayi(s['messages']))),
               BilgiSatiri('DMARC geçen', '${tamsayi(s['pass'])} (${dmarcYuzde(s['pass_rate'])})'),
@@ -1151,19 +1152,19 @@ class _KaynakDialogState extends State<_KaynakDialog> {
                   decoration: const InputDecoration(labelText: 'Not (isteğe bağlı)', hintText: 'ör. CRM sistemi, bülten aracı'),
                 ),
                 EylemSatiri(
-                  ikon: Icons.how_to_reg_outlined,
+                  ikon: Simgeler.howToReg,
                   baslik: 'Bu IP bizim gönderici',
                   ipucu: 'Yalnızca bu IP adresi meşru kaynak sayılır.',
                   onTap: _mesgul ? null : () => _isaretle('ip', metin(s['ip'])),
                 ),
                 if (sonek.isNotEmpty)
                   EylemSatiri(
-                    ikon: Icons.verified_user_outlined,
+                    ikon: Simgeler.verifiedUser,
                     baslik: '*.$sonek bizim gönderici',
                     ipucu: 'Bu ters DNS son ekiyle biten tüm sunucular meşru kaynak sayılır.',
                     onTap: _mesgul ? null : () => _isaretle('ptr', sonek),
                   ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   'İşaretlemek yalnızca sınıflandırmayı ve politika önerisini etkiler; bu kaynağın DMARC\'tan geçmesi için yine SPF\'ye eklenmesi veya alan adınızla DKIM imzalaması gerekir.',
                   style: TextStyle(color: context.r.silik, fontSize: 12),
@@ -1214,7 +1215,7 @@ class _DmarcGondericileriState extends State<_DmarcGondericileri> {
     final r = context.r;
     return BolumKarti(
       baslik: 'Bizim göndericiler',
-      ikon: Icons.how_to_reg_outlined,
+      ikon: Simgeler.howToReg,
       altBaslik: 'Meşru olarak işaretlediğiniz kaynaklar (kaynaklar listesinden eklenir).',
       child: FutureBuilder<List<Map<String, dynamic>>>(
         future: _f,
@@ -1238,7 +1239,7 @@ class _DmarcGondericileriState extends State<_DmarcGondericileri> {
                     ].join(' · '),
                   ),
                   trailing: widget.yonetir
-                      ? IconButton(tooltip: 'Kaldır', onPressed: () => _kaldir(g), icon: const Icon(Icons.delete_outline_rounded, size: 20))
+                      ? IconButton(tooltip: 'Kaldır', onPressed: () => _kaldir(g), icon: const Icon(Simgeler.deleteOutline, size: 20))
                       : null,
                 ),
             ],

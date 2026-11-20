@@ -11,6 +11,7 @@ import '../veri/denetim_tablolari.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import 'liste_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Denetim kayıtları (GET /audit-logs): zamana göre sıralanabilir tablo (telefonda kartlar), işlem grubu / tek işlem
 /// süzgeci ve aranabilir okunur etiketler. Türkçe arama metni eylem etiketleriyle de eşleşir (q_actions), web panelindeki gibi.
@@ -97,14 +98,14 @@ class _DenetimKayitlariEkraniState extends State<DenetimKayitlariEkrani> {
         artan: _artan,
         siralamaDegisti: (_, a) => _filtre(() => _artan = a),
         bosMetin: 'Kayıt bulunamadı.',
-        bosIkon: Icons.receipt_long_rounded,
+        bosIkon: Simgeler.receiptLong,
         vurgulu: (k) => denetimEylemi(k.eylem).ton == 'danger',
         ust: FiltreCubugu(
           arama: AramaAlani(ipucu: 'İşlem veya kullanıcı ara…', degisti: (v) => _filtre(() => _q = v)),
           filtreler: [
             FiltreDugmesi<String>(
               etiket: 'Grup',
-              ikon: Icons.category_outlined,
+              ikon: Simgeler.category,
               secenekler: [
                 ('', 'Tüm gruplar'),
                 for (final g in denetimGruplari.entries)
@@ -117,7 +118,7 @@ class _DenetimKayitlariEkraniState extends State<DenetimKayitlariEkrani> {
               }),
             ),
             ActionChip(
-              avatar: const Icon(Icons.manage_search_rounded, size: 16),
+              avatar: const Icon(SimgelerKalin.manageSearch, size: 16),
               label: Text(_eylem.isEmpty ? 'İşlem türü' : denetimEylemi(_eylem).etiket),
               onPressed: _eylemSec,
             ),
@@ -174,22 +175,22 @@ Color? _tonRengi(String ton) => switch (ton) {
 };
 
 IconData _grupIkonu(String g) => switch (g) {
-  'auth' => Icons.login_rounded,
-  'user' => Icons.person_rounded,
-  'organization' => Icons.apartment_rounded,
-  'mailbox' => Icons.inbox_rounded,
-  'domain' => Icons.language_rounded,
-  'plan' => Icons.inventory_2_rounded,
-  'settings' => Icons.tune_rounded,
-  'backup' => Icons.backup_rounded,
-  'security' || 'abuse' => Icons.shield_rounded,
-  'delivery' => Icons.send_rounded,
-  'gateway' => Icons.alt_route_rounded,
-  'dmarc' => Icons.verified_rounded,
-  'phishing' => Icons.phishing_rounded,
-  'migration' => Icons.move_down_rounded,
-  'branding' => Icons.palette_rounded,
-  _ => Icons.receipt_long_rounded,
+  'auth' => Simgeler.login,
+  'user' => Simgeler.person,
+  'organization' => Simgeler.apartment,
+  'mailbox' => Simgeler.inbox,
+  'domain' => Simgeler.language,
+  'plan' => Simgeler.inventory2,
+  'settings' => Simgeler.tune,
+  'backup' => Simgeler.backup,
+  'security' || 'abuse' => Simgeler.shield,
+  'delivery' => Simgeler.send,
+  'gateway' => Simgeler.altRoute,
+  'dmarc' => Simgeler.verified,
+  'phishing' => Simgeler.phishing,
+  'migration' => Simgeler.moveDown,
+  'branding' => Simgeler.palette,
+  _ => Simgeler.receiptLong,
 };
 
 class DenetimDetay extends StatelessWidget {
@@ -210,10 +211,10 @@ class DenetimDetay extends StatelessWidget {
             children: [
               Text(
                 e.etiket,
-                style: gosterim(17, agirlik: FontWeight.w700, renk: _tonRengi(e.ton)),
+                style: gosterim(17, agirlik: FontWeight.w600, renk: _tonRengi(e.ton)),
               ),
               Text(denetimGruplari[e.grup] ?? e.grup, style: TextStyle(color: r.silik, fontSize: 12.5)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               BilgiSatiri('Zaman', tamZaman(k.zaman)),
               BilgiSatiri('Kişi', k.aktor.isEmpty ? 'Sistem' : k.aktor),
               if (k.taklitci != null) BilgiSatiri('Asıl yönetici', '${k.taklitci} (müşteri görünümünde)'),

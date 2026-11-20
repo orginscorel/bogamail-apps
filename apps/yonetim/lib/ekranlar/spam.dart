@@ -11,6 +11,7 @@ import '../ortak/secimler.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'koruma_ortak.dart';
+import '../ortak/simgeler.dart';
 
 const spamTurEtiketi = {'sender': 'Gönderen adresi', 'domain': 'Alan adı', 'ip': 'IP / ağ', 'asn': 'ASN', 'link': 'Bağlantı'};
 
@@ -82,11 +83,11 @@ class _SpamEkraniState extends State<SpamEkrani> {
   }
 
   List<SatirEylemi> _eylemler(SpamKaydi k) => [
-    if (_yonetir && (Uyg.platformYoneticisi || k.orgId != null)) SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), tehlikeli: true),
+    if (_yonetir && (Uyg.platformYoneticisi || k.orgId != null)) SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(k), tehlikeli: true),
   ];
 
   Widget _turRozeti(SpamKaydi k) =>
-      k.izin ? const Rozet('İzin', renk: Marka.zumrut, ikon: Icons.verified_user_outlined) : const Rozet('Engel', renk: Marka.gul, ikon: Icons.block_rounded);
+      k.izin ? const Rozet('İzin', renk: Marka.zumrut, ikon: Simgeler.verifiedUser) : const Rozet('Engel', renk: Marka.gul, ikon: Simgeler.block);
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +101,7 @@ class _SpamEkraniState extends State<SpamEkrani> {
             _ozet.currentState?.yenile();
             _y.yenile();
           },
-          birincil: _yonetir ? BirincilEylem(Icons.add_rounded, 'Listeye ekle', _ekle) : null,
+          birincil: _yonetir ? BirincilEylem(Simgeler.add, 'Listeye ekle', _ekle) : null,
           sekmeler: const TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
@@ -134,11 +135,11 @@ class _SpamEkraniState extends State<SpamEkrani> {
           Izgara(
             enAz: 200,
             children: [
-              KpiKarti(ikon: Icons.manage_search_rounded, etiket: 'Bugün taranan', deger: sayiYaz(tamsayi(s['scanned_today']))),
-              KpiKarti(ikon: Icons.report_outlined, etiket: 'Gereksiz\'e gönderilen', deger: sayiYaz(tamsayi(s['junked_today'])), renk: Marka.kehribar),
-              KpiKarti(ikon: Icons.block_rounded, etiket: 'Reddedilen (puan)', deger: sayiYaz(tamsayi(s['rejected_today'])), renk: Marka.gul),
+              KpiKarti(ikon: Simgeler.manageSearch, etiket: 'Bugün taranan', deger: sayiYaz(tamsayi(s['scanned_today']))),
+              KpiKarti(ikon: Simgeler.report, etiket: 'Gereksiz\'e gönderilen', deger: sayiYaz(tamsayi(s['junked_today'])), renk: Marka.kehribar),
+              KpiKarti(ikon: Simgeler.block, etiket: 'Reddedilen (puan)', deger: sayiYaz(tamsayi(s['rejected_today'])), renk: Marka.gul),
               KpiKarti(
-                ikon: Icons.playlist_remove_rounded,
+                ikon: Simgeler.playlistRemove,
                 etiket: 'Listeyle engellenen',
                 deger: sayiYaz(tamsayi(s['blocked_by_list_today'])),
                 renk: Marka.mavi,
@@ -152,7 +153,7 @@ class _SpamEkraniState extends State<SpamEkrani> {
             children: [
               BolumKarti(
                 baslik: 'Son spam kararları',
-                ikon: Icons.history_rounded,
+                ikon: Simgeler.history,
                 altBaslik: 'Puan ve eşleşen kurallar; içerik kaydedilmez',
                 child: son.isEmpty
                     ? Text('Henüz spam kararı yok. Gereksiz ya da reddedilen iletiler burada listelenir.', style: TextStyle(color: r.soluk))
@@ -160,7 +161,7 @@ class _SpamEkraniState extends State<SpamEkrani> {
               ),
               BolumKarti(
                 baslik: 'En sık eşleşen kurallar (7 gün)',
-                ikon: Icons.rule_rounded,
+                ikon: Simgeler.rule,
                 child: kurallar.isEmpty
                     ? Text('Veri yok', style: TextStyle(color: r.soluk))
                     : Column(
@@ -235,7 +236,7 @@ class _SpamEkraniState extends State<SpamEkrani> {
   Widget _listeSekmesi() => VeriTablosu<SpamKaydi>(
     yukleyici: _y,
     bosMetin: 'Liste boş.',
-    bosIkon: Icons.playlist_add_check_rounded,
+    bosIkon: Simgeler.playlistAddCheck,
     eylemler: _eylemler,
     ust: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -345,14 +346,14 @@ class _SpamKayitFormuState extends State<_SpamKayitFormu> {
     final r = context.r;
     final hazir = !_mesgul && _deger.text.trim().isNotEmpty && (!_kapsamGerekli || _orgId != null);
     Widget etiket(String s) => Padding(
-      padding: const EdgeInsets.only(bottom: 6, top: 4),
+      padding: const EdgeInsets.only(bottom: 8, top: 4),
       child: Text(
         s,
         style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
       ),
     );
     return AlertDialog(
-      title: Text('Listeye ekle', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Listeye ekle', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -409,7 +410,7 @@ class _SpamKayitFormuState extends State<_SpamKayitFormu> {
               ],
               if (_hata != null && !{'value', 'note', 'organization_id'}.contains(_alan)) ...[
                 const SizedBox(height: 12),
-                Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ],
           ),

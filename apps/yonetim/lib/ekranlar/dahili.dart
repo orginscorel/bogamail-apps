@@ -13,6 +13,7 @@ import 'musteri_detay.dart' show musteriDetayKimlikle;
 import 'paketim.dart';
 import 'posta_kutulari.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
 
 /// Yönetici Kurumları: platformun kendi kuruluşları (müşterilerden ayrı, silinemez) ve silinen posta arşivi.
 /// Web: admin/internal (CustomersView internal + RetainedMessages).
@@ -132,14 +133,14 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
 
   List<SatirEylemi> _kurumEylemleri(Organizasyon o) => [
     if (_yonetir)
-      SatirEylemi(Icons.tune_rounded, 'Yönet (düzenle, limitler, özellikler, IP, dışa aktar)',
+      SatirEylemi(Simgeler.tune, 'Yönet (düzenle, limitler, özellikler, IP, dışa aktar)',
           () => musteriDetayKimlikle(context, o.id, degisti: (_) => _kurumlar.yenile())),
-    SatirEylemi(Icons.verified_outlined, 'Paket ve kullanım', () => sayfaAc(context, o.ad, PaketimEkrani(orgId: o.id, orgAdi: o.ad))),
-    SatirEylemi(Icons.language_rounded, 'Alan adları', () => sayfaAc(context, o.ad, AlanAdlariEkrani(orgId: o.id, orgAdi: o.ad))),
-    SatirEylemi(Icons.inbox_outlined, 'Posta kutuları', () => sayfaAc(context, o.ad, PostaKutulariEkrani(orgId: o.id, orgAdi: o.ad))),
-    SatirEylemi(Icons.restore_from_trash_outlined, 'Silinen postalar', () => _arsiveGit(o)),
-    if (Uyg.girebilir) SatirEylemi(Icons.login_rounded, 'Müşteri paneline gir', () => musteriPanelineGir(context, id: o.id, ad: o.ad)),
-    if (_yonetir) SatirEylemi(Icons.shield_outlined, 'Müşterilere taşı', () => _musterilereTasi(o), tehlikeli: true),
+    SatirEylemi(Simgeler.verified, 'Paket ve kullanım', () => sayfaAc(context, o.ad, PaketimEkrani(orgId: o.id, orgAdi: o.ad))),
+    SatirEylemi(Simgeler.language, 'Alan adları', () => sayfaAc(context, o.ad, AlanAdlariEkrani(orgId: o.id, orgAdi: o.ad))),
+    SatirEylemi(Simgeler.inbox, 'Posta kutuları', () => sayfaAc(context, o.ad, PostaKutulariEkrani(orgId: o.id, orgAdi: o.ad))),
+    SatirEylemi(Simgeler.restoreFromTrash, 'Silinen postalar', () => _arsiveGit(o)),
+    if (Uyg.girebilir) SatirEylemi(Simgeler.login, 'Müşteri paneline gir', () => musteriPanelineGir(context, id: o.id, ad: o.ad)),
+    if (_yonetir) SatirEylemi(Simgeler.shield, 'Müşterilere taşı', () => _musterilereTasi(o), tehlikeli: true),
   ];
 
   Future<void> _kurumAc(Organizasyon o) async {
@@ -151,14 +152,14 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
         Widget sayi(String d, String e) => Expanded(
           child: Column(
             children: [
-              Text(d, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(d, style: const TextStyle(fontWeight: FontWeight.w600)),
               Text(e, style: TextStyle(color: r.silik, fontSize: 12)),
             ],
           ),
         );
         String lim(int? n) => n == null ? '∞' : '$n';
         return AlertDialog(
-          title: Text(o.ad, style: gosterim(19, agirlik: FontWeight.w700)),
+          title: Text(o.ad, style: gosterim(19, agirlik: FontWeight.w600)),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
@@ -179,12 +180,12 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       DurumRozeti(o.durum),
                       const Spacer(),
-                      Icon(Icons.shield_rounded, size: 15, color: r.silik),
+                      Icon(SimgelerKalin.shield, size: 15, color: r.silik),
                       const SizedBox(width: 4),
                       Text('Korumalı: silinemez', style: TextStyle(color: r.silik, fontSize: 12)),
                     ],
@@ -192,7 +193,7 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
                   const SizedBox(height: 12),
                   for (final e in eylemler)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: EylemSatiri(
                         ikon: e.ikon,
                         baslik: e.etiket,
@@ -236,7 +237,7 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
   Widget _kurumListesi() => VeriTablosu<Organizasyon>(
     yukleyici: _kurumlar,
     bosMetin: _q.isEmpty ? 'Yönetici bölümünde kuruluş yok. Müşteriler bölümünde bir kuruluşu "Yönetici bölümüne taşı" ile ekleyin.' : 'Aramanızla eşleşen kuruluş yok.',
-    bosIkon: Icons.admin_panel_settings_outlined,
+    bosIkon: Simgeler.adminPanelSettings,
     siralama: _sira,
     artan: _artan,
     siralamaDegisti: (a, b) {
@@ -288,7 +289,7 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
   Widget _arsivListesi() => Column(
     children: [
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: Text(
           'Yönetici bölümündeki posta kutularından silinen her ileti (çöp kutusu boşaltma, kalıcı silme, IMAP/POP3/mobil silme ve otomatik temizlik dahil) '
           'burada süresiz saklanır. Geri yüklenen ileti, posta kutusunda "Geri Yüklenenler" klasörüne konur.',
@@ -299,7 +300,7 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
         child: VeriTablosu<SaklananIleti>(
           yukleyici: _arsiv,
           bosMetin: _aq.isEmpty ? 'Arşivde silinmiş ileti yok.' : 'Aramanızla eşleşen ileti yok.',
-          bosIkon: Icons.restore_from_trash_outlined,
+          bosIkon: Simgeler.restoreFromTrash,
           siralama: _asira,
           artan: _aartan,
           siralamaDegisti: (a, b) {
@@ -309,7 +310,7 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
             });
             _arsiv.yenile();
           },
-          eylemler: (m) => [SatirEylemi(Icons.unarchive_outlined, 'Geri yükle', () => _geriYukle(m))],
+          eylemler: (m) => [SatirEylemi(Simgeler.unarchive, 'Geri yükle', () => _geriYukle(m))],
           ust: FiltreCubugu(
             arama: AramaAlani(
               ipucu: 'Konu, gönderen veya alıcı ara…',
@@ -341,7 +342,7 @@ class _DahiliKurumlarEkraniState extends State<DahiliKurumlarEkrani> with Single
             baslik: m.konu.isEmpty ? '(konu yok)' : m.konu,
             alt: m.kimden,
             alanlar: [('Posta kutusu', m.adres), ('Klasör', m.klasor.isEmpty ? '—' : m.klasor), ('Boyut', boyutYaz(m.boyut)), ('Silinme', tamZaman(m.silinme))],
-            eylemler: [SatirEylemi(Icons.unarchive_outlined, 'Geri yükle', () => _geriYukle(m))],
+            eylemler: [SatirEylemi(Simgeler.unarchive, 'Geri yükle', () => _geriYukle(m))],
           ),
         ),
       ),

@@ -8,6 +8,7 @@ import '../veri/modeller.dart';
 import 'alan_adlari.dart';
 import 'bolumler.dart';
 import 'posta_kutulari.dart';
+import '../ortak/simgeler.dart';
 
 /// Alan adı ayrıntısı: özet, sahiplik kaydı, canlı DNS denetimi, DKIM, askıya alma ve silme.
 class AlanDetay extends StatefulWidget {
@@ -151,12 +152,12 @@ class _AlanDetayState extends State<AlanDetay> {
             DetayBasligi(
               baslik: a.gorunenAd,
               alt: a.unicodeAd != a.ad && a.unicodeAd.isNotEmpty ? a.ad : null,
-              sag: IconButton(tooltip: 'Yenile', onPressed: _yukle, icon: const Icon(Icons.refresh_rounded)),
+              sag: IconButton(tooltip: 'Yenile', onPressed: _yukle, icon: const Icon(Simgeler.refresh)),
             ),
           if (_hata != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Bant(_hata!, renk: Marka.gul, ikon: Icons.cloud_off_rounded),
+              child: Bant(_hata!, renk: Marka.gul, ikon: Simgeler.cloudOff),
             ),
           Kutu(
             child: Column(
@@ -164,14 +165,14 @@ class _AlanDetayState extends State<AlanDetay> {
               children: [
                 Wrap(
                   spacing: 8,
-                  runSpacing: 6,
+                  runSpacing: 8,
                   children: [
                     DurumRozeti(a.durum),
-                    Rozet(a.hosting ? 'Mail Hosting' : 'MX Gateway', ikon: a.hosting ? Icons.dns_rounded : Icons.alt_route_rounded),
+                    Rozet(a.hosting ? 'Mail Hosting' : 'MX Gateway', ikon: a.hosting ? Simgeler.dns : Simgeler.altRoute),
                     DnsRozeti(a.dnsDurumu),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 if (!Uyg.musteri) BilgiSatiri('Müşteri', a.orgAdi),
                 if (a.unicodeAd != a.ad) BilgiSatiri('Punycode', a.ad, mono: true),
                 BilgiSatiri('Eklenme', tamZaman(a.eklenme)),
@@ -203,7 +204,7 @@ class _AlanDetayState extends State<AlanDetay> {
                   'Bu TXT kaydını alan adının DNS bölgesine ekleyin. Kayıt bulunduğunda alan adı etkinleşir.',
                   style: TextStyle(color: r.soluk, fontSize: 13),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 const KopyaKutusu('TXT', etiket: 'Tür'),
                 KopyaKutusu(a.ad, etiket: 'Ad (@)'),
                 KopyaKutusu(a.dogrulamaTxt, etiket: 'Değer'),
@@ -217,7 +218,7 @@ class _AlanDetayState extends State<AlanDetay> {
                     onPressed: _denetleniyor ? null : _denetle,
                     icon: _denetleniyor
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.refresh_rounded, size: 18),
+                        : const Icon(Simgeler.refresh, size: 18),
                     label: const Text('DNS denetle'),
                   )
                 : null,
@@ -229,7 +230,7 @@ class _AlanDetayState extends State<AlanDetay> {
               sag: _yonetir
                   ? TextButton.icon(
                       onPressed: _dkimYenile,
-                      icon: const Icon(Icons.vpn_key_rounded, size: 18),
+                      icon: const Icon(Simgeler.vpnKey, size: 18),
                       label: Text(a.dkim == null ? 'Anahtar üret' : 'Anahtarı yenile'),
                     )
                   : null,
@@ -246,7 +247,7 @@ class _AlanDetayState extends State<AlanDetay> {
                         const KopyaKutusu('TXT', etiket: 'Tür'),
                         KopyaKutusu(a.dkim!.kayitAdi, etiket: 'Ad'),
                         KopyaKutusu(a.dkim!.kayit, etiket: 'Değer'),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           'Üretildi: ${tamZaman(a.dkim!.olusturma)} · 255 karakterden uzun TXT değerlerini DNS sağlayıcınız otomatik böler.',
                           style: TextStyle(color: r.silik, fontSize: 12),
@@ -269,20 +270,20 @@ class _AlanDetayState extends State<AlanDetay> {
           if (a.hosting) ...[const Baslik('Posta programı ayarları'), PostaProgramiAyarlari(alanAdi: a.gorunenAd)],
           const Baslik('İşlemler'),
           if (a.hosting && Bolum.kutular.gorunur) ...[
-            EylemSatiri(ikon: Icons.inbox_rounded, baslik: 'Posta kutuları', ipucu: 'Bu alan adındaki hesaplar', onTap: _kutular),
+            EylemSatiri(ikon: Simgeler.inbox, baslik: 'Posta kutuları', ipucu: 'Bu alan adındaki hesaplar', onTap: _kutular),
             const SizedBox(height: 8),
           ],
           if (Uyg.ortak && Uyg.yetki('domains.manage')) ...[
             if (a.durum != 'suspended')
               EylemSatiri(
-                ikon: Icons.pause_circle_outline_rounded,
+                ikon: Simgeler.pauseCircleOutline,
                 baslik: 'Askıya al',
                 ipucu: 'Bu alan adına posta kabulünü durdur',
                 onTap: () => _durum('suspended'),
               )
             else
               EylemSatiri(
-                ikon: Icons.play_circle_outline_rounded,
+                ikon: Simgeler.playCircleOutline,
                 baslik: 'Askıyı kaldır',
                 ipucu: 'Yeniden doğrulama bekler duruma al',
                 onTap: () => _durum('pending'),
@@ -291,7 +292,7 @@ class _AlanDetayState extends State<AlanDetay> {
           ],
           if (_yonetir)
             EylemSatiri(
-              ikon: Icons.delete_outline_rounded,
+              ikon: Simgeler.deleteOutline,
               baslik: 'Alan adını sil',
               ipucu: 'Yalnızca posta kutusu kalmadığında silinebilir',
               tehlikeli: true,
@@ -332,10 +333,10 @@ class _AlanDetayState extends State<AlanDetay> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Son denetim ${tamZaman(rap.zaman)}', style: TextStyle(color: r.silik, fontSize: 12.5)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               if (rap.sayi('ok') > 0) Rozet('${rap.sayi('ok')} tamam', renk: Marka.zumrut),
               if (rap.sayi('warn') > 0) Rozet('${rap.sayi('warn')} uyarı', renk: Marka.kehribar),
@@ -363,7 +364,7 @@ class _Sayac extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         children: [
-          Text(deger, style: gosterim(20)),
+          Text(deger, style: gosterim(20, agirlik: FontWeight.w600)),
           Text(etiket, style: TextStyle(color: context.r.silik, fontSize: 12)),
         ],
       ),
@@ -372,12 +373,12 @@ class _Sayac extends StatelessWidget {
 }
 
 (IconData, Color) dnsDurumGorunumu(String durum, Renkler r) => switch (durum) {
-  'ok' => (Icons.check_circle_rounded, Marka.zumrut),
-  'warn' => (Icons.warning_amber_rounded, Marka.kehribar),
-  'fail' => (Icons.cancel_rounded, Marka.gul),
-  'error' => (Icons.error_outline_rounded, r.silik),
-  'not_built' => (Icons.radio_button_unchecked_rounded, r.silik),
-  _ => (Icons.info_outline_rounded, Marka.mavi),
+  'ok' => (Simgeler.checkCircle, Marka.zumrut),
+  'warn' => (Simgeler.warningAmber, Marka.kehribar),
+  'fail' => (Simgeler.cancel, Marka.gul),
+  'error' => (Simgeler.errorOutline, r.silik),
+  'not_built' => (Simgeler.radioButtonUnchecked, r.silik),
+  _ => (Simgeler.infoOutline, Marka.mavi),
 };
 
 /// Tek DNS denetimi: durum, açıklama, olması gereken kayıt (kopyalanabilir), DNS'te bulunan ve teşhis edilen hatalar.
@@ -391,7 +392,7 @@ class DnsKontrolSatiri extends StatelessWidget {
     final (ikon, renk) = dnsDurumGorunumu(k.durum, r);
     final yapisal = k.host.isNotEmpty && k.deger.isNotEmpty;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -412,7 +413,7 @@ class DnsKontrolSatiri extends StatelessWidget {
             ),
           if (yapisal)
             Padding(
-              padding: const EdgeInsets.only(left: 27, top: 6),
+              padding: const EdgeInsets.only(left: 27, top: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -425,7 +426,7 @@ class DnsKontrolSatiri extends StatelessWidget {
                   KopyaKutusu(k.deger, etiket: 'Değer'),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: (k.durum == 'ok' ? Marka.zumrut : Marka.gul).withValues(alpha: .07),
                       borderRadius: BorderRadius.circular(10),
@@ -454,7 +455,7 @@ class DnsKontrolSatiri extends StatelessWidget {
           if (k.sorunlar.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 27, top: 8),
-              child: Bant(k.sorunlar.join('\n'), renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
+              child: Bant(k.sorunlar.join('\n'), renk: Marka.kehribar, ikon: Simgeler.warningAmber),
             ),
         ],
       ),
@@ -545,7 +546,7 @@ class _GatewayHedefiState extends State<_GatewayHedefi> {
           ),
           if (_hata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 12.5))),
           if (widget.yonetir) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton(
@@ -559,10 +560,10 @@ class _GatewayHedefiState extends State<_GatewayHedefi> {
             const Bant(
               'Hedef tanımlanmadan bu alan adına gelen iletiler geçici hatayla (451) geri çevrilir; gönderen sunucu daha sonra tekrar dener.',
               renk: Marka.kehribar,
-              ikon: Icons.warning_amber_rounded,
+              ikon: Simgeler.warningAmber,
             ),
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 8),
             child: Text(
               'Yedek hedefler, TLS politikası, devre kesici ve kesinti modu Mail Gateway bölümünden yönetilir.',
               style: TextStyle(color: r.silik, fontSize: 12),
@@ -606,12 +607,12 @@ class _PostaProgramiAyarlariState extends State<PostaProgramiAyarlari> {
               child: Row(
                 children: [
                   Icon(ikon, size: 16, color: r.birincil),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Text(baslik, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                 ],
               ),
             ),
-            Divider(height: 1, color: r.kenar),
+            Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
             if (l.isEmpty) Padding(padding: const EdgeInsets.all(12), child: Text('Açık değil', style: TextStyle(color: r.silik, fontSize: 13))),
             for (final e in l)
               Padding(
@@ -622,15 +623,15 @@ class _PostaProgramiAyarlariState extends State<PostaProgramiAyarlari> {
                     Text('${tamsayi(e['port'])}', style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
                     const SizedBox(width: 8),
                     Text(metin(e['security']), style: TextStyle(color: r.soluk, fontSize: 12.5)),
-                    if (!mantik(e['enabled'], true)) ...[const SizedBox(width: 6), Rozet('kapalı', renk: r.silik)],
+                    if (!mantik(e['enabled'], true)) ...[const SizedBox(width: 8), Rozet('kapalı', renk: r.silik)],
                   ],
                 ),
               ),
           ],
         ),
       );
-      final gelen = uclar('Gelen posta', Icons.mail_outline_rounded, haritalar(m['incoming']));
-      final giden = uclar('Giden posta (SMTP)', Icons.send_outlined, haritalar(m['outgoing']));
+      final gelen = uclar('Gelen posta', Simgeler.mailOutline, haritalar(m['incoming']));
+      final giden = uclar('Giden posta (SMTP)', Simgeler.send, haritalar(m['outgoing']));
       final notlar = [
         'SMTP için kimlik doğrulama açık olmalı (gelen sunucuyla aynı kullanıcı adı ve şifre).',
         if (mantik(m['restricted'])) 'Şu an posta programı bağlantıları yalnızca izin verilen IP adreslerinden kabul ediliyor.',
@@ -650,11 +651,11 @@ class _PostaProgramiAyarlariState extends State<PostaProgramiAyarlari> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(child: gelen),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(child: giden),
                       ],
                     )
-                  : Column(children: [gelen, const SizedBox(height: 10), giden]),
+                  : Column(children: [gelen, const SizedBox(height: 8), giden]),
             ),
             const SizedBox(height: 8),
             Text(notlar, style: TextStyle(color: r.silik, fontSize: 12)),

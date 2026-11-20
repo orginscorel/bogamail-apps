@@ -10,6 +10,7 @@ import '../ortak/secimler.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import 'altyapi_ortak.dart';
+import '../ortak/simgeler.dart';
 import 'kutu_islemleri.dart' show kutuyuDisariAktar;
 
 /// Yedekleme (süper yönetici): günlük platform yedeği (zamanlama, son çalıştırmalar, "Şimdi yedekle"), yedek diski,
@@ -142,7 +143,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
         'Yedekler bu sunucunun diskinde duruyor. Günlük yedek silinen/bozulan veriyi geri getirir; disk veya sunucu kaybına karşı korumaz. '
         'Tüm platformu geri yükleme bilerek bir düğme değildir (geri alınamaz): adımlar docs/operations/BACKUP-RESTORE.md içinde.',
         renk: Marka.kehribar,
-        ikon: Icons.warning_amber_rounded,
+        ikon: Simgeler.warningAmber,
       ),
       const SizedBox(height: 12),
       if (bilgi == null)
@@ -164,10 +165,10 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
         const SizedBox(height: 12),
         _butunlukKarti(context),
       ],
-      const SizedBox(height: 18),
+      const SizedBox(height: 16),
       Text(
         'Yedeklenen veriler (bugünkü durum)',
-        style: TextStyle(color: r.soluk, fontWeight: FontWeight.w700, fontSize: 13),
+        style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
       ),
       const SizedBox(height: 8),
       _veriler(context, d),
@@ -177,10 +178,10 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
         'Son dışa aktarma: ${tarihOku(d['last_export_at']) == null ? 'hiç' : goreliZaman(tarihOku(d['last_export_at']))}.',
         style: TextStyle(color: r.silik, fontSize: 12),
       ),
-      const SizedBox(height: 18),
+      const SizedBox(height: 16),
       BolumKarti(
         baslik: 'Dışa aktarma ve geri yükleme',
-        ikon: Icons.unarchive_outlined,
+        ikon: Simgeler.unarchive,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -190,10 +191,10 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
               'Posta Kutuları → kutu → "Yedekten geri yükle". Bir müşterinin tüm kutuları için: Müşteriler → Yönet → "Tümünü dışa aktar".',
               style: TextStyle(color: r.soluk, fontSize: 13),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             FilledButton.tonalIcon(
               onPressed: () => _kutuDisaAktar(context),
-              icon: const Icon(Icons.archive_outlined, size: 18),
+              icon: const Icon(Simgeler.archive, size: 18),
               label: const Text('Posta kutusunu dışa aktar'),
             ),
           ],
@@ -202,7 +203,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
       const SizedBox(height: 12),
       BolumKarti(
         baslik: 'Planlanan: Sunucu dışı kopya',
-        ikon: Icons.cloud_upload_outlined,
+        ikon: Simgeler.cloudUpload,
         sag: Rozet('Onay bekliyor', renk: r.soluk),
         child: Text(
           'Yedekler şu anda aynı diskte. Disk/sunucu kaybına karşı şifreli, sunucu dışı bir hedefe (S3 uyumlu depolama vb.) kopyalama sahibin '
@@ -221,7 +222,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
     final suruyor = _yedekSuruyor;
     return BolumKarti(
       baslik: 'Son yedek',
-      ikon: Icons.storage_rounded,
+      ikon: Simgeler.storage,
       altBaslik: basarili.isEmpty
           ? 'Henüz başarılı yedek yok'
           : 'Son başarılı: ${goreliZaman(tarihOku(basarili['finished_at']))} · ${boyutYaz(tamsayi(basarili['total_bytes']))}',
@@ -245,7 +246,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
             onPressed: _basliyor || suruyor ? null : _simdiYedekle,
             icon: _basliyor || suruyor
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.play_arrow_rounded),
+                : const Icon(Simgeler.playArrow),
             label: Text(suruyor ? 'Yedekleniyor…' : 'Şimdi yedekle'),
           ),
         ],
@@ -259,11 +260,11 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
     final toplam = tamsayi(bilgi['disk_total_bytes']), bos = tamsayi(bilgi['disk_free_bytes']);
     return BolumKarti(
       baslik: 'Yedek diski',
-      ikon: Icons.save_outlined,
+      ikon: Simgeler.save,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(boyutYaz(tamsayi(bilgi['kept_bytes'])), style: gosterim(22, renk: r.metin)),
+          Text(boyutYaz(tamsayi(bilgi['kept_bytes'])), style: gosterim(22, agirlik: FontWeight.w600, renk: r.metin)),
           const SizedBox(height: 8),
           if (ok && toplam > 0) ...[KullanimCubugu(kullanilan: toplam - bos, toplam: toplam), const SizedBox(height: 8)],
           Text(
@@ -292,7 +293,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
     final gorunen = l == null ? <Map<String, dynamic>>[] : l.skip(sayfa * boy).take(boy).toList();
     return BolumKarti(
       baslik: 'Son çalıştırmalar',
-      ikon: Icons.history_rounded,
+      ikon: Simgeler.history,
       sag: sayfaSayisi > 1
           ? Row(
               mainAxisSize: MainAxisSize.min,
@@ -300,13 +301,13 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
                 IconButton(
                   tooltip: 'Önceki sayfa',
                   onPressed: sayfa > 0 ? () => setState(() => _sayfa = sayfa - 1) : null,
-                  icon: const Icon(Icons.chevron_left_rounded),
+                  icon: const Icon(Simgeler.chevronLeft),
                 ),
                 Text('${sayfa + 1} / $sayfaSayisi', style: TextStyle(color: r.soluk, fontSize: 12)),
                 IconButton(
                   tooltip: 'Sonraki sayfa',
                   onPressed: sayfa < sayfaSayisi - 1 ? () => setState(() => _sayfa = sayfa + 1) : null,
-                  icon: const Icon(Icons.chevron_right_rounded),
+                  icon: const Icon(Simgeler.chevronRight),
                 ),
               ],
             )
@@ -317,7 +318,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
           ? Text('Henüz yedek alınmadı.', style: TextStyle(color: r.soluk))
           : Column(
               children: [
-                for (final (i, c) in gorunen.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar), _calistirmaSatiri(context, c)],
+                for (final (i, c) in gorunen.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)), _calistirmaSatiri(context, c)],
               ],
             ),
     );
@@ -403,7 +404,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
     if (sonraki != null) durumMetni += ' · Sonraki: ${tamZaman(sonraki)}';
     return BolumKarti(
       baslik: 'Bütünlük taraması',
-      ikon: Icons.verified_user_outlined,
+      ikon: Simgeler.verifiedUser,
       altBaslik:
           'İleti dosyaları veritabanı kaydıyla (SHA-256 ve boyut) karşılaştırılır, sahipsiz dosyalar ve son yedeğin manifesti denetlenir. '
           'Salt okunurdur: hiçbir dosya silinmez veya onarılmaz.',
@@ -430,13 +431,13 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextButton.icon(onPressed: () => _gecmis(context), icon: const Icon(Icons.history_rounded, size: 18), label: const Text('Geçmiş')),
-                        const SizedBox(width: 6),
+                        TextButton.icon(onPressed: () => _gecmis(context), icon: const Icon(Simgeler.history, size: 18), label: const Text('Geçmiş')),
+                        const SizedBox(width: 8),
                         FilledButton.tonalIcon(
                           onPressed: _taraniyor || suren != null ? null : _simdiTara,
                           icon: _taraniyor || suren != null
                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.verified_user_outlined, size: 18),
+                              : const Icon(Simgeler.verifiedUser, size: 18),
                           label: Text(suren != null ? 'Taranıyor…' : 'Şimdi tara'),
                         ),
                       ],
@@ -477,13 +478,13 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
       enAz: 240,
       children: [
         _VeriKutusu(
-          ikon: Icons.dns_outlined,
+          ikon: Simgeler.dns,
           baslik: 'Veritabanı (PostgreSQL)',
           deger: boyutYaz(tamsayi(db['size_bytes'])),
           not: '${metin(db['name'])} · PostgreSQL ${metin(db['version'])} · hesaplar, klasörler, ileti dizini, denetim kayıtları',
         ),
         _VeriKutusu(
-          ikon: Icons.inventory_2_outlined,
+          ikon: Simgeler.inventory2,
           baslik: 'İleti deposu',
           deger: boyutYaz(tamsayi(depo['bytes'])),
           not: '${sayiYaz(tamsayi(depo['messages']))} ileti · ${tamsayi(depo['mailboxes'])} kutu',
@@ -491,7 +492,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
           disk: disk('store'),
         ),
         _VeriKutusu(
-          ikon: Icons.outbox_outlined,
+          ikon: Simgeler.outbox,
           baslik: 'Spool (teslim bekleyen)',
           deger: spool == null ? 'Ölçülemedi' : '${boyutYaz(tamsayi(spool['free_bytes']))} boş',
           not: 'Geçici; teslimden sonra silinir',
@@ -499,7 +500,7 @@ class _YedeklemeEkraniState extends State<YedeklemeEkrani> {
           disk: spool,
         ),
         _VeriKutusu(
-          ikon: Icons.gpp_maybe_outlined,
+          ikon: Simgeler.gppMaybe,
           baslik: 'Karantina',
           deger: karantina == null ? 'Ölçülemedi' : '${boyutYaz(tamsayi(karantina['free_bytes']))} boş',
           not: 'Süresi dolunca temizlenir',
@@ -529,18 +530,18 @@ class _VeriKutusu extends StatelessWidget {
           Row(
             children: [
               Icon(ikon, size: 16, color: r.soluk),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(baslik, style: TextStyle(color: r.soluk, fontSize: 12.5)),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(deger, style: gosterim(19, renk: r.metin)),
+          const SizedBox(height: 8),
+          Text(deger, style: gosterim(19, agirlik: FontWeight.w600, renk: r.metin)),
           const SizedBox(height: 8),
           if (d != null && tamsayi(d['total_bytes']) > 0) ...[
             KullanimCubugu(kullanilan: tamsayi(d['used_bytes']), toplam: tamsayi(d['total_bytes'])),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
           ],
           Text(not, style: TextStyle(color: r.soluk, fontSize: 12)),
           if (yol != null && yol!.isNotEmpty)
@@ -576,7 +577,7 @@ class _SaatAlani extends StatelessWidget {
       if (s != null) degisti('${s.hour.toString().padLeft(2, '0')}:${s.minute.toString().padLeft(2, '0')}');
     },
     child: InputDecorator(
-      decoration: InputDecoration(labelText: 'Saat', errorText: hata, suffixIcon: const Icon(Icons.schedule_rounded, size: 18)),
+      decoration: InputDecoration(labelText: 'Saat', errorText: hata, suffixIcon: const Icon(Simgeler.schedule, size: 18)),
       child: Text(deger),
     ),
   );
@@ -657,7 +658,7 @@ class _ZamanlamaKartiState extends State<_ZamanlamaKarti> {
     final dilimler = _saatDilimleri.contains(_dilim) ? _saatDilimleri : [_dilim, ..._saatDilimleri];
     return BolumKarti(
       baslik: 'Zamanlama',
-      ikon: Icons.event_repeat_rounded,
+      ikon: Simgeler.eventRepeat,
       altBaslik: mantik(_ilk['enabled']) && sonraki != null ? 'Sonraki yedek: ${tamZaman(sonraki)}' : 'Zamanlanmış yedek kapalı',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -673,7 +674,7 @@ class _ZamanlamaKartiState extends State<_ZamanlamaKarti> {
               Expanded(
                 child: _SaatAlani(deger: _saat, hata: _alan == 'time' ? _hata : null, degisti: (v) => setState(() => _saat = v)),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _saklama,
@@ -683,7 +684,7 @@ class _ZamanlamaKartiState extends State<_ZamanlamaKarti> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             initialValue: _dilim,
             isExpanded: true,
@@ -704,7 +705,7 @@ class _ZamanlamaKartiState extends State<_ZamanlamaKarti> {
               onPressed: !_degisti || _mesgul ? null : _kaydet,
               icon: _mesgul
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.save_outlined, size: 18),
+                  : const Icon(Simgeler.save, size: 18),
               label: const Text('Kaydet'),
             ),
           ),
@@ -826,9 +827,9 @@ class _TaramaZamanlamasiState extends State<_TaramaZamanlamasi> {
                   ? Row(
                       children: [
                         Expanded(child: gun),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(child: saat),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(child: hiz),
                       ],
                     )
@@ -836,11 +837,11 @@ class _TaramaZamanlamasiState extends State<_TaramaZamanlamasi> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         gun,
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(child: saat),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Expanded(child: hiz),
                           ],
                         ),
@@ -855,7 +856,7 @@ class _TaramaZamanlamasiState extends State<_TaramaZamanlamasi> {
                 onPressed: !_degisti || _mesgul ? null : _kaydet,
                 icon: _mesgul
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.save_outlined, size: 18),
+                    : const Icon(Simgeler.save, size: 18),
                 label: const Text('Kaydet'),
               ),
             ),
@@ -905,7 +906,7 @@ class _TaramaAyrintisiState extends State<_TaramaAyrintisi> {
         ),
         if (s.durum != 'ok' && s.durum != 'running') ...[const SizedBox(height: 8), Text(s.ozet, style: const TextStyle(color: Marka.gul, fontSize: 13))],
         if (sorunlar.isNotEmpty) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
@@ -915,7 +916,7 @@ class _TaramaAyrintisiState extends State<_TaramaAyrintisi> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (final (i, p) in sorunlar.take(_goster).indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Column(
@@ -943,7 +944,7 @@ class _TaramaAyrintisiState extends State<_TaramaAyrintisi> {
                   TextButton(onPressed: () => setState(() => _goster += 20), child: Text('Daha fazla göster (${sorunlar.length - _goster})')),
                 if (s.kesik)
                   Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     child: Text('Liste ilk 200 sorunla sınırlı; sayılar tamdır.', style: TextStyle(color: r.silik, fontSize: 12)),
                   ),
               ],
@@ -966,7 +967,7 @@ class _TaramaGecmisi extends StatelessWidget {
       return ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 4),
         itemCount: l.length,
-        separatorBuilder: (_, _) => Divider(height: 1, color: r.kenar),
+        separatorBuilder: (_, _) => Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
         itemBuilder: (c, i) {
           final s = l[i];
           final renk = switch (s.durum) {

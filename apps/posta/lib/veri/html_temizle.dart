@@ -148,7 +148,7 @@ String alintilariKatla(String html) {
   final belge = ayristir.parse(html);
   final govde = belge.body;
   if (govde == null) return html;
-  final ilk = govde.querySelector(_alintiSecicileri.join(','));
+  final ilk = _alintiBasi(govde);
   if (ilk == null || ilk.parent == null) return html;
   dom.Element bas = ilk;
   final outlook =
@@ -177,18 +177,103 @@ String alintilariKatla(String html) {
   return govde.innerHtml;
 }
 
+// Web ile aynı kurallar (apps/web/src/lib/mail-html.ts: quoteStart / collapseQuotesHtml / splitSignatureText).
+const _imzaSecicileri = ['.gmail_signature', 'div[data-signature]', '#Signature', '.moz-signature', '#signature', 'div.signature'];
+
+/// "On … wrote:" / "… tarihinde … yazdı:" atıf satırı (alıntı kapsayıcısı sınıfı olmayan istemciler).
+final _atifSatiri = RegExp(
+  r'^(On\s.{4,300}\swrote:|Am\s.{4,300}\sschrieb.{0,40}:|Le\s.{4,300}\sa écrit\s?:|.{4,300}\s(tarihinde\s.{0,200})?(şunu\s)?yazdı:|-{2,}\s*(Original Message|Orijinal İleti|Özgün ileti|İletilen ileti|Forwarded message)\s*-{2,})$',
+  caseSensitive: false,
+);
+
+dom.Element? _alintiBasi(dom.Element govde) {
+  final ilk = govde.querySelector(_alintiSecicileri.join(','));
+  if (ilk != null) return ilk;
+  for (final e in govde.querySelectorAll('div,p,span,font')) {
+    final t = e.text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (t.length < 8 || t.length > 400 || !_atifSatiri.hasMatch(t)) continue;
+    if (e.querySelector('blockquote') != null || e.querySelector('div div') != null) continue;
+    var bas = e;
+    final on = t.substring(0, t.length < 20 ? t.length : 20);
+    while (bas.parent != null && bas.parent != govde && bas.parent!.children.first == bas && bas.parent!.text.trim().startsWith(on)) {
+      bas = bas.parent!;
+    }
+    return bas;
+  }
+  final bq = govde.children.where((c) => c.localName == 'blockquote').lastOrNull;
+  return bq != null && bq.nextElementSibling == null ? bq : null;
+}
+
+bool _alintiIcinde(dom.Element e) {
+  for (dom.Element? p = e; p != null; p = p.parent) {
+    for (final s in _alintiSecicileri) {
+      try {
+        if (p.parent != null && p.parent!.querySelectorAll(s).contains(p)) return true;
+      } catch (_) {}
+    }
+  }
+  return false;
+}
+
+/// Konuşma görünümü için: alıntılanan geçmişi ve [imza] verilirse (konuşmada tekrarlanan) imzayı gövdeden ayırır;
+/// uygulama bunları kendi "•••" düğmesinin arkasında tutar. [ana]: katlanmış HTML; [katlandi]: ayrılan bir şey
+/// var mı. Alıntı iletinin tamamıysa (ör. yalın iletme) alıntı ayrılmaz.
+({String ana, bool katlandi}) htmlAlintiAyir(String html, {bool imza = false}) {
+  final belge = ayristir.parse(html);
+  final govde = belge.body;
+  if (govde == null) return (ana: html, katlandi: false);
+  var degisti = false;
+  dom.Element? imzaOgesi;
+  if (imza) {
+    final e = govde.querySelector(_imzaSecicileri.join(','));
+    if (e != null && !_alintiIcinde(e)) imzaOgesi = e;
+  }
+  var bas = _alintiBasi(govde);
+  if (bas != null && imzaOgesi != null && (bas == imzaOgesi || imzaOgesi.querySelectorAll('*').contains(bas))) bas = null;
+  if (bas != null) {
+    if (bas.classes.contains('moz-cite-prefix') || bas.id == 'divRplyFwdMsg' || bas.id == 'appendonsend' || bas.classes.contains('OutlookMessageHeader')) {
+      final once = bas.previousElementSibling;
+      if (once != null && once.localName == 'hr') bas = once;
+    }
+    final ebeveyn = bas.parent!;
+    final i = ebeveyn.nodes.indexOf(bas);
+    final kesilen = ebeveyn.nodes.sublist(i).toList();
+    for (final n in kesilen) {
+      n.remove();
+    }
+    if (_gorunurMetin(govde).isEmpty) {
+      // Okunacak başka bir şey yok: alıntı görünür kalır.
+      ebeveyn.nodes.addAll(kesilen);
+    } else {
+      degisti = true;
+    }
+  }
+  if (imzaOgesi != null && imzaOgesi.parent != null) {
+    final ebeveyn = imzaOgesi.parent!;
+    final i = ebeveyn.nodes.indexOf(imzaOgesi);
+    imzaOgesi.remove();
+    if (_gorunurMetin(govde).isEmpty) {
+      ebeveyn.nodes.insert(i, imzaOgesi);
+    } else {
+      degisti = true;
+    }
+  }
+  if (!degisti) return (ana: html, katlandi: false);
+  return (ana: govde.innerHtml, katlandi: true);
+}
+
 const alintiCss =
     'details.bm-quote{margin:12px 0 0}details.bm-quote>summary{display:inline-block;list-style:none;cursor:pointer;user-select:none;'
     'padding:0 8px;border-radius:6px;background:#eceef1;color:#57606a;font:bold 12px/18px system-ui;letter-spacing:1px}'
     'details.bm-quote>summary::-webkit-details-marker{display:none}details.bm-quote[open]>summary{margin-bottom:8px}';
 
 /// Görüntüleyiciye verilecek tam belge: CSP yalnızca satır içi stil ve data: görsellere izin verir.
-String gorunumBelgesi(String govde) =>
+String gorunumBelgesi(String govde, {bool sikisik = false}) =>
     '<!doctype html><html><head><meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width, initial-scale=1">'
     '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; font-src data:">'
     '<style>html,body{margin:0;font:15px/1.6 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;color:#1f2328;background:#fff;'
-    'word-wrap:break-word;overflow-wrap:anywhere;color-scheme:light}body{padding:14px 16px 28px;display:flow-root}'
+    'word-wrap:break-word;overflow-wrap:anywhere;color-scheme:light}body{padding:${sikisik ? '2px 16px 8px' : '14px 16px 28px'};display:flow-root}'
     'img{max-width:100%;height:auto}table{max-width:100%}pre{white-space:pre-wrap}a{color:#4f46e5}'
     'blockquote{margin:0 0 0 .8ex;border-left:2px solid #d0d7de;padding-left:1ex;color:#57606a}$alintiCss</style>'
     '</head><body>$govde</body></html>';

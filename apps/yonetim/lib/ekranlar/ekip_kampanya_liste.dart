@@ -11,6 +11,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'ekip_kampanya_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Toplu Gönderim → Kişi listeleri: listeler, kişiler, içe aktarma (yapıştırılan CSV), abonelik formu.
 class ListelerSekmesi extends StatefulWidget {
@@ -81,17 +82,17 @@ class _ListelerSekmesiState extends State<ListelerSekmesi> {
   }
 
   List<SatirEylemi> _eylemler(Map<String, dynamic> l) => [
-    SatirEylemi(Icons.people_outline_rounded, 'Kişiler', () => _kisiler(l)),
+    SatirEylemi(Simgeler.peopleOutline, 'Kişiler', () => _kisiler(l)),
     SatirEylemi(
-      Icons.download_rounded,
+      Simgeler.download,
       'Kişileri CSV olarak indir',
       () => dosyaIndir('/api/v1/campaigns/lists/${metin(l['id'])}/export.csv', '${metinYa(l['name']) ?? 'liste'}-kisiler.csv',
           baslik: 'Kişiler indiriliyor', tur: 'text/csv'),
     ),
-    if (widget.b.acik) SatirEylemi(Icons.upload_file_rounded, 'CSV içe aktar', () => _iceAktar(l)),
-    SatirEylemi(Icons.dynamic_form_outlined, 'Abonelik formu', () => _form(l)),
-    SatirEylemi(Icons.edit_outlined, 'Düzenle', () => _duzenle(l)),
-    SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(l), tehlikeli: true),
+    if (widget.b.acik) SatirEylemi(Simgeler.uploadFile, 'CSV içe aktar', () => _iceAktar(l)),
+    SatirEylemi(Simgeler.dynamicForm, 'Abonelik formu', () => _form(l)),
+    SatirEylemi(Simgeler.edit, 'Düzenle', () => _duzenle(l)),
+    SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(l), tehlikeli: true),
   ];
 
   @override
@@ -104,11 +105,11 @@ class _ListelerSekmesiState extends State<ListelerSekmesi> {
       yukleyici: _y,
       bosMetin:
           'Henüz liste yok. Bir kişi listesi oluşturun; kişileri tek tek ekleyebilir, CSV ile içe aktarabilir ya da abonelik formu ile toplayabilirsiniz.',
-      bosIkon: Icons.groups_outlined,
+      bosIkon: Simgeler.groups,
       onTap: _kisiler,
       eylemler: _eylemler,
       ust: Padding(
-        padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 8),
+        padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 8),
         child: Wrap(
           spacing: 12,
           runSpacing: 8,
@@ -122,7 +123,7 @@ class _ListelerSekmesiState extends State<ListelerSekmesi> {
                 style: TextStyle(color: context.r.soluk, fontSize: 12.5),
               ),
             ),
-            FilledButton.icon(onPressed: b.acik ? () => _duzenle(null) : null, icon: const Icon(Icons.playlist_add_rounded), label: const Text('Yeni liste')),
+            FilledButton.icon(onPressed: b.acik ? () => _duzenle(null) : null, icon: const Icon(Simgeler.playlistAdd), label: const Text('Yeni liste')),
           ],
         ),
       ),
@@ -213,7 +214,7 @@ class _ListeDialogState extends State<_ListeDialog> {
             onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(labelText: 'Ad', counterText: ''),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           TextField(
             controller: _aciklama,
             maxLength: 500,
@@ -299,10 +300,10 @@ class _KisilerGorunumuState extends State<KisilerGorunumu> {
   List<SatirEylemi> _eylemler(Map<String, dynamic> k) {
     final d = metin(k['status']);
     return [
-      SatirEylemi(Icons.info_outline_rounded, 'Ayrıntılar', () => _ayrinti(k)),
-      if (d == 'subscribed' || d == 'pending') SatirEylemi(Icons.person_remove_outlined, 'Abonelikten çıkar', () => _durumDegistir(k, 'unsubscribed')),
-      if (d == 'bounced') SatirEylemi(Icons.person_add_alt_outlined, 'Yeniden abone yap', () => _durumDegistir(k, 'subscribed')),
-      SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), tehlikeli: true),
+      SatirEylemi(Simgeler.infoOutline, 'Ayrıntılar', () => _ayrinti(k)),
+      if (d == 'subscribed' || d == 'pending') SatirEylemi(Simgeler.personRemove, 'Abonelikten çıkar', () => _durumDegistir(k, 'unsubscribed')),
+      if (d == 'bounced') SatirEylemi(Simgeler.personAddAlt, 'Yeniden abone yap', () => _durumDegistir(k, 'subscribed')),
+      SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(k), tehlikeli: true),
     ];
   }
 
@@ -345,7 +346,7 @@ class _KisilerGorunumuState extends State<KisilerGorunumu> {
     return VeriTablosu<Map<String, dynamic>>(
       yukleyici: _y,
       bosMetin: 'Kişi yok.',
-      bosIkon: Icons.person_outline_rounded,
+      bosIkon: Simgeler.personOutline,
       tabloEnAz: 640,
       onTap: _ayrinti,
       eylemler: _eylemler,
@@ -353,7 +354,7 @@ class _KisilerGorunumuState extends State<KisilerGorunumu> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 10, context.genis ? 16 : 12, 0),
+            padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 8, context.genis ? 16 : 12, 0),
             child: Text('Onay bekleyenler e-postadaki doğrulama bağlantısına tıklayınca abone olur.', style: TextStyle(color: context.r.soluk, fontSize: 12.5)),
           ),
           FiltreCubugu(
@@ -367,7 +368,7 @@ class _KisilerGorunumuState extends State<KisilerGorunumu> {
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Durum',
-                ikon: Icons.filter_list_rounded,
+                ikon: Simgeler.filterList,
                 secenekler: [('all', 'Tümü'), for (final e in kisiDurumlari.entries) (e.key, e.value)],
                 secili: _durum,
                 secildi: (v) {
@@ -376,7 +377,7 @@ class _KisilerGorunumuState extends State<KisilerGorunumu> {
                 },
               ),
             ],
-            sag: widget.acik ? FilledButton.tonalIcon(onPressed: _ekle, icon: const Icon(Icons.person_add_alt_rounded), label: const Text('Kişi ekle')) : null,
+            sag: widget.acik ? FilledButton.tonalIcon(onPressed: _ekle, icon: const Icon(Simgeler.personAddAlt), label: const Text('Kişi ekle')) : null,
           ),
         ],
       ),
@@ -479,7 +480,7 @@ class _KisiEkleDialogState extends State<_KisiEkleDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('Yalnızca size e-posta almak için izin vermiş kişileri ekleyin.', style: TextStyle(color: r.soluk, fontSize: 13)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               TextField(
                 controller: _eposta,
                 keyboardType: TextInputType.emailAddress,
@@ -512,7 +513,7 @@ class _KisiEkleDialogState extends State<_KisiEkleDialog> {
               ),
               for (var i = 0; i < _alanlar.length; i++)
                 Padding(
-                  padding: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Row(
                     children: [
                       SizedBox(
@@ -536,7 +537,7 @@ class _KisiEkleDialogState extends State<_KisiEkleDialog> {
                           a.dispose();
                           b.dispose();
                         }),
-                        icon: const Icon(Icons.delete_outline_rounded),
+                        icon: const Icon(Simgeler.deleteOutline),
                       ),
                     ],
                   ),
@@ -545,7 +546,7 @@ class _KisiEkleDialogState extends State<_KisiEkleDialog> {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   onPressed: () => setState(() => _alanlar.add((TextEditingController(), TextEditingController()))),
-                  icon: const Icon(Icons.add_rounded),
+                  icon: const Icon(Simgeler.add),
                   label: const Text('Alan ekle'),
                 ),
               ),
@@ -651,13 +652,13 @@ class _IceAktarDialogState extends State<_IceAktarDialog> {
                 'Önce önizleme gösterilir.',
                 style: TextStyle(color: r.soluk, fontSize: 13),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               if (on == null)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
                     onPressed: _mesgul ? null : _dosyadan,
-                    icon: const Icon(Icons.attach_file_rounded, size: 18),
+                    icon: const Icon(Simgeler.attachFile, size: 18),
                     label: Text(_dosyaAdi == 'yapistirilan.csv' ? 'Dosyadan yükle' : _dosyaAdi),
                   ),
                 ),
@@ -683,7 +684,7 @@ class _IceAktarDialogState extends State<_IceAktarDialog> {
                   ],
                 ),
                 if (metinler(on['fields']).isNotEmpty) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text('Özel alanlar: ${metinler(on['fields']).join(', ')}', style: TextStyle(color: r.silik, fontSize: 12)),
                 ],
                 for (final s in haritalar(on['sample']).take(5))
@@ -694,9 +695,9 @@ class _IceAktarDialogState extends State<_IceAktarDialog> {
                   ),
                 for (final p in hatali.take(50))
                   Text('Satır ${tamsayi(p['line'])}: ${metin(p['value'])} (${metin(p['reason'])})', style: const TextStyle(fontSize: 12, color: Marka.gul)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text('Bastırılmış (daha önce çıkmış / şikâyet etmiş / geri dönmüş) adresler abone yapılmaz.', style: TextStyle(color: r.silik, fontSize: 12)),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 TextField(
                   controller: _not,
                   minLines: 2,
@@ -827,12 +828,12 @@ class _FormDialogState extends State<_FormDialog> {
                 ],
                 onChanged: (v) => setState(() => _kutu = v),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               TextField(
                 controller: _baslik,
                 decoration: InputDecoration(labelText: 'Form başlığı', hintText: metin(l['name'])),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               TextField(
                 controller: _onay,
                 minLines: 2,
@@ -848,7 +849,7 @@ class _FormDialogState extends State<_FormDialog> {
                 ),
                 const SizedBox(height: 4),
                 KopyaKutusu(adres),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -857,11 +858,11 @@ class _FormDialogState extends State<_FormDialog> {
                         style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 12.5),
                       ),
                     ),
-                    TextButton.icon(onPressed: () => kopyala(kod), icon: const Icon(Icons.copy_rounded, size: 17), label: const Text('Kopyala')),
+                    TextButton.icon(onPressed: () => kopyala(kod), icon: const Icon(Simgeler.copy, size: 17), label: const Text('Kopyala')),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: r.ic,
                     borderRadius: BorderRadius.circular(10),

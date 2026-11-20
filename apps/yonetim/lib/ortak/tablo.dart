@@ -2,6 +2,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import 'sayfali.dart';
+import 'simgeler.dart';
 
 /// Tablo sütunu. [esnek] genişlik payı; [genislik] verilirse sabit genişlik. [siralama]: sunucunun `sort`
 /// parametresindeki ad (verilirse başlığa dokununca sıralanır).
@@ -37,9 +38,9 @@ class SatirMenusu extends StatelessWidget {
     return PopupMenuButton<int>(
       constraints: const BoxConstraints(minWidth: 200, maxWidth: 340),
       tooltip: ipucu,
-      icon: Icon(Icons.more_vert_rounded, color: r.soluk, size: 20),
+      icon: Icon(Simgeler.moreVert, color: r.soluk, size: 20),
       position: PopupMenuPosition.under,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: r.kenar)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: r.kenar.withValues(alpha: .6))),
       color: r.kart,
       onSelected: (i) => eylemler[i].calistir(),
       itemBuilder: (_) => [
@@ -47,7 +48,7 @@ class SatirMenusu extends StatelessWidget {
           PopupMenuItem<int>(
             value: i,
             height: 42,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Icon(e.ikon, size: 18, color: e.tehlikeli ? Marka.gul : r.soluk),
@@ -77,7 +78,7 @@ class VeriTablosu<T> extends StatefulWidget {
     required this.sutunlar,
     required this.kart,
     required this.bosMetin,
-    this.bosIkon = Icons.inbox_rounded,
+    this.bosIkon = Simgeler.inbox,
     this.onTap,
     this.eylemler,
     this.siralama,
@@ -154,8 +155,7 @@ class _VeriTablosuState<T> extends State<VeriTablosu<T>> {
       decoration: BoxDecoration(
         color: r.kart,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: r.kenar),
-        boxShadow: r.hafifGolge,
+        border: Border.all(color: r.kenar.withValues(alpha: .8)),
       ),
       clipBehavior: Clip.antiAlias,
       child: ListenableBuilder(
@@ -210,13 +210,13 @@ class _VeriTablosuState<T> extends State<VeriTablosu<T>> {
                   ],
                 ),
               ),
-              Divider(height: 1, color: r.kenar),
+              Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
               SizedBox(
                 height: 2,
                 child: y.yukleniyor && y.ogeler.isNotEmpty ? LinearProgressIndicator(minHeight: 2, color: r.vurgu, backgroundColor: Colors.transparent) : null,
               ),
               Expanded(child: govde),
-              Divider(height: 1, color: r.kenar),
+              Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
               _altBilgi(context, y),
             ],
           );
@@ -238,7 +238,7 @@ class _VeriTablosuState<T> extends State<VeriTablosu<T>> {
   Widget _baslikHucresi(BuildContext context, Sutun<T> s) {
     final r = context.r;
     final aktif = s.siralama != null && s.siralama == widget.siralama;
-    final stil = TextStyle(color: aktif ? r.metin : r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: .5);
+    final stil = TextStyle(color: aktif ? r.metin : r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: .5);
     final yazi = Text(trBuyuk(s.baslik), maxLines: 1, overflow: TextOverflow.ellipsis, style: stil);
     if (s.siralama == null || widget.siralamaDegisti == null) {
       return Align(alignment: s.sagaYasla ? Alignment.centerRight : Alignment.centerLeft, child: yazi);
@@ -256,7 +256,7 @@ class _VeriTablosuState<T> extends State<VeriTablosu<T>> {
               Flexible(child: yazi),
               const SizedBox(width: 3),
               Icon(
-                aktif ? (widget.artan ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded) : Icons.unfold_more_rounded,
+                aktif ? (widget.artan ? Simgeler.arrowUpward : Simgeler.arrowDownward) : Simgeler.unfoldMore,
                 size: 14,
                 color: aktif ? r.vurgu : r.silik.withValues(alpha: .6),
               ),
@@ -291,14 +291,14 @@ class _VeriTablosuState<T> extends State<VeriTablosu<T>> {
             ),
           ),
           if (n > 1) ...[
-            dugme(Icons.first_page_rounded, 'İlk sayfa', sayfa > 1 ? 1 : null),
-            dugme(Icons.chevron_left_rounded, 'Önceki sayfa', sayfa > 1 ? sayfa - 1 : null),
+            dugme(Simgeler.firstPage, 'İlk sayfa', sayfa > 1 ? 1 : null),
+            dugme(Simgeler.chevronLeft, 'Önceki sayfa', sayfa > 1 ? sayfa - 1 : null),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text('Sayfa $sayfa / $n', style: TextStyle(fontSize: 12.5, color: r.soluk, fontWeight: FontWeight.w600)),
             ),
-            dugme(Icons.chevron_right_rounded, 'Sonraki sayfa', sayfa < n ? sayfa + 1 : null),
-            dugme(Icons.last_page_rounded, 'Son sayfa', sayfa < n ? n : null),
+            dugme(Simgeler.chevronRight, 'Sonraki sayfa', sayfa < n ? sayfa + 1 : null),
+            dugme(Simgeler.lastPage, 'Son sayfa', sayfa < n ? n : null),
           ],
         ],
       ),
@@ -370,7 +370,7 @@ class IkiSatir extends StatelessWidget {
           ust.isEmpty ? '—' : ust,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontWeight: kalin ? FontWeight.w600 : FontWeight.w500, fontSize: 13.5, fontFamily: mono ? 'monospace' : null),
+          style: TextStyle(fontWeight: kalin ? FontWeight.w500 : FontWeight.w400, fontSize: 13.5, fontFamily: mono ? 'monospace' : null),
         ),
         if (alt != null && alt!.isNotEmpty)
           Text(alt!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 12)),
@@ -380,7 +380,7 @@ class IkiSatir extends StatelessWidget {
     return Row(
       children: [
         sol!,
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Flexible(child: yazi),
       ],
     );
@@ -442,7 +442,7 @@ class VeriKarti extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -456,26 +456,26 @@ class VeriKarti extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(baslik, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                            Text(baslik, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14.5)),
                             if (alt != null && alt!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
                                 child: Text(alt!, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.soluk, fontSize: 12.5)),
                               ),
-                            if (rozetler.isNotEmpty) ...[const SizedBox(height: 6), Wrap(spacing: 6, runSpacing: 4, children: rozetler)],
+                            if (rozetler.isNotEmpty) ...[const SizedBox(height: 8), Wrap(spacing: 8, runSpacing: 4, children: rozetler)],
                           ],
                         ),
                       ),
                     ),
-                    if (eylemler.isNotEmpty) SatirMenusu(eylemler) else const SizedBox(width: 10),
+                    if (eylemler.isNotEmpty) SatirMenusu(eylemler) else const SizedBox(width: 8),
                   ],
                 ),
                 if (alanlar.isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Padding(
-                    padding: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.only(right: 8),
                     child: Wrap(
-                      spacing: 18,
+                      spacing: 16,
                       runSpacing: 8,
                       children: [
                         for (final (e, d) in alanlar)
@@ -484,14 +484,14 @@ class VeriKarti extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(e, style: TextStyle(color: r.silik, fontSize: 11)),
-                              Text(d.isEmpty ? '—' : d, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              Text(d.isEmpty ? '—' : d, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                             ],
                           ),
                       ],
                     ),
                   ),
                 ],
-                if (ek != null) ...[const SizedBox(height: 10), Padding(padding: const EdgeInsets.only(right: 10), child: ek!)],
+                if (ek != null) ...[const SizedBox(height: 8), Padding(padding: const EdgeInsets.only(right: 8), child: ek!)],
               ],
             ),
           ),
@@ -534,7 +534,7 @@ class FiltreCubugu extends StatelessWidget {
                 children: [
                   if (arama != null) SizedBox(width: (k.maxWidth * .38).clamp(240, 420), child: arama),
                   if (filtreler.isNotEmpty) ...[
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: _aralikli(filtreler))),
                     ),
@@ -568,11 +568,11 @@ class FiltreCubugu extends StatelessWidget {
               if (etkinler.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: 8,
+                  runSpacing: 8,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(Icons.filter_alt_rounded, size: 16, color: r.vurgu),
+                    Icon(SimgelerKalin.filterAlt, size: 16, color: r.vurgu),
                     for (final f in etkinler)
                       InputChip(
                         avatar: f.ikon == null ? null : Icon(f.ikon, size: 15),
@@ -583,7 +583,7 @@ class FiltreCubugu extends StatelessWidget {
                         deleteIconColor: r.soluk,
                         side: BorderSide(color: r.vurgu.withValues(alpha: .35)),
                         visualDensity: VisualDensity.compact,
-                        deleteIcon: const Icon(Icons.close_rounded, size: 15),
+                        deleteIcon: const Icon(SimgelerKalin.close, size: 15),
                         deleteButtonTooltipMessage: 'Filtreyi kaldır',
                         onDeleted: f.kaldir,
                       ),
@@ -608,7 +608,7 @@ class FiltreCubugu extends StatelessWidget {
   }
 
   List<Widget> _aralikli(List<Widget> l) => [
-    for (final (i, w) in l.indexed) ...[if (i > 0) const SizedBox(width: 6), w],
+    for (final (i, w) in l.indexed) ...[if (i > 0) const SizedBox(width: 8), w],
   ];
 }
 
@@ -631,7 +631,7 @@ class FiltreDugmesi<T> extends StatelessWidget {
       tooltip: etiket,
       position: PopupMenuPosition.under,
       color: r.kart,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: r.kenar)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: r.kenar.withValues(alpha: .6))),
       onSelected: secildi,
       itemBuilder: (_) => [
         for (final (d, e) in secenekler)
@@ -640,8 +640,8 @@ class FiltreDugmesi<T> extends StatelessWidget {
             height: 40,
             child: Row(
               children: [
-                SizedBox(width: 22, child: d == secili ? Icon(Icons.check_rounded, size: 18, color: r.vurgu) : null),
-                const SizedBox(width: 6),
+                SizedBox(width: 22, child: d == secili ? Icon(Simgeler.check, size: 18, color: r.vurgu) : null),
+                const SizedBox(width: 8),
                 Text(e, style: const TextStyle(fontSize: 13.5)),
               ],
             ),
@@ -658,10 +658,10 @@ class FiltreDugmesi<T> extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (ikon != null) ...[Icon(ikon, size: 16, color: aktif ? r.vurgu : r.soluk), const SizedBox(width: 6)],
+            if (ikon != null) ...[Icon(ikon, size: 16, color: aktif ? r.vurgu : r.soluk), const SizedBox(width: 8)],
             Text(aktif ? '$etiket: $secEtiket' : etiket, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: r.metin)),
             const SizedBox(width: 2),
-            Icon(Icons.expand_more_rounded, size: 18, color: r.soluk),
+            Icon(Simgeler.expandMore, size: 18, color: r.soluk),
           ],
         ),
       ),

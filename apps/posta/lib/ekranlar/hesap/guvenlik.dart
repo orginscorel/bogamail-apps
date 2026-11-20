@@ -52,7 +52,7 @@ class _SifreEkraniState extends State<SifreEkrani> {
       labelText: e,
       suffixIcon: IconButton(
         tooltip: _gizli ? 'Göster' : 'Gizle',
-        icon: Icon(_gizli ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+        icon: Icon(_gizli ? Simge.goster : Simge.gizle),
         onPressed: () => setState(() => _gizli = !_gizli),
       ),
     );
@@ -108,7 +108,7 @@ class IkiAdimliEkrani extends StatelessWidget {
     final onay = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('İki adımlı doğrulamayı kur', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('İki adımlı doğrulamayı kur', style: gosterim(19, agirlik: FontWeight.w600)),
         content: SizedBox(
           width: 440,
           child: SingleChildScrollView(
@@ -125,7 +125,7 @@ class IkiAdimliEkrani extends StatelessWidget {
                   decoration: BoxDecoration(color: c.r.ic, borderRadius: BorderRadius.circular(12)),
                   child: SelectableText(
                     k.gizli,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 1),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 1),
                   ),
                 ),
                 Wrap(
@@ -133,12 +133,12 @@ class IkiAdimliEkrani extends StatelessWidget {
                   children: [
                     TextButton.icon(
                       onPressed: () => kopyala(k.gizli, mesaj: 'Anahtar kopyalandı'),
-                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      icon: const Icon(Simge.kopyala, size: 18),
                       label: const Text('Anahtarı kopyala'),
                     ),
                     TextButton.icon(
                       onPressed: () => kopyala(k.uri, mesaj: 'Bağlantı kopyalandı'),
-                      icon: const Icon(Icons.link_rounded, size: 18),
+                      icon: const Icon(Simge.baglanti, size: 18),
                       label: const Text('otpauth bağlantısı'),
                     ),
                   ],
@@ -191,13 +191,13 @@ class IkiAdimliEkrani extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(d.acik ? Icons.verified_user_rounded : Icons.gpp_maybe_outlined, color: d.acik ? Marka.zumrut : Marka.kehribar, size: 30),
+                  Icon(d.acik ? Simge.guvenli : Simge.gereksiz, color: d.acik ? Marka.zumrut : Marka.kehribar, size: 30),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(d.acik ? 'Açık' : 'Kapalı', style: gosterim(18, agirlik: FontWeight.w700)),
+                        Text(d.acik ? 'Açık' : 'Kapalı', style: gosterim(18, agirlik: FontWeight.w600)),
                         if (d.acik)
                           Text('${_z(d.acilis)} tarihinden beri · ${d.kurtarmaKalan} kurtarma kodu kaldı', style: TextStyle(color: r.soluk, fontSize: 13)),
                         if (d.zorunlu) Text('Kurumunuz iki adımlı doğrulamayı zorunlu tutuyor.', style: TextStyle(color: r.soluk, fontSize: 13)),
@@ -210,7 +210,7 @@ class IkiAdimliEkrani extends StatelessWidget {
               if (!d.kullanilabilir)
                 Text('Bu sunucuda iki adımlı doğrulama kullanılamıyor.', style: TextStyle(color: r.soluk))
               else if (!d.acik)
-                FilledButton.icon(onPressed: () => _kur(context, yenile), icon: const Icon(Icons.lock_outline_rounded), label: const Text('Kur ve etkinleştir'))
+                FilledButton.icon(onPressed: () => _kur(context, yenile), icon: const Icon(Simge.kilit), label: const Text('Kur ve etkinleştir'))
               else
                 Wrap(
                   spacing: 10,
@@ -224,7 +224,7 @@ class IkiAdimliEkrani extends StatelessWidget {
                         if (l != null && context.mounted) await gizliGoster(context, 'Yeni kurtarma kodları', 'Eski kodlar artık geçersiz.', l.join('\n'));
                         await yenile();
                       },
-                      icon: const Icon(Icons.key_rounded),
+                      icon: const Icon(Simge.anahtar),
                       label: const Text('Kurtarma kodlarını yenile'),
                     ),
                     if (!d.zorunlu)
@@ -236,7 +236,7 @@ class IkiAdimliEkrani extends StatelessWidget {
                           await islem(() => Hesap.ikiAdimKapat(kod), tamam: 'İki adımlı doğrulama kapatıldı');
                           await yenile();
                         },
-                        icon: const Icon(Icons.lock_open_rounded),
+                        icon: const Icon(Simge.kilitAcik),
                         label: const Text('Kapat'),
                       ),
                   ],
@@ -274,20 +274,20 @@ class UygulamaSifreleriEkrani extends StatelessWidget {
         }
         await yenile();
       },
-      icon: const Icon(Icons.add_rounded),
+      icon: const Icon(Simge.ekle),
       label: const Text('Şifre oluştur'),
     ),
     govde: (context, v, yenile) {
       final r = context.r;
       return [
         if (v.ogeler.isEmpty)
-          const BosKart('Uygulama şifresi yok.', ikon: Icons.key_outlined)
+          const BosKart('Uygulama şifresi yok.', ikon: Simge.anahtar)
         else
           KartListe(
             children: [
               for (final s in v.ogeler)
                 ListTile(
-                  leading: Icon(Icons.key_rounded, color: r.vurgu),
+                  leading: Icon(Simge.anahtar, color: r.vurgu),
                   title: Text(s.ad, style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(
                     'Oluşturma: ${_z(s.olusturma)}\n'
@@ -296,7 +296,7 @@ class UygulamaSifreleriEkrani extends StatelessWidget {
                   isThreeLine: true,
                   trailing: IconButton(
                     tooltip: 'İptal et',
-                    icon: const Icon(Icons.delete_outline_rounded, color: Marka.gul),
+                    icon: const Icon(Simge.sil, color: Marka.gul),
                     onPressed: () async {
                       if (!await onayla(
                         context,
@@ -331,7 +331,7 @@ class CihazlarEkrani extends StatelessWidget {
       context: context,
       builder: (d) => StatefulBuilder(
         builder: (d, yenileD) => AlertDialog(
-          title: Text('${c.gorunen} temizlensin mi?', style: gosterim(19, agirlik: FontWeight.w700)),
+          title: Text('${c.gorunen} temizlensin mi?', style: gosterim(19, agirlik: FontWeight.w600)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -380,13 +380,13 @@ class CihazlarEkrani extends StatelessWidget {
     yukle: Hesap.cihazlar,
     govde: (context, v, yenile) {
       final r = context.r;
-      if (v.ogeler.isEmpty) return [const BosKart('Bağlı cihaz yok.', ikon: Icons.smartphone_outlined)];
+      if (v.ogeler.isEmpty) return [const BosKart('Bağlı cihaz yok.', ikon: Simge.telefon)];
       return [
         KartListe(
           children: [
             for (final c in v.ogeler)
               ListTile(
-                leading: Icon(Icons.smartphone_rounded, color: c.durum == 'blocked' ? Marka.gul : r.vurgu),
+                leading: Icon(Simge.telefon, color: c.durum == 'blocked' ? Marka.gul : r.vurgu),
                 title: Text(c.gorunen, style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,7 +397,7 @@ class CihazlarEkrani extends StatelessWidget {
                       spacing: 6,
                       children: [
                         if (c.durum == 'blocked') const Rozet('Engelli', renk: Marka.gul) else const Rozet('İzinli', renk: Marka.zumrut),
-                        if (c.silmeIstendi != null) const Rozet('Temizleme bekliyor', renk: Marka.kehribar, ikon: Icons.cleaning_services_outlined),
+                        if (c.silmeIstendi != null) const Rozet('Temizleme bekliyor', renk: Marka.kehribar, ikon: Simge.temizle),
                       ],
                     ),
                   ],
@@ -435,7 +435,7 @@ class CihazlarEkrani extends StatelessWidget {
                     PopupMenuItem(
                       value: 'izin',
                       child: ListTile(
-                        leading: Icon(c.durum == 'blocked' ? Icons.check_circle_outline_rounded : Icons.block_rounded),
+                        leading: Icon(c.durum == 'blocked' ? Simge.basari : Simge.engelle),
                         title: Text(c.durum == 'blocked' ? 'İzin ver' : 'Engelle'),
                       ),
                     ),
@@ -443,18 +443,18 @@ class CihazlarEkrani extends StatelessWidget {
                       const PopupMenuItem(
                         value: 'temizle',
                         child: ListTile(
-                          leading: Icon(Icons.cleaning_services_outlined, color: Marka.gul),
+                          leading: Icon(Simge.temizle, color: Marka.gul),
                           title: Text('Uzaktan temizle…'),
                         ),
                       )
                     else
                       const PopupMenuItem(
                         value: 'iptal',
-                        child: ListTile(leading: Icon(Icons.undo_rounded), title: Text('Temizlemeyi iptal et')),
+                        child: ListTile(leading: Icon(Simge.geriAl), title: Text('Temizlemeyi iptal et')),
                       ),
                     const PopupMenuItem(
                       value: 'sil',
-                      child: ListTile(leading: Icon(Icons.delete_outline_rounded), title: Text('Listeden kaldır')),
+                      child: ListTile(leading: Icon(Simge.sil), title: Text('Listeden kaldır')),
                     ),
                   ],
                 ),
@@ -485,7 +485,7 @@ class YoneticiErisimiEkrani extends StatelessWidget {
             children: [
               for (final e in v.etkin)
                 ListTile(
-                  leading: const Icon(Icons.admin_panel_settings_rounded, color: Marka.kehribar),
+                  leading: const Icon(Simge.yonetim, color: Marka.kehribar),
                   title: Text(e.yonetici),
                   subtitle: Text('${_z(e.baslangic)} – ${_z(e.bitis)}'),
                 ),
@@ -494,13 +494,13 @@ class YoneticiErisimiEkrani extends StatelessWidget {
         ],
         const Baslik('Geçmiş'),
         if (v.olaylar.isEmpty)
-          const BosKart('Yöneticiler posta kutunuza erişmedi.', ikon: Icons.verified_user_outlined)
+          const BosKart('Yöneticiler posta kutunuza erişmedi.', ikon: Simge.guvenli)
         else
           KartListe(
             children: [
               for (final o in v.olaylar)
                 ListTile(
-                  leading: Icon(Icons.history_rounded, color: r.silik),
+                  leading: Icon(Simge.gecmis, color: r.silik),
                   title: Text(o.yonetici),
                   subtitle: Text([_z(o.zaman), o.eylem, if (o.neden.isNotEmpty) 'Neden: ${o.neden}', if (o.ip.isNotEmpty) o.ip].join(' · ')),
                 ),
@@ -525,7 +525,7 @@ class KayitliCihazlarEkrani extends StatelessWidget {
         'Şifrenizi değiştirmek tüm diğer cihazlardan kaldırır.',
     yukle: Ayar.kayitliCihazlar,
     govde: (context, l, yenile) {
-      if (l.isEmpty) return [const BosKart('Kayıtlı cihaz yok.', ikon: Icons.devices_other_outlined)];
+      if (l.isEmpty) return [const BosKart('Kayıtlı cihaz yok.', ikon: Simge.cihazlar)];
       final r = context.r;
       return [
         KartListe(
@@ -533,7 +533,7 @@ class KayitliCihazlarEkrani extends StatelessWidget {
             for (final c in l)
               ListTile(
                 key: ValueKey('kayitli-${c.id}'),
-                leading: Icon(c.ad.contains('uygulama') ? Icons.smartphone_rounded : Icons.laptop_rounded, color: r.soluk),
+                leading: Icon(c.ad.contains('uygulama') ? Simge.telefon : Simge.dizustu, color: r.soluk),
                 title: Row(
                   children: [
                     Flexible(child: Text(c.ad, overflow: TextOverflow.ellipsis)),
@@ -546,7 +546,7 @@ class KayitliCihazlarEkrani extends StatelessWidget {
                     ? null
                     : IconButton(
                         tooltip: 'Kaldır',
-                        icon: const Icon(Icons.delete_outline_rounded, color: Marka.gul),
+                        icon: const Icon(Simge.sil, color: Marka.gul),
                         onPressed: () async {
                           if (!await onayla(
                             context,

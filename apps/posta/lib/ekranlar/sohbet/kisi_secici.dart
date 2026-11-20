@@ -105,7 +105,7 @@ class _KisiSeciciState extends State<KisiSecici> {
               child: TextField(
                 controller: _ad,
                 maxLength: 100,
-                decoration: const InputDecoration(labelText: 'Grup adı', counterText: '', prefixIcon: Icon(Icons.groups_outlined)),
+                decoration: const InputDecoration(labelText: 'Grup adı', counterText: '', prefixIcon: Icon(Simge.gruplar)),
               ),
             ),
           Padding(
@@ -113,7 +113,7 @@ class _KisiSeciciState extends State<KisiSecici> {
             child: TextField(
               controller: _ara,
               autofocus: !widget.coklu,
-              decoration: const InputDecoration(hintText: 'Ad, adres, departman ara', prefixIcon: Icon(Icons.search_rounded), isDense: true),
+              decoration: const InputDecoration(hintText: 'Ad, adres, departman ara', prefixIcon: Icon(Simge.ara), isDense: true),
               onChanged: (_) {
                 _gecikme?.cancel();
                 _gecikme = Timer(const Duration(milliseconds: 250), _yukle);
@@ -150,7 +150,7 @@ class _KisiSeciciState extends State<KisiSecici> {
                 : l == null
                 ? const Durum.yukleniyor()
                 : l.isEmpty
-                ? const Durum.bos('Kişi bulunamadı.', ikon: Icons.person_search_outlined)
+                ? const Durum.bos('Kişi bulunamadı.', ikon: Simge.kisiAra)
                 : ListView.builder(
                     itemCount: l.length,
                     itemBuilder: (_, i) {
@@ -168,7 +168,7 @@ class _KisiSeciciState extends State<KisiSecici> {
                         subtitle: Text(alt.isEmpty ? k.adres : alt, maxLines: 1, overflow: TextOverflow.ellipsis),
                         trailing: widget.coklu
                             ? Checkbox(value: _secili.containsKey(k.id), onChanged: (v) => setState(() => v == true ? _secili[k.id] = k : _secili.remove(k.id)))
-                            : Icon(Icons.chat_bubble_outline_rounded, color: r.vurgu),
+                            : Icon(Simge.mesaj, color: r.vurgu),
                         onTap: _mesgul
                             ? null
                             : () {

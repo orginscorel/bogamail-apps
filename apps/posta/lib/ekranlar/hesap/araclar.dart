@@ -27,7 +27,7 @@ class AraclarBolumleri extends StatelessWidget {
       ),
       title: Text(baslik, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(alt, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: Icon(Icons.chevron_right_rounded, color: context.r.silik),
+      trailing: Icon(Simge.ileri, color: context.r.silik),
       onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => sayfa())),
     );
     Widget grup(List<Widget> l) => Kutu(
@@ -44,32 +44,32 @@ class AraclarBolumleri extends StatelessWidget {
         if (bolumler.contains('posta')) ...[
           const Baslik('Posta yönetimi'),
           grup([
-            oge(Icons.contacts_outlined, 'Kişiler', 'Adres defteri, favoriler', KisilerEkrani.new),
-            oge(Icons.filter_alt_outlined, 'Süzgeçler (kurallar)', 'Gelen iletileri otomatik taşı, etiketle, işaretle', SuzgeclerEkrani.new),
-            oge(Icons.schedule_send_outlined, 'Planlanan gönderimler', 'Zamanlanmış iletileri gör, ertele, iptal et', PlanlananlarEkrani.new),
-            oge(Icons.shield_outlined, 'Güvenilir ve engelli gönderenler', 'Engelle veya her zaman Gelen Kutusu\'na al', GondericiListeleriEkrani.new),
+            oge(Simge.kisiler, 'Kişiler', 'Adres defteri, favoriler', KisilerEkrani.new),
+            oge(Simge.suzgec, 'Süzgeçler (kurallar)', 'Gelen iletileri otomatik taşı, etiketle, işaretle', SuzgeclerEkrani.new),
+            oge(Simge.planliGonder, 'Planlanan gönderimler', 'Zamanlanmış iletileri gör, ertele, iptal et', PlanlananlarEkrani.new),
+            oge(Simge.kalkan, 'Güvenilir ve engelli gönderenler', 'Engelle veya her zaman Gelen Kutusu\'na al', GondericiListeleriEkrani.new),
             if (ayarlar.ozellik('autoresponder'))
-              oge(Icons.auto_mode_rounded, 'Otomatik yanıt kuralları', 'Mesai dışı, belirli günler, iç/dış gönderen', OtomatikYanitKurallariEkrani.new),
-            if (ayarlar.ozellik('forwarding')) oge(Icons.forward_to_inbox_outlined, 'Yönlendirme', 'Gelen postaları başka adrese ilet', YonlendirmeEkrani.new),
-            oge(Icons.local_shipping_outlined, 'Gönderim durumu', 'İletileriniz teslim edildi mi?', GonderimDurumuEkrani.new),
-            oge(Icons.gpp_maybe_outlined, 'Karantina', 'Güvenlik taramasında tutulan iletiler', KarantinaEkrani.new, renk: Marka.kehribar),
-            if (ayarlar.ozellik('backup')) oge(Icons.backup_outlined, 'Yedekler', 'Silinen iletileri yedekten geri yükle', YedeklerEkrani.new),
+              oge(Simge.otomatik, 'Otomatik yanıt kuralları', 'Mesai dışı, belirli günler, iç/dış gönderen', OtomatikYanitKurallariEkrani.new),
+            if (ayarlar.ozellik('forwarding')) oge(Simge.yonlendir, 'Yönlendirme', 'Gelen postaları başka adrese ilet', YonlendirmeEkrani.new),
+            oge(Simge.kargo, 'Gönderim durumu', 'İletileriniz teslim edildi mi?', GonderimDurumuEkrani.new),
+            oge(Simge.gereksiz, 'Karantina', 'Güvenlik taramasında tutulan iletiler', KarantinaEkrani.new, renk: Marka.kehribar),
+            if (ayarlar.ozellik('backup')) oge(Simge.yedek, 'Yedekler', 'Silinen iletileri yedekten geri yükle', YedeklerEkrani.new),
           ]),
         ],
         if (bolumler.contains('guvenlik')) ...[
           const Baslik('Güvenlik'),
           grup([
-            oge(Icons.password_rounded, 'Şifre değiştir', 'Posta kutusu şifreniz', SifreEkrani.new),
-            oge(Icons.verified_user_outlined, 'İki adımlı doğrulama', 'Girişte telefon kodu iste', IkiAdimliEkrani.new, renk: Marka.zumrut),
-            oge(Icons.key_outlined, 'Uygulama şifreleri', 'Outlook, Apple Mail, Thunderbird için', UygulamaSifreleriEkrani.new),
-            oge(Icons.devices_other_outlined, 'Kayıtlı cihazlar', 'Şifresiz girişe kayıtlı tarayıcı ve uygulamalar', KayitliCihazlarEkrani.new),
-            oge(Icons.smartphone_outlined, 'Bağlı cihazlar', 'ActiveSync telefonlar: engelle, uzaktan temizle', CihazlarEkrani.new),
-            oge(Icons.admin_panel_settings_outlined, 'Yönetici erişim kaydı', 'Kutunuza kim, ne zaman erişti', YoneticiErisimiEkrani.new),
+            oge(Simge.sifre, 'Şifre değiştir', 'Posta kutusu şifreniz', SifreEkrani.new),
+            oge(Simge.guvenli, 'İki adımlı doğrulama', 'Girişte telefon kodu iste', IkiAdimliEkrani.new, renk: Marka.zumrut),
+            oge(Simge.anahtar, 'Uygulama şifreleri', 'Outlook, Apple Mail, Thunderbird için', UygulamaSifreleriEkrani.new),
+            oge(Simge.cihazlar, 'Kayıtlı cihazlar', 'Şifresiz girişe kayıtlı tarayıcı ve uygulamalar', KayitliCihazlarEkrani.new),
+            oge(Simge.telefon, 'Bağlı cihazlar', 'ActiveSync telefonlar: engelle, uzaktan temizle', CihazlarEkrani.new),
+            oge(Simge.yonetim, 'Yönetici erişim kaydı', 'Kutunuza kim, ne zaman erişti', YoneticiErisimiEkrani.new),
           ]),
         ],
         if (bolumler.contains('profil')) ...[
           const Baslik('Profil'),
-          grup([oge(Icons.badge_outlined, 'Profil resmi ve bilgileri', 'Unvan, telefon, sosyal bağlantılar (imzada kullanılır)', ImzaProfiliEkrani.new)]),
+          grup([oge(Simge.kimlik, 'Profil resmi ve bilgileri', 'Unvan, telefon, sosyal bağlantılar (imzada kullanılır)', ImzaProfiliEkrani.new)]),
         ],
       ],
     );

@@ -9,6 +9,7 @@ import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'tehdit_oltalama_model.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 // Oltalama simülasyonu: raporlar, şablonlar ve çalışanların bildirdiği iletiler sekmeleri.
 
@@ -36,14 +37,14 @@ class _OltaRaporlariState extends State<OltaRaporlari> {
           physics: const AlwaysScrollableScrollPhysics(),
           children: const [
             SizedBox(height: 60),
-            Kapali('Henüz tamamlanmış bir tatbikat yok. Raporlar ilk kampanyadan sonra oluşur.', ikon: Icons.phishing_rounded),
+            Kapali('Henüz tamamlanmış bir tatbikat yok. Raporlar ilk kampanyadan sonra oluşur.', ikon: Simgeler.phishing),
           ],
         );
       }
       final kisiler = haritalar(v['users']).where((u) => !_tekrarlayan || mantik(u['repeat_clicker'])).toList();
       final alanlar = haritalar(v['domains']);
       Widget sayilar(List<(String, int)> l) => Wrap(
-        spacing: 14,
+        spacing: 16,
         runSpacing: 4,
         children: [for (final (e, n) in l) Text('$e $n', style: TextStyle(color: r.soluk, fontSize: 12.5))],
       );
@@ -56,13 +57,13 @@ class _OltaRaporlariState extends State<OltaRaporlari> {
             children: [
               BolumKarti(
                 baslik: 'Tüm kampanyalar',
-                ikon: Icons.filter_alt_outlined,
+                ikon: Simgeler.filterAlt,
                 altBaslik: '${toplam.teslim} teslim edilen tatbikat iletisi',
                 child: HuniCubuklari(toplam),
               ),
               BolumKarti(
                 baslik: 'Kampanyalara göre eğilim',
-                ikon: Icons.trending_up_rounded,
+                ikon: Simgeler.trendingUp,
                 altBaslik: 'Tıklama · Form · Bildirim (teslim edilenlere oranla)',
                 child: Column(
                   children: [
@@ -109,7 +110,7 @@ class _OltaRaporlariState extends State<OltaRaporlari> {
           const SizedBox(height: 16),
           BolumKarti(
             baslik: 'Kişi bazında',
-            ikon: Icons.people_outline_rounded,
+            ikon: Simgeler.peopleOutline,
             altBaslik: 'Birden fazla tatbikatta tıklayanlar "tekrarlayan" olarak işaretlenir.',
             sag: FilterChip(
               label: const Text('Yalnızca tekrarlayanlar'),
@@ -133,7 +134,7 @@ class _OltaRaporlariState extends State<OltaRaporlari> {
                                   style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                               ),
-                              if (mantik(u['repeat_clicker'])) ...[const SizedBox(width: 6), const Rozet('Tekrarlayan', renk: Marka.gul)],
+                              if (mantik(u['repeat_clicker'])) ...[const SizedBox(width: 8), const Rozet('Tekrarlayan', renk: Marka.gul)],
                             ],
                           ),
                           subtitle: Column(
@@ -156,7 +157,7 @@ class _OltaRaporlariState extends State<OltaRaporlari> {
           const SizedBox(height: 16),
           BolumKarti(
             baslik: 'Alan adına göre',
-            ikon: Icons.language_rounded,
+            ikon: Simgeler.language,
             child: Column(
               children: [
                 for (final d in alanlar)
@@ -175,7 +176,7 @@ class _OltaRaporlariState extends State<OltaRaporlari> {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             'Departman bilgisi tutulmadığı için gruplama alan adına göredir. Raporlarda yalnızca kutu adı ve görünen ad yer alır.',
             style: TextStyle(color: r.silik, fontSize: 12),
@@ -238,18 +239,18 @@ class OltaSablonlariState extends State<OltaSablonlari> {
         child: SelectableText(s.govde.replaceFirst('{{link}}', '[${s.baglantiMetni}]'), style: const TextStyle(fontSize: 13.5, height: 1.4)),
       ),
       if (s.isaretler.isNotEmpty) ...[
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         const Text('Eğitim sayfasında anlatılan uyarı işaretleri', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         for (final i in s.isaretler) Padding(padding: const EdgeInsets.only(bottom: 4), child: Aciklama('•  $i')),
       ],
     ],
   );
 
   List<SatirEylemi> _eylemler(OltaSablon s) => [
-    SatirEylemi(Icons.visibility_outlined, 'Önizle', () => _onizle(s)),
-    if (!s.hazir && widget.acik) SatirEylemi(Icons.edit_outlined, 'Düzenle', () => duzenle(s)),
-    if (!s.hazir) SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(s), tehlikeli: true),
+    SatirEylemi(Simgeler.visibility, 'Önizle', () => _onizle(s)),
+    if (!s.hazir && widget.acik) SatirEylemi(Simgeler.edit, 'Düzenle', () => duzenle(s)),
+    if (!s.hazir) SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(s), tehlikeli: true),
   ];
 
   Widget _tur(OltaSablon s) => Rozet(s.hazir ? 'Hazır' : 'Özel', renk: s.hazir ? Colors.blueGrey : Marka.mor);
@@ -258,7 +259,7 @@ class OltaSablonlariState extends State<OltaSablonlari> {
   Widget build(BuildContext context) => VeriTablosu<OltaSablon>(
     yukleyici: _y,
     bosMetin: 'Şablon yok.',
-    bosIkon: Icons.description_outlined,
+    bosIkon: Simgeler.description,
     onTap: _onizle,
     eylemler: _eylemler,
     ust: FiltreCubugu(
@@ -266,7 +267,7 @@ class OltaSablonlariState extends State<OltaSablonlari> {
       sag: widget.acik
           ? Padding(
               padding: const EdgeInsets.only(left: 8),
-              child: FilledButton.tonalIcon(onPressed: duzenle, icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Yeni şablon')),
+              child: FilledButton.tonalIcon(onPressed: duzenle, icon: const Icon(Simgeler.add, size: 18), label: const Text('Yeni şablon')),
             )
           : null,
     ),
@@ -366,7 +367,7 @@ class _SablonDialogState extends State<_SablonDialog> {
     final yt = widget.yerTutucular.map((p) => metin(p['key'])).join('  ');
     final bilinen = {'name', 'from_name', 'from_local', 'from_domain', 'subject', 'body', 'link_text', 'signs'};
     return AlertDialog(
-      title: Text(_s != null ? 'Şablonu düzenle' : 'Yeni şablon', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(_s != null ? 'Şablonu düzenle' : 'Yeni şablon', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 620,
         child: SingleChildScrollView(
@@ -378,9 +379,9 @@ class _SablonDialogState extends State<_SablonDialog> {
                 'Gerçek bir firma, banka, kargo şirketi, kamu kurumu veya yazılım markasının adını ya da logosunu kullanmayın. Senaryoyu genel tutun '
                 '(ör. "kargo firması", "BT departmanı"). Bilinen marka adları reddedilir.',
                 renk: Marka.kehribar,
-                ikon: Icons.warning_amber_rounded,
+                ikon: Simgeler.warningAmber,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               _alan('name', 'Şablon adı', enFazla: 120),
               _alan('from_name', 'Gönderen adı', ipucu: 'BT Destek', enFazla: 120),
               _alan('from_local', 'Gönderen kullanıcı', ipucu: 'it-destek', enFazla: 64),
@@ -433,7 +434,7 @@ class _OltaBildirimleriState extends State<OltaBildirimleri> {
   }
 
   List<SatirEylemi> _eylemler(OltaBildirim b) => [
-    if (b.durum == 'new') SatirEylemi(Icons.check_rounded, 'İncelendi', () => _incele(b)),
+    if (b.durum == 'new') SatirEylemi(Simgeler.check, 'İncelendi', () => _incele(b)),
   ];
 
   String _alt(OltaBildirim b) => '${b.gonderen}${b.spam != null ? ' · spam puanı ${b.spam!.toStringAsFixed(1).replaceAll('.', ',')}' : ''}';
@@ -444,10 +445,10 @@ class _OltaBildirimleriState extends State<OltaBildirimleri> {
   Widget build(BuildContext context) => VeriTablosu<OltaBildirim>(
     yukleyici: _y,
     bosMetin: 'Henüz bildirilen şüpheli ileti yok.',
-    bosIkon: Icons.inbox_outlined,
+    bosIkon: Simgeler.inbox,
     eylemler: _eylemler,
     ust: const Padding(
-      padding: EdgeInsets.fromLTRB(16, 10, 16, 8),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Aciklama(
         'Çalışanların webmail\'de "Oltalama olarak bildir" ile işaretlediği gerçek iletiler (tatbikat iletileri burada görünmez). '
         'Yalnızca gönderen ve konu saklanır; ileti kullanıcının kutusunda kalır.',

@@ -10,6 +10,7 @@ import 'ekip_kampanya.dart';
 import 'ekip_kampanya_liste.dart';
 import 'ekip_kampanya_ortak.dart';
 import 'ekip_kampanya_sablon.dart';
+import '../ortak/simgeler.dart';
 
 const _onayPolitikalari = {'default': 'Platform politikası', 'always': 'Her kampanya onaylı', 'never': 'Onay gerekmez'};
 
@@ -73,7 +74,7 @@ class _TopluGonderimEkraniState extends State<TopluGonderimEkrani> {
     if (!_yetkili) {
       return const Iskelet(
         baslik: 'Toplu Gönderim',
-        govde: Kapali('Bu bölüm için kampanya yönetimi yetkisi gerekli.', ikon: Icons.lock_outline_rounded),
+        govde: Kapali('Bu bölüm için kampanya yönetimi yetkisi gerekli.', ikon: Simgeler.lockOutline),
       );
     }
     final ov = _ov;
@@ -84,8 +85,8 @@ class _TopluGonderimEkraniState extends State<TopluGonderimEkrani> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Kapali('Kampanyaları yönetmek için müşteri seçin.', ikon: Icons.campaign_outlined),
-            FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded), label: const Text('Müşteri seçin')),
+            const Kapali('Kampanyaları yönetmek için müşteri seçin.', ikon: Simgeler.campaign),
+            FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Simgeler.apartment), label: const Text('Müşteri seçin')),
           ],
         ),
       );
@@ -98,11 +99,11 @@ class _TopluGonderimEkraniState extends State<TopluGonderimEkrani> {
         children: [
           if (!b.acik)
             Padding(
-              padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 0),
+              padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 0),
               child: const Bant(
                 'Toplu gönderim bu müşterinin paketinde yok. Mevcut kayıtlar görüntülenebilir; yeni kampanya, liste ve şablon oluşturulamaz.',
                 renk: Marka.kehribar,
-                ikon: Icons.info_outline_rounded,
+                ikon: Simgeler.infoOutline,
               ),
             ),
           Expanded(
@@ -125,7 +126,7 @@ class _TopluGonderimEkraniState extends State<TopluGonderimEkrani> {
         baslik: 'Toplu Gönderim',
         alt: _ortak ? (_orgAdi ?? metinYa(harita(ov?['organization'])['name']) ?? 'Müşteri seçilmedi') : 'Onaylı kişi listelerine e-posta kampanyaları',
         yenile: _ortak && _orgId == null ? null : _hepsiniYenile,
-        eylemler: [if (_ortak) IconButton(tooltip: 'Müşteri seç', onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded))],
+        eylemler: [if (_ortak) IconButton(tooltip: 'Müşteri seç', onPressed: _musteriSec, icon: const Icon(Simgeler.apartment))],
         sekmeler: ov == null
             ? null
             : TabBar(
@@ -137,7 +138,7 @@ class _TopluGonderimEkraniState extends State<TopluGonderimEkrani> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text('Kampanyalar'),
-                        if (aktif > 0) ...[const SizedBox(width: 6), Rozet('$aktif', renk: Marka.mavi)],
+                        if (aktif > 0) ...[const SizedBox(width: 8), Rozet('$aktif', renk: Marka.mavi)],
                       ],
                     ),
                   ),
@@ -202,7 +203,7 @@ class _AyarlarSekmesiState extends State<_AyarlarSekmesi> {
               Text(toplam == null ? '${sayiYaz(kullanilan)} · sınırsız' : '${sayiYaz(kullanilan)} / ${sayiYaz(toplam)}', style: TextStyle(color: r.soluk)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
@@ -238,7 +239,7 @@ class _AyarlarSekmesiState extends State<_AyarlarSekmesi> {
           children: [
             BolumKarti(
               baslik: 'Zorunlu alt bilgi',
-              ikon: Icons.business_outlined,
+              ikon: Simgeler.business,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -253,7 +254,7 @@ class _AyarlarSekmesiState extends State<_AyarlarSekmesi> {
                     enabled: b.acik,
                     decoration: InputDecoration(labelText: 'Şirket adı', hintText: metin(a['effective_company']), counterText: ''),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: _adres,
                     maxLength: 500,
@@ -267,7 +268,7 @@ class _AyarlarSekmesiState extends State<_AyarlarSekmesi> {
                     'Kullanılacak: ${metin(a['effective_company'], '—')} · ${metin(a['effective_address'], 'adres yok')}',
                     style: TextStyle(color: r.silik, fontSize: 12),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
                     child: FilledButton(onPressed: _mesgul || !b.acik ? null : _kaydet, child: const Text('Kaydet')),
@@ -277,7 +278,7 @@ class _AyarlarSekmesiState extends State<_AyarlarSekmesi> {
             ),
             BolumKarti(
               baslik: 'Sınırlar ve politika',
-              ikon: Icons.speed_rounded,
+              ikon: Simgeler.speed,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -292,7 +293,7 @@ class _AyarlarSekmesiState extends State<_AyarlarSekmesi> {
                   BilgiSatiri('Saatlik hız üst sınırı', tamsayiYa(a['max_rate_per_hour']) != null ? sayiYaz(tamsayi(a['max_rate_per_hour'])) : 'Otomatik'),
                   BilgiSatiri('Sonraki kampanya onaya düşer', mantik(b.ov['next_campaign_needs_approval']) ? 'Evet' : 'Hayır'),
                   BilgiSatiri('Bastırılmış adres', sayiYaz(tamsayi(b.ov['suppressed']))),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text('Sınırlar ve onay politikası platform yöneticisi tarafından belirlenir.', style: TextStyle(color: r.silik, fontSize: 12)),
                 ],
               ),

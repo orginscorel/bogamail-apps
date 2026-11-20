@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../../veri/arkaplan.dart';
 import '../../ortak/izin.dart';
 import '../../ortak/simgeler.dart';
 import '../../veri/canli.dart';
@@ -63,6 +64,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
   void initState() {
     super.initState();
     SohbetDurum.ben.acikOda = widget.odaId;
+    Arkaplan.durum(onPlanda: true, acikOda: widget.odaId);
     SohbetDurum.ben.addListener(_durum);
     _abone = SohbetDurum.ben.olaylar.listen(_canli);
     _kaydirma.addListener(_kaydi);
@@ -77,6 +79,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
     super.didUpdateWidget(eski);
     if (eski.odaId != widget.odaId) {
       SohbetDurum.ben.acikOda = widget.odaId;
+      Arkaplan.durum(onPlanda: true, acikOda: widget.odaId);
       _mesajlar = [];
       _eskiBitti = false;
       _yukle();
@@ -85,7 +88,10 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
 
   @override
   void dispose() {
-    if (SohbetDurum.ben.acikOda == widget.odaId) SohbetDurum.ben.acikOda = null;
+    if (SohbetDurum.ben.acikOda == widget.odaId) {
+      SohbetDurum.ben.acikOda = null;
+      Arkaplan.durum(onPlanda: true, acikOda: null);
+    }
     SohbetDurum.ben.removeListener(_durum);
     _abone?.cancel();
     _yoklama?.cancel();
@@ -214,11 +220,11 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(leading: const Icon(Icons.attach_file_rounded), title: const Text('Dosya'), onTap: () => Navigator.pop(c, 'dosya')),
-            ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Galeri'), onTap: () => Navigator.pop(c, 'galeri')),
+            ListTile(leading: const Icon(Simge.ek), title: const Text('Dosya'), onTap: () => Navigator.pop(c, 'dosya')),
+            ListTile(leading: const Icon(Simge.galeri), title: const Text('Galeri'), onTap: () => Navigator.pop(c, 'galeri')),
             if (mobil) ...[
-              ListTile(leading: const Icon(Icons.photo_camera_outlined), title: const Text('Kamerayla fotoğraf çek'), onTap: () => Navigator.pop(c, 'foto')),
-              ListTile(leading: const Icon(Icons.videocam_outlined), title: const Text('Kamerayla video çek'), onTap: () => Navigator.pop(c, 'video')),
+              ListTile(leading: const Icon(Simge.kamera), title: const Text('Kamerayla fotoğraf çek'), onTap: () => Navigator.pop(c, 'foto')),
+              ListTile(leading: const Icon(Simge.video), title: const Text('Kamerayla video çek'), onTap: () => Navigator.pop(c, 'video')),
             ],
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -329,7 +335,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
                     height: 30,
                     child: y.ek == null && !hata
                         ? CircularProgressIndicator(strokeWidth: 2.5, value: y.ilerleme == 0 ? null : y.ilerleme)
-                        : Icon(hata ? Icons.error_outline_rounded : ekSimgesi(icerikTuru(y.ad), y.ad), color: hata ? Marka.gul : r.vurgu),
+                        : Icon(hata ? Simge.hata : ekSimgesi(icerikTuru(y.ad), y.ad), color: hata ? Marka.gul : r.vurgu),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -355,7 +361,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
                   IconButton(
                     tooltip: 'Kaldır',
                     visualDensity: VisualDensity.compact,
-                    icon: Icon(Icons.close_rounded, size: 16, color: r.silik),
+                    icon: Icon(Simge.kapat, size: 16, color: r.silik),
                     onPressed: () => setState(() {
                       y.iptal.cancel();
                       _bekleyen.remove(y);
@@ -424,7 +430,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
                     ),
                   IconButton.filledTonal(
                     tooltip: 'Diğer tepkiler',
-                    icon: const Icon(Icons.add_reaction_outlined),
+                    icon: const Icon(Simge.tepkiEkle),
                     onPressed: () {
                       Navigator.pop(c);
                       _tepkiEkle(m);
@@ -436,7 +442,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
             const Divider(),
             if (m.metin.isNotEmpty)
               ListTile(
-                leading: const Icon(Icons.copy_rounded),
+                leading: const Icon(Simge.kopyala),
                 title: const Text('Kopyala'),
                 onTap: () {
                   Navigator.pop(c);
@@ -445,7 +451,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
               ),
             if (m.benim)
               ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: Marka.gul),
+                leading: const Icon(Simge.sil, color: Marka.gul),
                 title: const Text('Geri çek (herkesten sil)', style: TextStyle(color: Marka.gul)),
                 onTap: () {
                   Navigator.pop(c);
@@ -473,7 +479,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                child: Text(oda.baslik(benId), style: gosterim(18, agirlik: FontWeight.w700)),
+                child: Text(oda.baslik(benId), style: gosterim(18, agirlik: FontWeight.w600)),
               ),
               if (oda.aciklama.isNotEmpty)
                 Padding(
@@ -549,7 +555,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
                 baslik,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: gosterim(17, agirlik: FontWeight.w700),
+                style: gosterim(17, agirlik: FontWeight.w600),
               ),
               if (alt.isNotEmpty)
                 Text(
@@ -563,7 +569,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
         ),
       ],
     );
-    final eylemler = [if (oda != null) IconButton(tooltip: 'Üyeler ve bilgi', icon: const Icon(Icons.info_outline_rounded), onPressed: () => _bilgi(oda))];
+    final eylemler = [if (oda != null) IconButton(tooltip: 'Üyeler ve bilgi', icon: const Icon(Simge.bilgi), onPressed: () => _bilgi(oda))];
     final govde = Column(
       children: [
         Expanded(child: _liste()),
@@ -589,7 +595,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
               children: [
                 Expanded(child: ust),
                 ...eylemler,
-                if (widget.kapat != null) IconButton(tooltip: 'Kapat', icon: const Icon(Icons.close_rounded), onPressed: widget.kapat),
+                if (widget.kapat != null) IconButton(tooltip: 'Kapat', icon: const Icon(Simge.kapat), onPressed: widget.kapat),
               ],
             ),
           ),
@@ -604,7 +610,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
     if (_yukleniyor && _mesajlar.isEmpty) return const Durum.yukleniyor();
     if (_hata != null && _mesajlar.isEmpty) return Durum.hata(_hata!, tekrar: _yukle);
     if (_mesajlar.isEmpty) {
-      return const Durum.bos('Henüz ileti yok. İlk iletiyi siz yazın!', ikon: Icons.chat_bubble_outline_rounded);
+      return const Durum.bos('Henüz ileti yok. İlk iletiyi siz yazın!', ikon: Simge.mesaj);
     }
     final ters = _mesajlar.reversed.toList();
     final grup = _oda != null && !_oda!.birebir;
@@ -662,7 +668,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
           decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(20)),
           child: Text(
             metin,
-            style: TextStyle(fontSize: 11.5, color: r.soluk, fontWeight: FontWeight.w700),
+            style: TextStyle(fontSize: 11.5, color: r.soluk, fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -694,7 +700,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
                     key: const ValueKey('sohbet-ek'),
                     tooltip: 'Ek ekle',
                     onPressed: _gonderiyor ? null : _ekMenusu,
-                    icon: Icon(Icons.add_circle_outline_rounded, color: r.soluk),
+                    icon: Icon(Simge.ekleDaire, color: r.soluk),
                     style: IconButton.styleFrom(minimumSize: const Size(44, 46)),
                   ),
                   Expanded(
@@ -723,7 +729,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
                     onPressed: _gonderilebilir ? _gonder : null,
                     icon: _gonderiyor
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.send_rounded, size: 20),
+                        : const Icon(Simge.gonder, size: 20),
                   ),
                 ],
               ),
@@ -816,7 +822,7 @@ class MesajBalonu extends StatelessWidget {
                               padding: const EdgeInsets.only(bottom: 2),
                               child: Text(
                                 mesaj.gonderenAd,
-                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Avatar.renkFor(mesaj.gonderenId ?? mesaj.gonderenAd)),
+                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Avatar.renkFor(mesaj.gonderenId ?? mesaj.gonderenAd)),
                               ),
                             ),
                           if (!mesaj.silindi && mesaj.ekler.isNotEmpty) SohbetEkleri(ekler: mesaj.ekler, benim: ben),
@@ -832,7 +838,7 @@ class MesajBalonu extends StatelessWidget {
                                 children: _parcalar(
                                   mesaj.metin,
                                   TextStyle(
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w600,
                                     color: ben ? Colors.white : r.vurgu,
                                     backgroundColor: ben ? Colors.white24 : r.vurguYumusak,
                                   ),
@@ -880,7 +886,7 @@ class _HizliTepki extends StatelessWidget {
       child: IconButton(
         tooltip: 'Tepki ekle',
         visualDensity: VisualDensity.compact,
-        icon: Icon(Icons.add_reaction_outlined, size: 18, color: context.r.silik),
+        icon: Icon(Simge.tepkiEkle, size: 18, color: context.r.silik),
         onPressed: ekle,
       ),
     );

@@ -1,3 +1,5 @@
+import 'simge.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -353,7 +355,7 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
                                       style: TextStyle(
                                         fontFamily: 'packages/boga_ortak/Poppins',
                                         fontSize: 11.5,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w600,
                                         letterSpacing: 3.2,
                                         color: aksan,
                                       ),
@@ -389,7 +391,7 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
                             FilledButton.icon(
                               style: FilledButton.styleFrom(backgroundColor: aksan, foregroundColor: koyu ? Marka.grafit : Colors.white),
                               onPressed: _basla,
-                              icon: const Icon(Icons.refresh_rounded),
+                              icon: const Icon(Simge.yenile),
                               label: const Text('Tekrar dene'),
                             ),
                           ],
@@ -408,7 +410,7 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
                       children: [
                         Text(
                           'BOGAHOST',
-                          style: TextStyle(fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w700, color: soluk),
+                          style: TextStyle(fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w600, color: soluk),
                         ),
                         const SizedBox(height: 4),
                         SurumEtiketi(renk: soluk, ortala: true),

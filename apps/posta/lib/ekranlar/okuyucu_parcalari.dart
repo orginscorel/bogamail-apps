@@ -29,9 +29,9 @@ class GuvenlikBandi extends StatelessWidget {
     final simge =
         ikon ??
         switch (tur) {
-          BantTuru.tehlike => Icons.gpp_bad_outlined,
-          BantTuru.uyari => Icons.warning_amber_rounded,
-          BantTuru.bilgi => Icons.info_outline_rounded,
+          BantTuru.tehlike => Simge.tehlike,
+          BantTuru.uyari => Simge.uyari,
+          BantTuru.bilgi => Simge.bilgi,
         };
     return Semantics(
       container: true,
@@ -63,7 +63,7 @@ class GuvenlikBandi extends StatelessWidget {
                           children: [
                             Text(
                               baslik,
-                              style: TextStyle(fontWeight: FontWeight.w800, color: r.metin, fontSize: 13.5),
+                              style: TextStyle(fontWeight: FontWeight.w600, color: r.metin, fontSize: 13.5),
                             ),
                             if (metin != null && metin!.isNotEmpty)
                               Padding(
@@ -95,7 +95,7 @@ List<GuvenlikBandi> sezgiselUyarilar(IletiDetay d) {
         tur: BantTuru.tehlike,
         baslik: 'Riskli ek',
         metin: '${riskli.join(', ')} çalıştırılabilir kod veya makro içerebilir. Göndereni tanımıyorsanız açmayın.',
-        ikon: Icons.dangerous_outlined,
+        ikon: Simge.tehlikeli,
       ),
     );
   }
@@ -108,7 +108,7 @@ List<GuvenlikBandi> sezgiselUyarilar(IletiDetay d) {
           tur: BantTuru.uyari,
           baslik: 'Gönderen adresi farklı',
           metin: 'Görünen ad "$adDaki" diyor ama ileti ${g.eposta} adresinden geldi. Kimlik avı olabilir.',
-          ikon: Icons.person_off_outlined,
+          ikon: Simge.kisiYok,
         ),
       );
     }
@@ -141,7 +141,7 @@ class AliciCipleri extends StatelessWidget {
         t,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 12, fontWeight: vurgu ? FontWeight.w700 : FontWeight.w500, color: vurgu ? r.vurgu : r.soluk),
+        style: TextStyle(fontSize: 12, fontWeight: vurgu ? FontWeight.w600 : FontWeight.w500, color: vurgu ? r.vurgu : r.soluk),
       ),
     );
     return Padding(
@@ -226,15 +226,15 @@ class _KonusmaSeridiState extends State<KonusmaSeridi> {
               padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
               child: Row(
                 children: [
-                  Icon(Icons.forum_outlined, size: 18, color: r.vurgu),
+                  Icon(Simge.sohbet, size: 18, color: r.vurgu),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Bu konuşmada ${l.length} ileti daha',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: r.metin, fontSize: 13.5),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: r.metin, fontSize: 13.5),
                     ),
                   ),
-                  Icon(_acik ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: r.silik),
+                  Icon(_acik ? Simge.yukari : Simge.asagi, color: r.silik),
                 ],
               ),
             ),
@@ -263,7 +263,7 @@ class _KonusmaSeridiState extends State<KonusmaSeridi> {
                                     adresCoz(m.kimden).gorunen,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontWeight: m.okundu ? FontWeight.w500 : FontWeight.w800, fontSize: 13),
+                                    style: TextStyle(fontWeight: m.okundu ? FontWeight.w500 : FontWeight.w600, fontSize: 13),
                                   ),
                                 ),
                                 Text(kisaZaman(m.tarih), style: TextStyle(fontSize: 11.5, color: r.silik)),
@@ -316,7 +316,7 @@ class YanitCubugu extends StatelessWidget {
                 key: const ValueKey('yanitla'),
                 style: FilledButton.styleFrom(minimumSize: boyut, backgroundColor: r.vurgu, foregroundColor: Colors.white),
                 onPressed: yanitla,
-                icon: const Icon(Icons.reply_rounded, size: 19),
+                icon: const Icon(Simge.yanitla, size: 19),
                 label: const Text('Yanıtla', maxLines: 1),
               ),
             ),
@@ -327,7 +327,7 @@ class YanitCubugu extends StatelessWidget {
                 child: FilledButton.tonalIcon(
                   style: FilledButton.styleFrom(minimumSize: boyut, padding: const EdgeInsets.symmetric(horizontal: 8)),
                   onPressed: tumunu,
-                  icon: const Icon(Icons.reply_all_rounded, size: 19),
+                  icon: const Icon(Simge.tumuneYanitla, size: 19),
                   label: const Text('Tümünü', maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
               ),
@@ -338,7 +338,7 @@ class YanitCubugu extends StatelessWidget {
               child: FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(minimumSize: boyut, padding: const EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: ilet,
-                icon: const Icon(Icons.forward_rounded, size: 19),
+                icon: const Icon(Simge.ilet, size: 19),
                 label: const Text('İlet', maxLines: 1),
               ),
             ),

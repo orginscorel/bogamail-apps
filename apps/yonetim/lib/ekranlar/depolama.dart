@@ -8,6 +8,7 @@ import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import 'altyapi_ortak.dart';
 import 'bolumler.dart';
+import '../ortak/simgeler.dart';
 
 /// Depolama: kutu kullanımı, kota durumu, disk alanı, en çok alan kullanan kutular, müşteri bazında kullanım,
 /// depolama verimliliği (platform) ve Çöp Kutusu / Spam otomatik temizleme. Müşteriler kendi kullanımlarını görür.
@@ -88,27 +89,27 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
         enAz: 200,
         children: [
           KpiKarti(
-            ikon: Icons.pie_chart_outline_rounded,
+            ikon: Simgeler.pieChartOutline,
             etiket: 'Kullanılan',
             deger: boyutYaz(tamsayi(t['used_bytes'])),
             alt: '${boyutYaz(tamsayi(t['allocated_bytes']))} kota tahsis edildi',
           ),
           KpiKarti(
-            ikon: Icons.mail_outline_rounded,
+            ikon: Simgeler.mailOutline,
             etiket: 'Saklanan ileti',
             deger: sayiYaz(tamsayi(t['messages'])),
             alt: '${tamsayi(t['mailboxes'])} posta kutusunda',
             renk: Marka.mavi,
           ),
           KpiKarti(
-            ikon: Icons.warning_amber_rounded,
+            ikon: Simgeler.warningAmber,
             etiket: 'Kotası %90+ dolu',
             deger: sayiYaz(tamsayi(t['above_90_percent'])),
             alt: 'uyarı eşiği',
             renk: Marka.kehribar,
           ),
           KpiKarti(
-            ikon: Icons.block_rounded,
+            ikon: Simgeler.block,
             etiket: 'Kotası dolu',
             deger: sayiYaz(tamsayi(t['over_quota'])),
             alt: 'yeni posta 452 ile geri çevrilir',
@@ -157,13 +158,13 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
     final r = context.r;
     return BolumKarti(
       baslik: 'En çok alan kullanan posta kutuları',
-      ikon: Icons.inbox_outlined,
+      ikon: Simgeler.inbox,
       child: l.isEmpty
           ? Text('Posta kutusu yok.', style: TextStyle(color: r.soluk))
           : Column(
               children: [
                 for (final (i, m) in l.indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     child: Column(
@@ -192,7 +193,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         KullanimCubugu(kullanilan: tamsayi(m['used_bytes']), toplam: tamsayi(m['quota_bytes'])),
                       ],
                     ),
@@ -212,7 +213,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
     return BolumKarti(
       baslik: Uyg.musteri ? 'Kurum kullanımı' : 'Müşteri bazında',
       altBaslik: 'Kullanılan · tahsis edilen · paket kotası',
-      ikon: Icons.apartment_rounded,
+      ikon: Simgeler.apartment,
       sag: sayfaSayisi > 1
           ? Row(
               mainAxisSize: MainAxisSize.min,
@@ -220,13 +221,13 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
                 IconButton(
                   tooltip: 'Önceki sayfa',
                   onPressed: sayfa > 0 ? () => setState(() => _orgSayfa = sayfa - 1) : null,
-                  icon: const Icon(Icons.chevron_left_rounded),
+                  icon: const Icon(Simgeler.chevronLeft),
                 ),
                 Text('${sayfa + 1} / $sayfaSayisi', style: TextStyle(color: r.soluk, fontSize: 12)),
                 IconButton(
                   tooltip: 'Sonraki sayfa',
                   onPressed: sayfa < sayfaSayisi - 1 ? () => setState(() => _orgSayfa = sayfa + 1) : null,
-                  icon: const Icon(Icons.chevron_right_rounded),
+                  icon: const Icon(Simgeler.chevronRight),
                 ),
               ],
             )
@@ -236,11 +237,11 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
           : Column(
               children: [
                 for (final (i, o) in gorunen.indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   InkWell(
                     onTap: Bolum.musteriler.gorunur ? () => bolumeGit(Bolum.musteriler, musteriId: metinYa(o['id'])) : null,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         children: [
                           Expanded(
@@ -295,7 +296,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Depolama verimliliği', style: gosterim(17, renk: r.metin)),
+                Text('Depolama verimliliği', style: gosterim(17, agirlik: FontWeight.w600, renk: r.metin)),
                 const SizedBox(height: 2),
                 Text(
                   '${s == null ? 'Henüz ölçüm yok' : 'Son ölçüm ${tamZaman(tarihOku(s['taken_at']))} (${ondalik(s['seconds']).toStringAsFixed(1).replaceAll('.', ',')} sn)'}'
@@ -310,30 +311,30 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
             onPressed: _olcuyor || olcuyor ? null : _olc,
             icon: _olcuyor || olcuyor
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.refresh_rounded, size: 18),
+                : const Icon(Simgeler.refresh, size: 18),
             label: Text(olcuyor ? 'Ölçülüyor' : 'Şimdi ölç'),
           ),
         ],
       ),
-      const SizedBox(height: 10),
+      const SizedBox(height: 8),
       Izgara(
         enAz: 200,
         children: [
           KpiKarti(
-            ikon: Icons.description_outlined,
+            ikon: Simgeler.description,
             etiket: 'Mantıksal boyut',
             deger: s == null ? '—' : boyutYaz(tamsayi(s['logical_bytes'])),
             alt: 'kotaya sayılan, sıkıştırılmamış',
           ),
           KpiKarti(
-            ikon: Icons.save_outlined,
+            ikon: Simgeler.save,
             etiket: 'Diskte',
             deger: s == null ? '—' : boyutYaz(tamsayi(s['allocated_bytes'])),
             alt: s == null ? null : '${boyutYaz(tamsayi(s['physical_bytes']))} dosya boyutu · ${sayiYaz(tamsayi(s['inodes']))} nesne',
             renk: Marka.mavi,
           ),
           KpiKarti(
-            ikon: Icons.compress_rounded,
+            ikon: Simgeler.compress,
             etiket: 'Sıkıştırma tasarrufu',
             deger: s == null ? '—' : boyutYaz(tamsayi(s['compress_saved_bytes']).clamp(0, 1 << 62)),
             alt: s == null
@@ -342,7 +343,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
             renk: Marka.zumrut,
           ),
           KpiKarti(
-            ikon: Icons.copy_all_rounded,
+            ikon: Simgeler.copyAll,
             etiket: 'Tekilleştirme tasarrufu',
             deger: s == null ? '—' : boyutYaz(tamsayi(s['dedup_saved_bytes'])),
             alt: s == null ? null : '${sayiYaz(tamsayi(s['files']) - tamsayi(s['inodes']))} kopya paylaşımlı saklanıyor',
@@ -356,7 +357,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
         children: [
           BolumKarti(
             baslik: 'Disk ve uyarı eşiği',
-            ikon: Icons.storage_rounded,
+            ikon: Simgeler.storage,
             altBaslik: esik != null
                 ? 'Disk doluluğu uyarısı %$esik eşiğinde (Uyarılar)'
                 : 'Disk doluluğu uyarı kuralı yok; Uyarılar bölümünden "Disk doluluğu" kuralı ekleyin',
@@ -366,7 +367,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
               children: [
                 if (diskToplam != null && diskToplam > 0 && diskBos != null) ...[
                   KullanimCubugu(kullanilan: diskToplam - diskBos, toplam: diskToplam, yazi: false),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text.rich(
                     TextSpan(
                       text: '${_yuzde(diskToplam - diskBos, diskToplam)} dolu · ${boyutYaz(diskBos)} boş / ${boyutYaz(diskToplam)}',
@@ -374,7 +375,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
                         if (esik != null && diskYuzde != null && diskYuzde >= esik)
                           const TextSpan(
                             text: ' · eşik aşıldı',
-                            style: TextStyle(color: Marka.gul, fontWeight: FontWeight.w700),
+                            style: TextStyle(color: Marka.gul, fontWeight: FontWeight.w600),
                           ),
                       ],
                     ),
@@ -382,7 +383,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
                   ),
                 ] else
                   Text('Veri yok', style: TextStyle(color: r.soluk)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   'Kayıt biçimi: ${sayiYaz(tamsayi(bicim['compressed']))} sıkıştırılmış · ${sayiYaz(tamsayi(bicim['plain']))} düz (küçük/sıkışmayan) · '
                   '${sayiYaz(eski)} eski düz${eski > 0 ? (mantik(yapilandirma['Migrate']) ? ' (arka planda sıkıştırılıyor)' : ' (geçiş kapalı)') : ''}'
@@ -394,7 +395,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
           ),
           BolumKarti(
             baslik: 'Büyüme (son 30 gün)',
-            ikon: Icons.trending_up_rounded,
+            ikon: Simgeler.trendingUp,
             altBaslik: 'Gün içinde saklanan ve hâlâ duran iletilerin mantıksal boyutu',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -442,11 +443,11 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
         BolumKarti(
           baslik: 'Müşteri bazında disk kullanımı',
           altBaslik: 'Son ölçüme göre; paylaşılan (tekilleştirilmiş) dosyalar ilk sahibine sayılır',
-          ikon: Icons.apartment_rounded,
+          ikon: Simgeler.apartment,
           child: Column(
             children: [
               for (final (i, o) in orgler.take(20).indexed) ...[
-                if (i > 0) Divider(height: 1, color: r.kenar),
+                if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   child: Row(
@@ -491,7 +492,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
     final temizlemeler = haritalar(verim?['cleanup_runs']);
     return BolumKarti(
       baslik: 'Otomatik temizleme',
-      ikon: Icons.auto_delete_outlined,
+      ikon: Simgeler.autoDelete,
       altBaslik:
           'Çöp Kutusu ve Spam klasöründeki iletiler, klasöre girdikten belirtilen gün sonra kalıcı olarak silinir (0 = süresiz sakla).'
           '${mantik(d['enabled'], true) ? '' : ' Sunucuda temizleme kapalı (BOGAMAIL_STORE_RETENTION=off).'}',
@@ -499,7 +500,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
           ? IconButton(
               tooltip: 'Platform varsayılanını düzenle',
               onPressed: () => _saklamaDuzenle(context, d, null, yenile),
-              icon: const Icon(Icons.tune_rounded),
+              icon: const Icon(Simgeler.tune),
             )
           : null,
       child: Column(
@@ -511,12 +512,12 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
               children: [
                 TextSpan(
                   text: cop == 0 ? 'süresiz' : '$cop gün',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const TextSpan(text: ' · Spam '),
                 TextSpan(
                   text: spam == 0 ? 'süresiz' : '$spam gün',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -524,7 +525,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
           ),
           const SizedBox(height: 8),
           for (final (i, o) in orgler.indexed) ...[
-            if (i > 0) Divider(height: 1, color: r.kenar),
+            if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
@@ -538,7 +539,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
               trailing: IconButton(
                 tooltip: 'Temizleme ayarını düzenle',
                 onPressed: () => _saklamaDuzenle(context, d, o, yenile),
-                icon: const Icon(Icons.edit_outlined, size: 20),
+                icon: const Icon(Simgeler.edit, size: 20),
               ),
             ),
           ],
@@ -594,7 +595,7 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
                   validator: dogrula,
                   decoration: InputDecoration(labelText: 'Çöp Kutusu (gün)', hintText: org != null ? 'platform: ${tamsayi(p['trash_days'])}' : null),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: spam,
                   keyboardType: TextInputType.number,
@@ -603,9 +604,9 @@ class _DepolamaEkraniState extends State<DepolamaEkrani> {
                   decoration: InputDecoration(labelText: 'Spam (gün)', hintText: org != null ? 'platform: ${tamsayi(p['junk_days'])}' : null),
                 ),
                 if (org != null) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   EylemSatiri(
-                    ikon: Icons.settings_backup_restore_rounded,
+                    ikon: Simgeler.settingsBackupRestore,
                     baslik: 'Platform varsayılanına dön',
                     ipucu: 'Bu müşteriye özel ayarı kaldırır',
                     onTap: () => Navigator.pop(c, 'sifirla'),
@@ -656,15 +657,15 @@ class _DiskKarti extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.storage_rounded, size: 16, color: r.soluk),
-              const SizedBox(width: 6),
+              Icon(SimgelerKalin.storage, size: 16, color: r.soluk),
+              const SizedBox(width: 8),
               Text(baslik, style: TextStyle(color: r.soluk, fontSize: 12.5)),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(d == null ? 'Ölçülemedi' : '${boyutYaz(tamsayi(d['free_bytes']))} boş', style: gosterim(20, renk: r.metin)),
+          const SizedBox(height: 8),
+          Text(d == null ? 'Ölçülemedi' : '${boyutYaz(tamsayi(d['free_bytes']))} boş', style: gosterim(20, agirlik: FontWeight.w600, renk: r.metin)),
           if (d != null) ...[const SizedBox(height: 8), KullanimCubugu(kullanilan: tamsayi(d['used_bytes']), toplam: tamsayi(d['total_bytes']), yazi: false)],
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             '${d == null ? '' : '${boyutYaz(tamsayi(d['used_bytes']))} / ${boyutYaz(tamsayi(d['total_bytes']))} · '}${tire(metin(d?['path']))} · $not',
             style: TextStyle(color: r.silik, fontSize: 12),

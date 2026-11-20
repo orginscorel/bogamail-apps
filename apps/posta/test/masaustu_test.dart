@@ -35,7 +35,7 @@ void main() {
   });
 
   testWidgets('geniş pencerede Ayarlar: kategori listesi ve sağ bölme', (t) async {
-    t.view.physicalSize = const Size(1440, 900);
+    t.view.physicalSize = const Size(1440, 1400);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     await t.pumpWidget(MaterialApp(theme: temaKur(Brightness.light), scaffoldMessengerKey: kokMesaj, home: const AyarlarEkrani()));
@@ -65,7 +65,7 @@ void main() {
   });
 
   testWidgets('eklenen ayar bölümü sol listede görünür, aynı id yerleşiğin yerine geçer', (t) async {
-    t.view.physicalSize = const Size(1440, 900);
+    t.view.physicalSize = const Size(1440, 1400);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     final onceki = [...ekAyarBolumleri];
@@ -79,13 +79,13 @@ void main() {
       ..add(
         AyarBolumu(
           id: 'sablonlar',
-          ikon: Icons.space_dashboard_outlined,
+          ikon: Simge.pano,
           baslik: 'Şablonlar',
           sira: 45,
           olustur: (_) => ListView(children: const [Text('şablon içeriği')]),
         ),
       )
-      ..add(AyarBolumu(id: 'gorunum', ikon: Icons.palette_outlined, baslik: 'Görünüm', sira: 30, olustur: (_) => const Text('yeni görünüm')));
+      ..add(AyarBolumu(id: 'gorunum', ikon: Simge.palet, baslik: 'Görünüm', sira: 30, olustur: (_) => const Text('yeni görünüm')));
     await t.pumpWidget(MaterialApp(theme: temaKur(Brightness.light), scaffoldMessengerKey: kokMesaj, home: const AyarlarEkrani()));
     await t.pump();
     await t.pump(const Duration(milliseconds: 100));
@@ -109,31 +109,50 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const ValueKey('ayar-kategori-hesaplar')), findsNothing);
-    expect(find.text('HESAPLAR VE OTURUM'), findsOneWidget);
+    expect(find.text('PROFİL VE HESAP'), findsOneWidget);
     await t.pumpWidget(const SizedBox());
     await t.pump(const Duration(seconds: 10));
   });
 
-  testWidgets('telefonda yerine geçen bölümler yerinde satır olur, eski kartlar ve tekrarlar yok', (t) async {
-    t.view.physicalSize = const Size(400, 6000);
+  testWidgets('Ayarlar gruplu: Profil ve hesap / Posta / Uygulama; telefonda profil kartı, tekrar yok', (t) async {
+    // Masaüstü sol liste: grup başlıkları ve doğru gruplama.
+    t.view.physicalSize = const Size(1440, 1400);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     await t.pumpWidget(MaterialApp(theme: temaKur(Brightness.light), scaffoldMessengerKey: kokMesaj, home: const AyarlarEkrani()));
     await t.pump();
     await t.pump(const Duration(milliseconds: 100));
-    final ekIdler = ekAyarBolumleri.map((b) => b.id).toSet();
-    for (final id in ['genel', 'gorunum', 'bildirimler', 'otomatik'].where(ekIdler.contains)) {
+    double y(String k) => t.getTopLeft(find.byKey(ValueKey(k))).dy;
+    expect(y('ayar-grup-profil'), lessThan(y('ayar-kategori-guvenlik')));
+    expect(y('ayar-kategori-hesaplar'), lessThan(y('ayar-grup-posta')));
+    expect(y('ayar-kategori-depolama'), lessThan(y('ayar-grup-posta')));
+    for (final id in ['genel', 'imza', 'suzgecler', 'klasorler', 'etiketler', 'tasima', 'kurulum']) {
+      expect(y('ayar-kategori-$id'), greaterThan(y('ayar-grup-posta')), reason: id);
+      expect(y('ayar-kategori-$id'), lessThan(y('ayar-grup-uygulama')), reason: id);
+    }
+    for (final id in ['gorunum', 'bildirimler', 'uygulama', 'hakkinda']) {
+      expect(y('ayar-kategori-$id'), greaterThan(y('ayar-grup-uygulama')), reason: id);
+    }
+    await t.pumpWidget(const SizedBox());
+
+    // Telefon: profil kartı en üstte; her kategori tek satır (tekrar yok).
+    t.view.physicalSize = const Size(400, 3000);
+    await t.pumpWidget(MaterialApp(theme: temaKur(Brightness.light), scaffoldMessengerKey: kokMesaj, home: const AyarlarEkrani()));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const ValueKey('profil-karti')), findsOneWidget);
+    expect(y('profil-karti'), lessThan(y('ayar-grup-profil')));
+    for (final id in ['gorunum', 'genel', 'bildirimler', 'otomatik', 'hesaplar', 'guvenlik']) {
       expect(find.byKey(ValueKey('ayar-satir-$id')), findsOneWidget, reason: id);
     }
-    if (ekIdler.contains('gorunum')) expect(find.text('Uzak görselleri otomatik göster'), findsNothing);
-    if (ekIdler.contains('genel')) {
-      expect(find.text('Sayfa başına ileti'), findsNothing);
-      expect(find.byKey(const ValueKey('imza-ac')), findsOneWidget);
-    }
-    // Yerleşik karşılığı olanlar "Diğer ayarlar"ın altında değil, kendi başlıklarının altında.
-    if (ekIdler.contains('gorunum')) {
-      expect(t.getTopLeft(find.byKey(const ValueKey('ayar-satir-gorunum'))).dy, lessThan(t.getTopLeft(find.text('DİĞER AYARLAR')).dy));
-    }
+    expect(find.text('Uzak görselleri otomatik göster'), findsNothing);
+    expect(find.text('DİĞER AYARLAR'), findsNothing);
+    expect(y('ayar-satir-gorunum'), greaterThan(y('ayar-grup-uygulama')));
+    await t.tap(find.byKey(const ValueKey('ayar-satir-hakkinda')));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 500));
+    expect(find.text('Sunucu'), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
     await t.pumpWidget(const SizedBox());
     await t.pump(const Duration(seconds: 10));
   });
@@ -142,7 +161,7 @@ void main() {
     expect(klasorRengi('trash'), const Color(0xFFEF4444));
     expect(klasorRengi('junk'), const Color(0xFFF97316));
     expect(klasorRengi('inbox'), isNull);
-    expect(klasorSimgesi('junk'), Icons.gpp_maybe_outlined);
+    expect(klasorSimgesi('junk'), Simge.gereksiz);
     expect(gorunumRengi('starred'), yildizRengi);
     expect(etiketRengi('yellow'), const Color(0xFFFBBF24));
   });

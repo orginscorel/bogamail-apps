@@ -12,6 +12,7 @@ import '../veri/json.dart';
 import '../veri/operasyon.dart';
 import 'altyapi_ortak.dart';
 import 'bolumler.dart';
+import '../ortak/simgeler.dart';
 
 /// İzleme (platform): bileşen sağlığı (10 sn), teslimat uyarıları, gateway uyarıları, 48 saatlik trafik ve bugünkü sayılar.
 /// web: admin/(panel)/monitoring + delivery/monitor-alerts.
@@ -123,7 +124,7 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
                 );
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               'Eşik tabanlı uyarılar ve bildirim kanalları (e-posta, webhook, panel) Uyarılar bölümündedir.',
               style: TextStyle(color: context.r.silik, fontSize: 12),
@@ -138,8 +139,8 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
     final b = _bilesenler;
     if (b == null) {
       return _saglikHatasi != null
-          ? Bant(_saglikHatasi!, renk: Marka.gul, ikon: Icons.cloud_off_rounded)
-          : const Bant('Kontrol ediliyor…', ikon: Icons.hourglass_top_rounded);
+          ? Bant(_saglikHatasi!, renk: Marka.gul, ikon: Simgeler.cloudOff)
+          : const Bant('Kontrol ediliyor…', ikon: Simgeler.hourglassTop);
     }
     final kapali = [
       for (final c in b)
@@ -147,9 +148,9 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
     ];
     final zaman = _denetim == null ? '' : ' (${goreliZaman(_denetim)})';
     if (kapali.isNotEmpty) {
-      return Bant('Sorunlu bileşen: ${kapali.map((x) => saglikEtiketleri[x] ?? x).join(', ')}$zaman', renk: Marka.gul, ikon: Icons.error_outline_rounded);
+      return Bant('Sorunlu bileşen: ${kapali.map((x) => saglikEtiketleri[x] ?? x).join(', ')}$zaman', renk: Marka.gul, ikon: Simgeler.errorOutline);
     }
-    return Bant('Tüm çalışan bileşenler sağlıklı.$zaman', renk: Marka.zumrut, ikon: Icons.check_circle_outline_rounded);
+    return Bant('Tüm çalışan bileşenler sağlıklı.$zaman', renk: Marka.zumrut, ikon: Simgeler.checkCircleOutline);
   }
 
   Widget _bilesenKarti(BuildContext context) {
@@ -157,13 +158,13 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
     final b = _bilesenler;
     return BolumKarti(
       baslik: 'Bileşenler',
-      ikon: Icons.memory_rounded,
+      ikon: Simgeler.memory,
       child: b == null
           ? const SizedBox(height: 120, child: Center(child: CircularProgressIndicator.adaptive()))
           : Column(
               children: [
                 for (final (i, c) in b.indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     child: Row(
@@ -173,7 +174,7 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
                           'down' => Marka.gul,
                           _ => r.silik,
                         }),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,7 +221,7 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
   Widget _trafikKarti(BuildContext context) => BolumKarti(
     baslik: 'Posta akışı',
     altBaslik: 'Son 48 saat (saatlik)',
-    ikon: Icons.show_chart_rounded,
+    ikon: Simgeler.showChart,
     child: _trafik == null ? const SizedBox(height: 190, child: Center(child: CircularProgressIndicator.adaptive())) : TrafikGrafigi(dilimler: _trafik!),
   );
 
@@ -230,7 +231,7 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
     return BolumKarti(
       baslik: 'Bugün',
       altBaslik: 'Canlı değerler (mesaj takibi kayıtlarından)',
-      ikon: Icons.today_rounded,
+      ikon: Simgeler.today,
       child: Izgara(
         enAz: 120,
         children: [
@@ -250,7 +251,7 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
     return BolumKarti(
       baslik: 'Teslimat uyarıları',
       altBaslik: 'Son 72 saatte kötüleşen Monitor denetimleri${u == null ? '' : ' · $acik açık'}',
-      ikon: Icons.report_problem_outlined,
+      ikon: Simgeler.reportProblem,
       sag: TextButton(onPressed: () => bolumeGit(Bolum.teslimatSorunlari), child: const Text('Teslimat Sorunları')),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -260,23 +261,23 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
           else if (u.isEmpty)
             Text('Uyarı yok: son 72 saatte kötüleşen denetim olmadı.', style: TextStyle(color: r.soluk, fontSize: 13))
           else
-            for (final (i, a) in u.take(12).indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar), _uyariSatiri(context, a)],
+            for (final (i, a) in u.take(12).indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)), _uyariSatiri(context, a)],
           if (_gwUyarilar.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Divider(height: 1, color: r.kenar),
+            Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: Text(
                     'Gateway uyarıları',
-                    style: TextStyle(color: r.metin, fontWeight: FontWeight.w700, fontSize: 13.5),
+                    style: TextStyle(color: r.metin, fontWeight: FontWeight.w600, fontSize: 13.5),
                   ),
                 ),
                 if (Bolum.gateway.gorunur) TextButton(onPressed: () => bolumeGit(Bolum.gateway), child: const Text('Mail Gateway')),
               ],
             ),
-            for (final (i, a) in _gwUyarilar.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar), _gwSatiri(context, a)],
+            for (final (i, a) in _gwUyarilar.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)), _gwSatiri(context, a)],
           ],
         ],
       ),
@@ -295,7 +296,7 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: 6,
+            spacing: 8,
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
@@ -306,7 +307,7 @@ class _IzlemeEkraniState extends State<IzlemeEkrani> {
               Text('·', style: TextStyle(color: r.silik)),
               Text(metin(a['label']), style: TextStyle(color: r.metin, fontSize: 13.5)),
               if (once != null) MonRozeti(once),
-              Icon(Icons.arrow_forward_rounded, size: 14, color: r.silik),
+              Icon(SimgelerKalin.arrowForward, size: 14, color: r.silik),
               MonRozeti(durum),
               if (simdi != null && simdi != durum) ...[Text('şimdi', style: TextStyle(color: r.silik, fontSize: 12)), MonRozeti(simdi)],
             ],

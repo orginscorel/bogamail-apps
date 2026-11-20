@@ -9,6 +9,7 @@ import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import 'bolumler.dart';
 import 'trafik_ortak.dart';
+import '../ortak/simgeler.dart';
 
 const _sira = {'fail': 0, 'warn': 1, 'unknown': 2, 'unchecked': 3, 'info': 4, 'ok': 5};
 
@@ -91,8 +92,8 @@ class _TeslimatSorunlariEkraniState extends State<TeslimatSorunlariEkrani> {
       baslik: 'Teslimat Sorunları',
       alt: 'MX, SPF, DKIM, DMARC, gateway hedefi ve kara liste denetimleri',
       yenile: _yenile,
-      eylemler: [if (suser) IconButton(tooltip: 'Monitor ayarları', onPressed: _ayarlar, icon: const Icon(Icons.tune_rounded))],
-      birincil: suser ? BirincilEylem(Icons.refresh_rounded, _basliyor ? 'Başlatılıyor…' : 'Tümünü denetle', _basliyor ? () {} : _tumunuDenetle) : null,
+      eylemler: [if (suser) IconButton(tooltip: 'Monitor ayarları', onPressed: _ayarlar, icon: const Icon(Simgeler.tune))],
+      birincil: suser ? BirincilEylem(Simgeler.refresh, _basliyor ? 'Başlatılıyor…' : 'Tümünü denetle', _basliyor ? () {} : _tumunuDenetle) : null,
       govde: TekYukleme<Map<String, dynamic>>(
         key: _anahtar,
         getir: () async => harita(await Uyg.api.get('/api/v1/monitor/issues')),
@@ -131,7 +132,7 @@ class _TeslimatSorunlariEkraniState extends State<TeslimatSorunlariEkrani> {
       children: [
         const SizedBox(height: 4),
         Wrap(
-          spacing: 14,
+          spacing: 16,
           runSpacing: 4,
           children: [
             for (final t in [
@@ -148,30 +149,30 @@ class _TeslimatSorunlariEkraniState extends State<TeslimatSorunlariEkrani> {
           children: [
             for (final (k, e) in const [('fail', 'Sorunlu'), ('warn', 'Uyarılı'), ('unknown', 'Belirsiz / denetlenmedi'), ('ok', 'Sorunsuz')])
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(color: r.kart, borderRadius: BorderRadius.circular(14), border: Border.all(color: r.kenar)),
                 child: Row(
                   children: [
                     DurumNoktasi(izlemeRengi(k), boyut: 10),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(child: Text(e, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.soluk, fontSize: 13))),
-                    Text('${say[k]}', style: gosterim(22, agirlik: FontWeight.w700)),
+                    Text('${say[k]}', style: gosterim(22, agirlik: FontWeight.w600)),
                   ],
                 ),
               ),
           ],
         ),
         if (platform.isNotEmpty) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           BolumKarti(
             baslik: 'Platform',
-            ikon: Icons.dns_outlined,
+            ikon: Simgeler.dns,
             altBaslik: Uyg.platformYoneticisi
                 ? 'Kendi TLS sertifikamız, gönderim IP\'lerinin kara liste durumu ve giden 25 numaralı port.'
                 : 'Giden 25 numaralı portun durumu (gateway sonuçlarını etkiler).',
             child: Column(
               children: [
-                for (final (i, c) in platform.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar), _DenetimSatiri(c)],
+                for (final (i, c) in platform.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)), _DenetimSatiri(c)],
               ],
             ),
           ),
@@ -201,7 +202,7 @@ class _TeslimatSorunlariEkraniState extends State<TeslimatSorunlariEkrani> {
             return Row(children: [secim, const SizedBox(width: 12), Expanded(child: arama)]);
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         if (liste.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -209,7 +210,7 @@ class _TeslimatSorunlariEkraniState extends State<TeslimatSorunlariEkrani> {
               tum.isEmpty
                   ? 'Alan adı yok. Alan adı eklendiğinde burada denetlenir.'
                   : 'Sorun bulunmadı. Tüm alan adlarının denetimleri sorunsuz; tümünü görmek için "Tümü"ne basın.',
-              ikon: Icons.verified_user_outlined,
+              ikon: Simgeler.verifiedUser,
             ),
           )
         else ...[
@@ -220,7 +221,7 @@ class _TeslimatSorunlariEkraniState extends State<TeslimatSorunlariEkrani> {
               child: TextButton(onPressed: () => setState(() => _gosterilen += 20), child: Text('Daha fazla göster (${liste.length - _gosterilen} kaldı)')),
             ),
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 4,
@@ -253,7 +254,7 @@ class _DenetimSatiri extends StatelessWidget {
     final sorun = _sorun(c.durum);
     final degisti = c.degisme != null && c.denetlenme != null && c.degisme != c.denetlenme && sorun;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -281,8 +282,8 @@ class _DenetimSatiri extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.lightbulb_outline_rounded, size: 15, color: Marka.kehribar),
-                        const SizedBox(width: 6),
+                        const Icon(SimgelerKalin.lightbulbOutline, size: 15, color: Marka.kehribar),
+                        const SizedBox(width: 8),
                         Expanded(child: Text(c.cozum, style: const TextStyle(fontSize: 12.5))),
                       ],
                     ),
@@ -358,15 +359,15 @@ class _AlanKartiState extends State<_AlanKarti> {
                   ),
                   const SizedBox(width: 8),
                   if (sorunlar > 0) Rozet('$sorunlar sorun', renk: d.enKotu == 'fail' ? Marka.gul : Marka.kehribar) else IzlemeRozeti(d.enKotu),
-                  Icon(_acik ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: r.soluk),
+                  Icon(_acik ? Simgeler.expandLess : Simgeler.expandMore, color: r.soluk),
                 ],
               ),
             ),
           ),
           if (_acik) ...[
-            Divider(height: 1, color: r.kenar),
+            Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -379,7 +380,7 @@ class _AlanKartiState extends State<_AlanKarti> {
                       ),
                     )
                   else
-                    for (final (i, c) in denetimler.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar), _DenetimSatiri(c)],
+                    for (final (i, c) in denetimler.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)), _DenetimSatiri(c)],
                   Wrap(
                     spacing: 8,
                     children: [
@@ -388,10 +389,10 @@ class _AlanKartiState extends State<_AlanKarti> {
                           onPressed: _mesgul ? null : _denetle,
                           icon: _mesgul
                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.refresh_rounded, size: 18),
+                              : const Icon(Simgeler.refresh, size: 18),
                           label: const Text('Şimdi denetle'),
                         ),
-                      TextButton.icon(onPressed: widget.gecmis, icon: const Icon(Icons.history_rounded, size: 18), label: const Text('Geçmiş')),
+                      TextButton.icon(onPressed: widget.gecmis, icon: const Icon(Simgeler.history, size: 18), label: const Text('Geçmiş')),
                     ],
                   ),
                 ],
@@ -410,7 +411,7 @@ class _GecmisDialog extends StatelessWidget {
   final _Alan alan;
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(alan.ad, style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text(alan.ad, style: gosterim(19, agirlik: FontWeight.w600)),
     contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
     content: SizedBox(
       width: 560,
@@ -427,13 +428,13 @@ class _GecmisDialog extends StatelessWidget {
               for (final e in l)
                 Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(border: Border.all(color: r.kenar), borderRadius: BorderRadius.circular(10)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Wrap(
-                        spacing: 6,
+                        spacing: 8,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
@@ -531,7 +532,7 @@ class _AyarlarDialogState extends State<_AyarlarDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text('Monitor ayarları', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Monitor ayarları', style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 460,
       child: !_yuklendi

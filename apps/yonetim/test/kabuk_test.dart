@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:yonetim/ekranlar/ayarlar.dart';
 import 'package:yonetim/ekranlar/bolumler.dart';
+import 'package:yonetim/ekranlar/hesap_blogu.dart';
 import 'package:yonetim/ekranlar/kabuk.dart';
 import 'package:yonetim/ekranlar/ozet.dart';
 import 'package:yonetim/oturum.dart';
@@ -82,6 +84,46 @@ void main() {
     expect(bolumRozetleri.value[Bolum.karantina], 4);
     // Alınan: son 24 saat 480, önceki 240 → %100 artış.
     expect(find.text('%100'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('hesap bloğu yan menünün altında; menü yukarı açılır, Profil ve güvenlik Ayarlar\'ı açar', (t) async {
+    ekranBoyutu(t, const Size(1280, 800));
+    await t.pumpWidget(testUygulamasi(const Kabuk()));
+    await t.pumpAndSettle();
+    final blok = find.byType(HesapBlogu);
+    expect(blok, findsOneWidget);
+    expect(find.descendant(of: blok, matching: find.text('Deneme Yönetici')), findsOneWidget);
+    expect(find.descendant(of: blok, matching: find.text('yonetici@ornek.test')), findsOneWidget);
+    // Blok yan menünün alt kısmında.
+    expect(t.getTopLeft(blok).dy, greaterThan(800 * .75));
+    await t.tap(blok);
+    await t.pumpAndSettle();
+    expect(find.text('Profil ve güvenlik'), findsOneWidget);
+    expect(find.text('Tema'), findsOneWidget);
+    expect(find.text('Çıkış yap'), findsOneWidget);
+    // Açılır kutu bloğun üstünde.
+    expect(t.getBottomLeft(find.text('Çıkış yap')).dy, lessThan(t.getTopLeft(blok).dy));
+    await t.tap(find.text('Profil ve güvenlik'));
+    await t.pumpAndSettle();
+    expect(find.text('Profil ve güvenlik'), findsNothing);
+    expect(AyarlarEkrani.istenenBolum.value, 'hesap');
+    AyarlarEkrani.istenenBolum.value = null;
+    await t.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('telefon: hesap bloğu alt sayfa açar', (t) async {
+    ekranBoyutu(t, const Size(390, 844));
+    await t.pumpWidget(testUygulamasi(const Kabuk()));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Daha fazla'));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.byType(HesapBlogu), 300,
+        scrollable: find.descendant(of: find.byType(DahaFazlaEkrani), matching: find.byType(Scrollable)).first);
+    await t.tap(find.byType(HesapBlogu));
+    await t.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.descendant(of: find.byType(BottomSheet), matching: find.text('Ayarlar')), findsOneWidget);
     await t.pumpWidget(const SizedBox());
   });
 

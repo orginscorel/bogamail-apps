@@ -6,6 +6,7 @@ import '../ortak/bilesenler.dart';
 import '../ortak/dosya.dart' show QrKodu;
 import '../veri/json.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
 
 // Kendi hesabının iki adımlı doğrulaması (web: account/page.tsx; sunucu: mfa.go):
 // POST /auth/mfa/setup → {secret, otpauth_uri, qr_svg}; POST /auth/mfa/enable {code} → {recovery_codes};
@@ -17,7 +18,7 @@ Future<String?> _kodSor(BuildContext context, String baslik, {String? aciklama, 
   return showDialog<String>(
     context: context,
     builder: (c) => AlertDialog(
-      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -44,15 +45,15 @@ Future<void> _kodlariGoster(BuildContext context, List<String> kodlar) => showDi
   context: context,
   barrierDismissible: false,
   builder: (c) => AlertDialog(
-    title: Text('Kurtarma kodları', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Kurtarma kodları', style: gosterim(19, agirlik: FontWeight.w600)),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text('Telefonunuza erişemezseniz bu kodlarla giriş yapabilirsiniz. Her kod bir kez kullanılır; güvenli bir yerde saklayın.'),
         KopyaKutusu(kodlar.join('\n'), mesaj: 'Kodlar kopyalandı'),
-        const SizedBox(height: 10),
-        const Bant('Bu kodlar yalnızca şimdi gösterilir.', renk: Marka.kehribar, ikon: Icons.key_rounded),
+        const SizedBox(height: 8),
+        const Bant('Bu kodlar yalnızca şimdi gösterilir.', renk: Marka.kehribar, ikon: Simgeler.key),
       ],
     ),
     actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('Kaydettim'))],
@@ -78,7 +79,7 @@ Future<bool> mfaAc(BuildContext context) async {
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, yenile) => AlertDialog(
-        title: Text('İki adımlı doğrulamayı aç', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('İki adımlı doğrulamayı aç', style: gosterim(19, agirlik: FontWeight.w600)),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: SingleChildScrollView(
@@ -105,7 +106,7 @@ Future<bool> mfaAc(BuildContext context) async {
                           await kopyala(uri, mesaj: 'Kurulum bağlantısı kopyalandı');
                         }
                       },
-                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                      icon: const Icon(Simgeler.openInNew, size: 18),
                       label: const Text('Doğrulayıcı uygulamada aç'),
                     ),
                   ),

@@ -1,3 +1,19 @@
+## 1.4.0
+
+**BogaMail (posta)**
+- Konuşma görünümü: eski iletiler tek satır, "N ileti daha", alıntı ve imzalar katlanır, ekler kompakt; ilk okunmamışa gider.
+- Yeni tasarım: ince simge seti, daha hafif ve küçük yazılar, sık liste (ekrana daha çok ileti sığar).
+- Hesap bloğu sol menünün altında; yükleme ekranı olmadan akıcı hesap geçişi (Ctrl/Cmd+1…9).
+- Ayarlar gruplandı: Profil ve hesap / Posta / Uygulama; profil kartı.
+- "Tüm hesaplar" sadeleşti.
+- Bildirimler: izin isteme, her açılışta kayıt (tüm hesaplar), uygulama açıkken de bildirim, Mac bildirim sorunu giderildi.
+- Arka planda çalışma: Android sürekli bağlantı servisi, Windows sistem tepsisi ve açılışta başlatma, Mac oturum açılınca başlatma.
+- Hız: HTTP/2, resimlerin önceden yüklenmesi, sunucu resim önbelleği.
+
+**BogaMail Yönetim**
+- İnce simge seti, hafif yazılar, kullanıcı bloğu menünün altında.
+- Bildirim izni, Android arka plan servisi, Windows tepsi, Mac oturum açılınca başlatma.
+
 ## 1.3.0
 
 **BogaMail (posta)**

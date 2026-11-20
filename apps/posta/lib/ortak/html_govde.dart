@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../oturum.dart';
 import '../veri/html_temizle.dart';
 import '../veri/modeller.dart';
+import '../veri/onbellek.dart';
 import '../veri/posta_servisi.dart';
 
 final _cidTurleri = RegExp(r'^image/(png|jpeg|gif|webp)$', caseSensitive: false);
@@ -34,10 +35,15 @@ Future<void> webGorunumunuIsit() async {
 }
 
 /// İzolatta çalışan hazırlık (büyük bültenler arayüzü dondurmasın).
-({String belge, int engellenen}) _hazirla(({String html, Map<String, String> baglantilar, Map<String, String> uzak, Map<String, String> cid, String kok}) a) {
+({String belge, int engellenen}) _hazirla(
+  ({String html, Map<String, String> baglantilar, Map<String, String> uzak, Map<String, String> cid, String kok, bool katla, bool sikisik}) a,
+) {
   final t = htmlTemizle(a.html, baglantilar: a.baglantilar, uzak: a.uzak, cid: a.cid, kok: a.kok);
-  return (belge: gorunumBelgesi(alintilariKatla(t.html)), engellenen: t.engellenen);
+  return (belge: gorunumBelgesi(a.katla ? alintilariKatla(t.html) : t.html, sikisik: a.sikisik), engellenen: t.engellenen);
 }
+
+/// Widget testlerinde web görünümü eklentisi yoktur: içerik düz metin olarak çizilir.
+bool get _testOrtami => !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
 
 /// Güvenilmeyen ileti HTML'ini JavaScript'siz, ağ erişimsiz bir görüntüleyicide gösterir. Uzak görseller varsayılan
 /// olarak engellenir; "Görselleri göster" ile sunucu vekili üzerinden (data: olarak) yüklenir. Bağlantılar dış
@@ -53,6 +59,8 @@ class HtmlGovde extends StatefulWidget {
     this.kaydirma,
     this.epostaBaglantisi,
     this.ekIndir,
+    this.otomatikYukseklik = false,
+    this.alintiyiKatla = true,
   });
 
   final String iletiId;
@@ -65,6 +73,13 @@ class HtmlGovde extends StatefulWidget {
 
   /// Gömülü (cid:) görsel indirme; verilmezse oturumdaki hesabın eki.
   final Future<Uint8List> Function(int sira)? ekIndir;
+
+  /// Konuşma görünümü: yükseklik içerikten ölçülür, web görünümü kendi içinde kaymaz (iç içe kaydırma yok);
+  /// dış liste kayar. Ölçülemeyen platformlarda sınırlı yükseklikte kendi içinde kayar.
+  final bool otomatikYukseklik;
+
+  /// Alıntılanan geçmişi belge içinde "•••" ile katla (konuşma görünümü bunu kendisi yapar).
+  final bool alintiyiKatla;
 
   @override
   State<HtmlGovde> createState() => _HtmlGovdeState();
@@ -79,6 +94,8 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   bool _gorselYukleniyor = false;
   Map<String, String> _cid = const {};
   Map<String, String> _uzak = const {};
+  double? _yukseklik;
+  bool _olculemedi = false;
 
   @override
   void initState() {
@@ -98,13 +115,47 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     _engellenen = 0;
     _gorseller = widget.otomatikGorsel;
     _gorselYukleniyor = false;
+    _olculemedi = false;
     unawaited(_baslat());
   }
 
   Future<void> _baslat() async {
+    var eksik = true;
+    if (_gorseller) {
+      // Önbellekteki (önyüklenmiş) görseller ilk belgeye girer: ağ yok, ikinci çizim yok.
+      final s = Stopwatch()..start();
+      final (bulunan, tumu) = await _onbellektekiGorseller();
+      _uzak = bulunan;
+      eksik = !tumu;
+      zamanLogu('görseller (önbellek)', s);
+    }
     await _yenidenOlustur();
     unawaited(_cidYukle());
-    if (_gorseller) unawaited(_uzakYukle());
+    if (_gorseller && eksik) unawaited(_uzakYukle());
+  }
+
+  /// Uzak görsellerden yerel önbellekte olanlar (bellek, sonra disk). İkinci değer: hepsi bulundu mu.
+  Future<(Map<String, String>, bool)> _onbellektekiGorseller() async {
+    final html = widget.html;
+    final adresler = html.length > 60000 ? await compute(uzakGorseller, html) : uzakGorseller(html);
+    if (adresler.isEmpty) return (const <String, String>{}, true);
+    final out = <String, String>{};
+    final diskte = <String>[];
+    for (final u in adresler) {
+      final v = Onbellek.ben.hemen('gorsel:$u');
+      if (v is String) {
+        out[u] = v;
+      } else {
+        diskte.add(u);
+      }
+    }
+    await Future.wait(
+      diskte.map((u) async {
+        final v = await Onbellek.ben.oku('gorsel:$u');
+        if (v is String) out[u] = v;
+      }),
+    );
+    return (out, out.length == adresler.length);
   }
 
   Future<void> _yenidenOlustur() async {
@@ -115,6 +166,8 @@ class _HtmlGovdeState extends State<HtmlGovde> {
       uzak: _gorseller ? _uzak : const <String, String>{},
       cid: _cid,
       kok: Uyg.api.sunucu,
+      katla: widget.alintiyiKatla,
+      sikisik: widget.otomatikYukseklik,
     ));
     if (!mounted || id != widget.iletiId) return;
     setState(() {
@@ -165,6 +218,10 @@ class _HtmlGovdeState extends State<HtmlGovde> {
 
     await Future.wait(List.generate(adresler.length < 6 ? adresler.length : 6, (_) => isci()));
     if (!mounted || kimlik != widget.iletiId) return;
+    if (bulunan.length == _uzak.length && bulunan.keys.every(_uzak.containsKey)) {
+      setState(() => _gorselYukleniyor = false);
+      return;
+    }
     _uzak = bulunan;
     setState(() => _gorselYukleniyor = false);
     await _yenidenOlustur();
@@ -173,6 +230,31 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   void _gorselleriGoster() {
     setState(() => _gorseller = true);
     unawaited(_uzakYukle());
+  }
+
+  /// İçerik yüksekliğini ölçer (yükleme bitince ve görseller yerleşince birkaç kez).
+  Future<void> _olc(InAppWebViewController c) async {
+    if (!widget.otomatikYukseklik) return;
+    for (final bekle in const [0, 250, 900]) {
+      if (bekle > 0) await Future<void>.delayed(Duration(milliseconds: bekle));
+      if (!mounted || _k != c) return;
+      int? h;
+      try {
+        h = await c.getContentHeight();
+      } catch (_) {}
+      if (!mounted) return;
+      if (h == null || h <= 0) {
+        if (_yukseklik == null) setState(() => _olculemedi = true);
+        continue;
+      }
+      final y = h.toDouble() + 8;
+      if (_yukseklik == null || (y - _yukseklik!).abs() > 2) {
+        setState(() {
+          _yukseklik = y;
+          _olculemedi = false;
+        });
+      }
+    }
   }
 
   Future<NavigationActionPolicy?> _gezinme(InAppWebViewController c, NavigationAction a) async {
@@ -194,8 +276,20 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   Widget build(BuildContext context) {
     final r = context.r;
     final belge = _belge;
+    final oto = widget.otomatikYukseklik;
+    // Ölçülemezse (ör. JavaScript'siz masaüstü) sınırlı yükseklik; içerik kendi içinde kayar.
+    final sinir = (MediaQuery.sizeOf(context).height * .7).clamp(240.0, 640.0);
+    final yukseklik = _olculemedi ? sinir : (_yukseklik ?? 120);
+    Widget kutu(Widget c) => oto ? SizedBox(height: yukseklik, child: c) : Expanded(child: c);
+    if (_testOrtami) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, oto ? 2 : 14, 16, oto ? 8 : 14),
+        child: Text(htmlMetne(widget.html).trim(), style: TextStyle(fontSize: 14, height: 1.5, color: r.metin)),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: oto ? MainAxisSize.min : MainAxisSize.max,
       children: [
         if (_engellenen > 0 && !_gorseller)
           Material(
@@ -204,7 +298,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
               padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
               child: Row(
                 children: [
-                  Icon(Icons.shield_outlined, size: 18, color: r.birincil),
+                  Icon(Simge.kalkan, size: 18, color: r.birincil),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text('Güvenliğiniz için uzak görseller gösterilmedi.', style: TextStyle(fontSize: 12.5, color: r.soluk)),
@@ -215,8 +309,8 @@ class _HtmlGovdeState extends State<HtmlGovde> {
             ),
           ),
         if (_gorselYukleniyor) const LinearProgressIndicator(minHeight: 2),
-        Expanded(
-          child: Container(
+        kutu(
+          Container(
             // İleti HTML'i beyaz zemin varsayar: koyu temada beyaz bir kart içinde gösterilir.
             margin: r.koyu ? const EdgeInsets.fromLTRB(10, 6, 10, 10) : EdgeInsets.zero,
             clipBehavior: Clip.antiAlias,
@@ -247,11 +341,21 @@ class _HtmlGovdeState extends State<HtmlGovde> {
                         transparentBackground: false,
                         cacheEnabled: false,
                         thirdPartyCookiesEnabled: false,
+                        disableVerticalScroll: oto && !_olculemedi,
+                        verticalScrollBarEnabled: !oto || _olculemedi,
                       ),
                       onWebViewCreated: (c) {
                         _k = c;
                         _yuklenen = belge;
                       },
+                      onLoadStop: oto ? (c, _) => _olc(c) : null,
+                      onContentSizeChanged: oto
+                          ? (c, _, yeni) {
+                              if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
+                                setState(() => _yukseklik = yeni.height + 8);
+                              }
+                            }
+                          : null,
                       shouldOverrideUrlLoading: _gezinme,
                       onCreateWindow: (c, a) async {
                         final u = a.request.url;

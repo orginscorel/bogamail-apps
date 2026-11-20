@@ -34,10 +34,10 @@ class OtomatikYanitKurallariEkrani extends StatelessWidget {
     altBaslik: 'Örneğin mesai saatleri dışında yazanlara otomatik yanıt verin. Basit izin yanıtı için Ayarlar › Otomatik yanıt bölümünü kullanın.',
     yukle: Hesap.otomatikKurallar,
     fab: (context, yenile) =>
-        FloatingActionButton.extended(onPressed: () => _duzenle(context, null, yenile), icon: const Icon(Icons.add_rounded), label: const Text('Kural ekle')),
+        FloatingActionButton.extended(onPressed: () => _duzenle(context, null, yenile), icon: const Icon(Simge.ekle), label: const Text('Kural ekle')),
     govde: (context, v, yenile) => [
       if (v.benim.isEmpty)
-        const BosKart('Henüz kuralınız yok.', ikon: Icons.auto_mode_rounded)
+        const BosKart('Henüz kuralınız yok.', ikon: Simge.otomatik)
       else
         KartListe(
           children: [
@@ -56,7 +56,7 @@ class OtomatikYanitKurallariEkrani extends StatelessWidget {
                 subtitle: Text(kuralOzeti(k)),
                 trailing: IconButton(
                   tooltip: 'Sil',
-                  icon: Icon(Icons.delete_outline_rounded, color: context.r.silik),
+                  icon: Icon(Simge.sil, color: context.r.silik),
                   onPressed: () async {
                     if (!await onayla(context, 'Kural silinsin mi?', evet: 'Sil', tehlikeli: true)) return;
                     await islem(() => Hesap.otomatikKuralSil(k.id), tamam: 'Kural silindi');
@@ -72,7 +72,7 @@ class OtomatikYanitKurallariEkrani extends StatelessWidget {
           children: [
             for (final k in v.kurum)
               ListTile(
-                leading: Icon(Icons.apartment_rounded, color: context.r.silik),
+                leading: Icon(Simge.kurum, color: context.r.silik),
                 title: Text(k.ad),
                 subtitle: Text(kuralOzeti(k)),
                 trailing: Rozet(k.acik ? 'Açık' : 'Kapalı', renk: k.acik ? Marka.zumrut : const Color(0xFF94A3B8)),
@@ -197,7 +197,7 @@ class _KuralDuzenleyiciState extends State<_KuralDuzenleyici> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _saat(true),
-                        icon: const Icon(Icons.schedule_rounded, size: 18),
+                        icon: const Icon(Simge.saat, size: 18),
                         label: Text('Başlangıç ${_k.baslangicSaati.isEmpty ? '—' : _k.baslangicSaati}'),
                       ),
                     ),
@@ -205,7 +205,7 @@ class _KuralDuzenleyiciState extends State<_KuralDuzenleyici> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _saat(false),
-                        icon: const Icon(Icons.schedule_rounded, size: 18),
+                        icon: const Icon(Simge.saat, size: 18),
                         label: Text('Bitiş ${_k.bitisSaati.isEmpty ? '—' : _k.bitisSaati}'),
                       ),
                     ),

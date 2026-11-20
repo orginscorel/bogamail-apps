@@ -12,6 +12,7 @@ import '../ortak/iskelet.dart';
 import '../ortak/secimler.dart';
 import '../veri/json.dart';
 import '../veri/koruma_ulkeler.dart';
+import '../ortak/simgeler.dart';
 import 'smtp_trafigi.dart' show SiraliListeKarti;
 
 const _turEtiketi = {
@@ -127,7 +128,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
         secildi: (v) => _degistir(() => _saat = v),
       ),
       InputChip(
-        avatar: const Icon(Icons.category_outlined, size: 17),
+        avatar: const Icon(Simgeler.category, size: 17),
         label: Text(_tur.isEmpty ? 'Tüm saldırı türleri' : _turEtiketi[_tur] ?? _tur),
         selected: _tur.isNotEmpty,
         showCheckmark: false,
@@ -137,7 +138,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
       ),
       if (!Uyg.musteri)
         InputChip(
-          avatar: const Icon(Icons.business_rounded, size: 17),
+          avatar: const Icon(Simgeler.business, size: 17),
           label: Text(_orgAdi ?? 'Tüm müşteriler'),
           selected: _orgId != null,
           showCheckmark: false,
@@ -147,7 +148,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
         ),
       if (_ulke.isNotEmpty)
         InputChip(
-          avatar: const Icon(Icons.public_rounded, size: 17),
+          avatar: const Icon(Simgeler.public, size: 17),
           label: Text(ulkeAdi(_ulke)),
           selected: true,
           showCheckmark: false,
@@ -168,12 +169,12 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
           const SizedBox(height: 8),
           _filtreler(),
           const SizedBox(height: 48),
-          Icon(Icons.verified_user_outlined, size: 44, color: r.silik),
+          Icon(Simgeler.verifiedUser, size: 44, color: r.silik),
           const SizedBox(height: 12),
           Text(
             'Saldırı kaydı yok',
             textAlign: TextAlign.center,
-            style: gosterim(17, agirlik: FontWeight.w700, renk: r.metin),
+            style: gosterim(17, agirlik: FontWeight.w600, renk: r.metin),
           ),
           const SizedBox(height: 4),
           Text(
@@ -192,15 +193,15 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
         Izgara(
           enAz: 200,
           children: [
-            KpiKarti(ikon: Icons.gpp_bad_outlined, etiket: 'Toplam', deger: sayiYaz(toplam), renk: Marka.gul),
-            KpiKarti(ikon: Icons.public_rounded, etiket: 'Ülke', deger: sayiYaz(ulkeler.length), renk: Marka.mavi),
+            KpiKarti(ikon: Simgeler.gppBad, etiket: 'Toplam', deger: sayiYaz(toplam), renk: Marka.gul),
+            KpiKarti(ikon: Simgeler.public, etiket: 'Ülke', deger: sayiYaz(ulkeler.length), renk: Marka.mavi),
             KpiKarti(
-              ikon: Icons.category_outlined,
+              ikon: Simgeler.category,
               etiket: 'En çok',
               deger: turler.isEmpty ? '—' : _turEtiketi[metin(turler.first['key'])] ?? metin(turler.first['key']),
               renk: Marka.kehribar,
             ),
-            KpiKarti(ikon: Icons.flag_outlined, etiket: 'İlk ülke', deger: ulkeler.isEmpty ? '—' : ulkeAdi(metin(ulkeler.first['key'])), renk: Marka.lavanta),
+            KpiKarti(ikon: Simgeler.flag, etiket: 'İlk ülke', deger: ulkeler.isEmpty ? '—' : ulkeAdi(metin(ulkeler.first['key'])), renk: Marka.lavanta),
           ],
         ),
         const SizedBox(height: 16),
@@ -212,9 +213,9 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
           enAz: 320,
           bosluk: 16,
           children: [
-            SiraliListeKarti(baslik: 'Kaynak ağlar (ASN)', ikon: Icons.hub_outlined, satirlar: haritalar(d['top_asn']), onEk: 'AS'),
-            SiraliListeKarti(baslik: 'Kaynak IP\'ler', ikon: Icons.lan_outlined, satirlar: haritalar(d['top_ip']), mono: true),
-            SiraliListeKarti(baslik: 'En çok hedef alınanlar', ikon: Icons.person_pin_outlined, satirlar: haritalar(d['top_target'])),
+            SiraliListeKarti(baslik: 'Kaynak ağlar (ASN)', ikon: Simgeler.hub, satirlar: haritalar(d['top_asn']), onEk: 'AS'),
+            SiraliListeKarti(baslik: 'Kaynak IP\'ler', ikon: Simgeler.lan, satirlar: haritalar(d['top_ip']), mono: true),
+            SiraliListeKarti(baslik: 'En çok hedef alınanlar', ikon: Simgeler.personPin, satirlar: haritalar(d['top_target'])),
           ],
         ),
         const SizedBox(height: 16),
@@ -228,7 +229,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
     final tepe = turler.isEmpty ? 1 : math.max(1, tamsayi(turler.first['count']));
     return BolumKarti(
       baslik: 'Saldırı türleri',
-      ikon: Icons.category_outlined,
+      ikon: Simgeler.category,
       altBaslik: 'Bir türe dokunarak filtreleyin.',
       child: turler.isEmpty
           ? Text('Veri yok.', style: TextStyle(color: r.soluk))
@@ -254,7 +255,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
                               Expanded(
                                 child: Text(
                                   _turEtiketi[metin(k['key'])] ?? metin(k['key']),
-                                  style: TextStyle(fontWeight: _tur == metin(k['key']) ? FontWeight.w700 : FontWeight.w500),
+                                  style: TextStyle(fontWeight: _tur == metin(k['key']) ? FontWeight.w600 : FontWeight.w500),
                                 ),
                               ),
                               Text(sayiYaz(tamsayi(k['count'])), style: TextStyle(color: r.soluk, fontSize: 12.5)),
@@ -284,7 +285,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
     final tepe = ulkeler.isEmpty ? 1 : math.max(1, tamsayi(ulkeler.first['count']));
     return BolumKarti(
       baslik: 'Ülkelere göre',
-      ikon: Icons.public_rounded,
+      ikon: Simgeler.public,
       altBaslik: 'Renk yoğunluğu saldırı sayısını gösterir (ülke: Team Cymru). Bir ülkeye dokunarak filtreleyin.',
       child: ulkeler.isEmpty
           ? Text('Veri yok.', style: TextStyle(color: r.soluk))
@@ -308,7 +309,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
                             borderRadius: BorderRadius.circular(10),
                             onTap: metin(u['key']).isEmpty ? null : () => _degistir(() => _ulke = _ulke == metin(u['key']) ? '' : metin(u['key'])),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                               child: Row(
                                 children: [
                                   Expanded(
@@ -319,7 +320,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
                                       style: const TextStyle(fontSize: 13),
                                     ),
                                   ),
-                                  Text(sayiYaz(tamsayi(u['count'])), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                  Text(sayiYaz(tamsayi(u['count'])), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                                 ],
                               ),
                             ),
@@ -362,7 +363,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
     final adim = (n / 6).ceil().clamp(1, 1000);
     return BolumKarti(
       baslik: 'Zaman çizelgesi',
-      ikon: Icons.timeline_rounded,
+      ikon: Simgeler.timeline,
       altBaslik: 'Her çubuk ${genislik == 1 ? 'bir saat' : '$genislik saat'}; en yüksek $enCok.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,7 +442,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
           ),
           const SizedBox(height: 8),
           Wrap(
-            spacing: 14,
+            spacing: 16,
             runSpacing: 4,
             children: [
               for (final t in mevcut)
@@ -453,7 +454,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
                       height: 10,
                       decoration: BoxDecoration(color: _turRengi[t], borderRadius: BorderRadius.circular(3)),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Text(_turEtiketi[t]!, style: TextStyle(color: r.soluk, fontSize: 12)),
                   ],
                 ),
@@ -480,7 +481,7 @@ class _SaldiriHaritasiEkraniState extends State<SaldiriHaritasiEkrani> {
     final r = c.r;
     return BolumKarti(
       baslik: 'Son saldırılar',
-      ikon: Icons.history_rounded,
+      ikon: Simgeler.history,
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: l.isEmpty
           ? Padding(

@@ -229,6 +229,115 @@ class BirlesikListeState extends State<BirlesikListe> {
     widget.ac(o, hesap(o.kutuId));
   }
 
+  static const _hap = 32.0;
+
+  /// "Gelen ▾": birleşik klasör seçimi (açılır menü).
+  Widget _klasorSecici(Renkler r) {
+    final ad = birlesikKlasorler.where((k) => k.$1 == _klasor).firstOrNull?.$2 ?? 'Gelen';
+    return PopupMenuButton<String>(
+      key: const ValueKey('birlesik-klasor-sec'),
+      tooltip: 'Klasör',
+      position: PopupMenuPosition.under,
+      onSelected: _klasorSec,
+      itemBuilder: (_) => [
+        for (final (id, ad, ikon) in birlesikKlasorler)
+          PopupMenuItem(
+            key: ValueKey('birlesik-klasor-$id'),
+            value: id,
+            height: 40,
+            child: Row(
+              children: [
+                Icon(ikon, size: 18, color: _klasor == id ? r.vurgu : r.soluk),
+                const SizedBox(width: 10),
+                Text(ad, style: TextStyle(fontSize: 13.5, fontWeight: _klasor == id ? FontWeight.w600 : FontWeight.w400)),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        height: _hap,
+        padding: const EdgeInsets.only(left: 12, right: 8),
+        decoration: BoxDecoration(color: r.vurguYumusak, borderRadius: BorderRadius.circular(_hap / 2)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              ad,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: r.vurgu),
+            ),
+            const SizedBox(width: 2),
+            Icon(Simge.asagi, size: 16, color: r.vurgu),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Hesap süzgeci: "Hepsi" + her hesap için renkli nokta ve kısa ad. Sığmazsa yatay kayar, kenarı solar.
+  Widget _hesapSuzgeciSirasi(Renkler r) {
+    final b = BirlesikDurum.ben;
+    Widget hap({required Key key, required bool secili, required VoidCallback f, Color? renk, required String metin, String? ipucu}) {
+      final w = InkWell(
+        key: key,
+        borderRadius: BorderRadius.circular(_hap / 2),
+        onTap: f,
+        child: Container(
+          height: _hap,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: secili ? (renk ?? r.vurgu).withValues(alpha: .12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(_hap / 2),
+            border: Border.all(color: secili ? (renk ?? r.vurgu).withValues(alpha: .5) : r.kenar),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (renk != null) ...[
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: renk, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                metin,
+                style: TextStyle(fontSize: 13, fontWeight: secili ? FontWeight.w500 : FontWeight.w400, color: secili ? r.metin : r.soluk),
+              ),
+            ],
+          ),
+        ),
+      );
+      return Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: ipucu == null ? w : Tooltip(message: ipucu, child: w),
+      );
+    }
+
+    final ogeler = [
+      hap(key: const ValueKey('birlesik-hesap-hepsi'), secili: _hesapSuzgeci == null, f: () => setState(() => _hesapSuzgeci = null), metin: 'Hepsi'),
+      for (final h in _hesaplar)
+        hap(
+          key: ValueKey('birlesik-hesap-${h.id}'),
+          secili: _hesapSuzgeci == h.id,
+          f: () => setState(() => _hesapSuzgeci = _hesapSuzgeci == h.id ? null : h.id),
+          renk: h.renk,
+          metin: (b.hesapOkunmamis[h.id] ?? 0) > 0 ? '${h.kisa} ${sayiYaz(b.hesapOkunmamis[h.id]!)}' : h.kisa,
+          ipucu: h.adres,
+        ),
+    ];
+    return SizedBox(
+      height: _hap,
+      child: ShaderMask(
+        // Sağ kenarda yumuşak solma: taşan hesaplar kesik görünmez.
+        shaderCallback: (rect) =>
+            LinearGradient(colors: const [Colors.white, Colors.white, Colors.transparent], stops: [0, (rect.width - 24) / rect.width, 1]).createShader(rect),
+        blendMode: BlendMode.dstIn,
+        child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.only(right: 20), children: ogeler),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final r = context.r;
@@ -243,126 +352,67 @@ class BirlesikListeState extends State<BirlesikListe> {
             : IconButton(
                 tooltip: 'Klasörler',
                 onPressed: widget.klasorler,
-                icon: Badge(
-                  isLabelVisible: widget.klasorRozeti > 0,
-                  label: Text(widget.klasorRozeti > 999 ? '999+' : '${widget.klasorRozeti}'),
-                  child: const Icon(Icons.menu_rounded),
-                ),
+                icon: Badge(isLabelVisible: widget.klasorRozeti > 0, smallSize: 7, label: null, child: const Icon(Simge.menu)),
               ),
         titleSpacing: widget.klasorler != null ? 0 : 16,
+        // Sade başlık: normal ağırlıkta ad, okunmamış sayısı soluk küçük metin.
         title: ListenableBuilder(
           listenable: b,
-          builder: (_, _) => Row(
+          builder: (_, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Flexible(child: Text('Tüm hesaplar', maxLines: 1, overflow: TextOverflow.ellipsis)),
-              if (b.toplamOkunmamis > 0) ...[
-                const SizedBox(width: 8),
-                Container(
+              Text(
+                'Tüm hesaplar',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: r.metin),
+              ),
+              if (b.toplamOkunmamis > 0)
+                Text(
+                  '${sayiYaz(b.toplamOkunmamis)} okunmamış',
                   key: const ValueKey('birlesik-okunmamis'),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: r.vurgu, borderRadius: BorderRadius.circular(20)),
-                  child: Text(
-                    b.toplamOkunmamis > 9999 ? '9999+' : '${b.toplamOkunmamis}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
-                  ),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: r.soluk),
                 ),
-              ],
             ],
           ),
         ),
         actions: [
-          TextButton.icon(
-            key: const ValueKey('bu-hesap'),
-            onPressed: () {
-              final g = PostaDurum.ben.rolu('inbox');
-              if (g != null) PostaDurum.ben.git(Konum.klasor(g.id));
-            },
-            icon: const Icon(Icons.inbox_outlined, size: 19),
-            label: const Text('Bu hesap'),
-          ),
-          IconButton(
-            tooltip: 'Yenile',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => _yukle(sessiz: _ogeler.isNotEmpty),
-          ),
+          if (context.genis)
+            IconButton(
+              tooltip: 'Yenile',
+              icon: const Icon(Simge.yenile, size: 20),
+              onPressed: () => _yukle(sessiz: _ogeler.isNotEmpty),
+            ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!context.genis) const EsitlemeDurumu(serit: true),
-          SizedBox(
-            height: 46,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+          // Tek sıra: klasör seçici (Gelen ▾) + hesap süzgeci (renkli noktalar). Ekrana sığar; sığmazsa kayar.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: Row(
               children: [
-                for (final (id, ad, ikon) in birlesikKlasorler)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ChoiceChip(
-                      key: ValueKey('birlesik-klasor-$id'),
-                      avatar: Icon(ikon, size: 16),
-                      label: Text(ad),
-                      selected: _klasor == id,
-                      showCheckmark: false,
-                      onSelected: (_) => _klasorSec(id),
-                    ),
+                _klasorSecici(r),
+                const SizedBox(width: 8),
+                if (_hesaplar.length > 1)
+                  Expanded(
+                    child: ListenableBuilder(listenable: b, builder: (_, _) => _hesapSuzgeciSirasi(r)),
                   ),
               ],
             ),
           ),
-          if (_hesaplar.length > 1)
-            SizedBox(
-              height: 44,
-              child: ListenableBuilder(
-                listenable: b,
-                builder: (_, _) => ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        key: const ValueKey('birlesik-hesap-hepsi'),
-                        label: const Text('Hepsi'),
-                        selected: _hesapSuzgeci == null,
-                        showCheckmark: false,
-                        onSelected: (_) => setState(() => _hesapSuzgeci = null),
-                      ),
-                    ),
-                    for (final h in _hesaplar)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Tooltip(
-                          message: h.adres,
-                          child: FilterChip(
-                            key: ValueKey('birlesik-hesap-${h.id}'),
-                            avatar: Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(color: h.renk, shape: BoxShape.circle),
-                            ),
-                            label: Text((b.hesapOkunmamis[h.id] ?? 0) > 0 ? '${h.kisa} · ${b.hesapOkunmamis[h.id]}' : h.kisa),
-                            selected: _hesapSuzgeci == h.id,
-                            showCheckmark: false,
-                            selectedColor: h.renk.withValues(alpha: .16),
-                            onSelected: (s) => setState(() => _hesapSuzgeci = s ? h.id : null),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          const Divider(height: 1),
+          Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
           Expanded(
             child: _yukleniyor && _ogeler.isEmpty
                 ? const Durum.yukleniyor()
                 : _hata != null && _ogeler.isEmpty
                 ? Durum.hata(_hata!, tekrar: _yukle)
                 : l.isEmpty
-                ? const Durum.bos('Burada ileti yok', ikon: Icons.layers_outlined)
+                ? const Durum.bos('Burada ileti yok', ikon: Simge.katmanlar)
                 : RefreshIndicator(
                     onRefresh: () => _yukle(sessiz: true),
                     child: ListView.builder(
@@ -491,19 +541,14 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
       IconButton(
         key: const ValueKey('birlesik-yildiz'),
         tooltip: o.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla',
-        icon: Icon(o.ozet.yildizli ? Icons.star_rounded : Icons.star_border_rounded, color: o.ozet.yildizli ? const Color(0xFFEAB308) : null),
+        icon: Icon(o.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz, color: o.ozet.yildizli ? const Color(0xFFEAB308) : null),
         onPressed: () => _eylem(o.ozet.yildizli ? 'unflag' : 'flag', o.ozet.yildizli ? 'Yıldız kaldırıldı' : 'Yıldızlandı'),
       ),
-      IconButton(
-        key: const ValueKey('birlesik-arsiv'),
-        tooltip: 'Arşivle',
-        icon: const Icon(Icons.archive_outlined),
-        onPressed: () => _eylem('archive', 'Arşivlendi'),
-      ),
+      IconButton(key: const ValueKey('birlesik-arsiv'), tooltip: 'Arşivle', icon: const Icon(Simge.arsiv), onPressed: () => _eylem('archive', 'Arşivlendi')),
       IconButton(
         key: const ValueKey('birlesik-cop'),
         tooltip: 'Çöp Kutusu\'na taşı',
-        icon: const Icon(Icons.delete_outline_rounded),
+        icon: const Icon(Simge.sil),
         onPressed: () => _eylem('trash', 'Çöp Kutusu\'na taşındı'),
       ),
       PopupMenuButton<String>(
@@ -516,12 +561,12 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
         itemBuilder: (_) => const [
           PopupMenuItem(
             value: 'okunmadi',
-            child: ListTile(leading: Icon(Icons.mark_email_unread_outlined), title: Text('Okunmadı yap')),
+            child: ListTile(leading: Icon(Simge.okunmadiYap), title: Text('Okunmadı yap')),
           ),
           PopupMenuItem(
             value: 'spam',
             child: ListTile(
-              leading: Icon(Icons.gpp_maybe_outlined, color: Color(0xFFF97316)),
+              leading: Icon(Simge.gereksiz, color: Color(0xFFF97316)),
               title: Text('Gereksiz olarak işaretle'),
             ),
           ),
@@ -546,7 +591,7 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
               h?.adres ?? o.hesap,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: renk, fontWeight: FontWeight.w700, fontSize: 12.5),
+              style: TextStyle(color: renk, fontWeight: FontWeight.w600, fontSize: 12.5),
             ),
           ),
         ],
@@ -567,7 +612,7 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
           children: [
             Align(alignment: Alignment.centerLeft, child: hesapCipi),
             const SizedBox(height: 10),
-            SelectableText(v.konu.trim().isEmpty ? '(konu yok)' : v.konu, style: gosterim(20, agirlik: FontWeight.w700)),
+            SelectableText(v.konu.trim().isEmpty ? '(konu yok)' : v.konu, style: gosterim(20, agirlik: FontWeight.w600)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -577,7 +622,7 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(kimden?.gorunen ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(kimden?.gorunen ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
                       Text(
                         [if (kimden != null) kimden.eposta, if (v.kime.isNotEmpty) 'Kime: ${v.kime.map((a) => a.gorunen).join(', ')}'].join(' · '),
                         maxLines: 2,
@@ -612,18 +657,14 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
               FilledButton.tonalIcon(
                 key: const ValueKey('birlesik-yanitla'),
                 onPressed: () => birlesikYaz(context, o, 'yanit'),
-                icon: const Icon(Icons.reply_rounded),
+                icon: const Icon(Simge.yanitla),
                 label: const Text('Yanıtla'),
               ),
-              OutlinedButton.icon(
-                onPressed: () => birlesikYaz(context, o, 'tumu'),
-                icon: const Icon(Icons.reply_all_rounded),
-                label: const Text('Tümünü yanıtla'),
-              ),
+              OutlinedButton.icon(onPressed: () => birlesikYaz(context, o, 'tumu'), icon: const Icon(Simge.tumuneYanitla), label: const Text('Tümünü yanıtla')),
               OutlinedButton.icon(
                 key: const ValueKey('birlesik-ilet'),
                 onPressed: () => birlesikYaz(context, o, 'ilet'),
-                icon: const Icon(Icons.forward_rounded),
+                icon: const Icon(Simge.ilet),
                 label: const Text('İlet'),
               ),
             ],

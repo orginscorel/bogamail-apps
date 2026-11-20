@@ -7,6 +7,7 @@ import '../ortak/bilesenler.dart';
 import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import 'hizmet_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Paketler: satılan paketler (fiyat, sınırlar, özellikler), oluşturma ve düzenleme.
 /// Web: admin/plans. Uç noktalar: GET /plans[?status=all], GET /catalog, POST /plans, PATCH /plans/{id}
@@ -78,15 +79,15 @@ class _PaketlerEkraniState extends State<PaketlerEkrani> {
         IconButton(
           tooltip: _arsiv ? 'Arşivlenenleri gizle' : 'Arşivlenenleri göster',
           isSelected: _arsiv,
-          icon: const Icon(Icons.archive_outlined),
-          selectedIcon: const Icon(Icons.archive_rounded),
+          icon: const Icon(Simgeler.archive),
+          selectedIcon: const Icon(Simgeler.archive),
           onPressed: () {
             setState(() => _arsiv = !_arsiv);
             _anahtar.currentState?.yenile();
           },
         ),
       ],
-      birincil: _duzenleyebilir ? BirincilEylem(Icons.add_rounded, 'Yeni paket', _yeni) : null,
+      birincil: _duzenleyebilir ? BirincilEylem(Simgeler.add, 'Yeni paket', _yeni) : null,
       govde: TekYukleme<_Veri>(
         key: _anahtar,
         getir: _getir,
@@ -98,7 +99,7 @@ class _PaketlerEkraniState extends State<PaketlerEkrani> {
             ),
             const SizedBox(height: 12),
             if (v.paketler.isEmpty)
-              const SizedBox(height: 320, child: Kapali('Paket yok. İlk paketinizi oluşturun.', ikon: Icons.inventory_2_outlined))
+              const SizedBox(height: 320, child: Kapali('Paket yok. İlk paketinizi oluşturun.', ikon: Simgeler.inventory2))
             else
               Izgara(
                 enAz: 280,
@@ -141,7 +142,7 @@ class _PaketKarti extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(metin(p['name']), style: gosterim(16, agirlik: FontWeight.w700)),
+                      Text(metin(p['name']), style: gosterim(16, agirlik: FontWeight.w600)),
                       Text('${_turler[p['kind']] ?? metin(p['kind'])} · ${metin(p['code'])}', style: TextStyle(color: r.silik, fontSize: 12)),
                     ],
                   ),
@@ -150,21 +151,21 @@ class _PaketKarti extends StatelessWidget {
                 if (p['reseller_id'] != null) ...[const SizedBox(width: 4), const Rozet('Bayi paketi', renk: Marka.mavi)],
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text.rich(
               TextSpan(
                 children: [
-                  TextSpan(text: _para(p['price_monthly'], birim), style: gosterim(22, renk: r.metin)),
+                  TextSpan(text: _para(p['price_monthly'], birim), style: gosterim(22, agirlik: FontWeight.w600, renk: r.metin)),
                   TextSpan(text: ' /ay', style: TextStyle(color: r.silik, fontSize: 13)),
                 ],
               ),
             ),
             Text('${_para(p['price_yearly'], birim)} /yıl', style: TextStyle(color: r.silik, fontSize: 12)),
             if (metinYa(p['description']) != null) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(metin(p['description']), style: TextStyle(color: r.soluk, fontSize: 13)),
             ],
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             DegerSatiri('Mail hesabı', _lim(p['max_mailboxes'])),
             DegerSatiri('Toplam alan', _bayt(p['total_quota_bytes'])),
             DegerSatiri('Alan adı', _lim(p['max_domains'])),
@@ -179,7 +180,7 @@ class _PaketKarti extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(
-                      mantik(ozellik[f.anahtar]) ? Icons.check_rounded : Icons.close_rounded,
+                      mantik(ozellik[f.anahtar]) ? Simgeler.check : Simgeler.close,
                       size: 15,
                       color: mantik(ozellik[f.anahtar]) ? Marka.zumrut : r.silik,
                     ),
@@ -201,14 +202,14 @@ class _PaketKarti extends StatelessWidget {
                   ],
                 ),
               ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: Text('${tamsayi(p['organization_count'])} müşteri', style: TextStyle(color: r.silik, fontSize: 12)),
                 ),
                 if (duzenle != null)
-                  OutlinedButton.icon(onPressed: duzenle, icon: const Icon(Icons.edit_outlined, size: 17), label: const Text('Düzenle')),
+                  OutlinedButton.icon(onPressed: duzenle, icon: const Icon(Simgeler.edit, size: 17), label: const Text('Düzenle')),
               ],
             ),
           ],
@@ -402,7 +403,7 @@ class _PaketFormuState extends State<PaketFormu> {
             const SizedBox(height: 16),
             BolumKarti(
               baslik: 'Genel',
-              ikon: Icons.inventory_2_outlined,
+              ikon: Simgeler.inventory2,
               child: Column(
                 children: [
                   cift(
@@ -464,7 +465,7 @@ class _PaketFormuState extends State<PaketFormu> {
             const SizedBox(height: 16),
             BolumKarti(
               baslik: 'Sınırlar',
-              ikon: Icons.tune_rounded,
+              ikon: Simgeler.tune,
               child: Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -492,7 +493,7 @@ class _PaketFormuState extends State<PaketFormu> {
             const SizedBox(height: 16),
             BolumKarti(
               baslik: 'Özellikler',
-              ikon: Icons.toggle_on_outlined,
+              ikon: Simgeler.toggleOn,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -515,13 +516,13 @@ class _PaketFormuState extends State<PaketFormu> {
                 ],
               ),
             ),
-            if (_hata != null) ...[const SizedBox(height: 16), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+            if (_hata != null) ...[const SizedBox(height: 16), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
             const SizedBox(height: 16),
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
                 onPressed: _mesgul ? null : _kaydet,
-                icon: _mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined),
+                icon: _mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Simgeler.save),
                 label: const Text('Kaydet'),
               ),
             ),

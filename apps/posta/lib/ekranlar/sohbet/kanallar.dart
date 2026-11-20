@@ -17,7 +17,7 @@ class KanallarEkrani extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
         content: SizedBox(
           width: 420,
           child: Column(
@@ -62,7 +62,7 @@ class KanallarEkrani extends StatelessWidget {
         await SohbetDurum.ben.yenile();
         if (id != null && context.mounted) Navigator.pop(context, id);
       },
-      icon: const Icon(Icons.add_rounded),
+      icon: const Icon(Simge.ekle),
       label: const Text('Kanal oluştur'),
     ),
     govde: (context, v, yenile) {
@@ -80,7 +80,7 @@ class KanallarEkrani extends StatelessWidget {
         title: Row(
           children: [
             Flexible(
-              child: Text(k.ad, style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Text(k.ad, style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
             if (k.varsayilan) ...[const SizedBox(width: 6), const Rozet('Genel', renk: Marka.zumrut)],
             if (k.katildi && !k.varsayilan) ...[const SizedBox(width: 6), Rozet('Üyesiniz', renk: r.vurgu)],
@@ -119,29 +119,29 @@ class KanallarEkrani extends StatelessWidget {
             if (!k.katildi && !k.arsivli && !k.varsayilan)
               const PopupMenuItem(
                 value: 'katil',
-                child: ListTile(leading: Icon(Icons.login_rounded), title: Text('Katıl')),
+                child: ListTile(leading: Icon(Simge.giris), title: Text('Katıl')),
               ),
             if (k.katildi && !k.varsayilan)
               const PopupMenuItem(
                 value: 'ayril',
-                child: ListTile(leading: Icon(Icons.logout_rounded), title: Text('Ayrıl')),
+                child: ListTile(leading: Icon(Simge.cikis), title: Text('Ayrıl')),
               ),
             if (k.yonetebilir) ...[
               const PopupMenuItem(
                 value: 'duzenle',
-                child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Düzenle')),
+                child: ListTile(leading: Icon(Simge.duzenle), title: Text('Düzenle')),
               ),
               if (!k.varsayilan)
                 PopupMenuItem(
                   value: 'arsiv',
-                  child: ListTile(leading: const Icon(Icons.archive_outlined), title: Text(k.arsivli ? 'Arşivden çıkar' : 'Arşivle')),
+                  child: ListTile(leading: const Icon(Simge.arsiv), title: Text(k.arsivli ? 'Arşivden çıkar' : 'Arşivle')),
                 ),
             ],
           ],
         ),
       );
       return [
-        if (acik.isEmpty) const BosKart('Henüz kanal yok.', ikon: Icons.tag_rounded) else KartListe(children: [for (final k in acik) satir(k)]),
+        if (acik.isEmpty) const BosKart('Henüz kanal yok.', ikon: Simge.diyez) else KartListe(children: [for (final k in acik) satir(k)]),
         if (arsiv.isNotEmpty) ...[
           const Baslik('Arşivlenmiş kanallar'),
           KartListe(children: [for (final k in arsiv) satir(k)]),

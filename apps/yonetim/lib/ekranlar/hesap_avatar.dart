@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../oturum.dart';
 import '../ortak/dosya.dart';
+import '../ortak/simgeler.dart';
 
 // Yönetici profil resmi (web: components/admin/branding.tsx). PUT /auth/avatar {data: base64 PNG/JPEG/GIF},
 // DELETE /auth/avatar, resim: GET /users/{id}/avatar (yoksa 404). Sunucu resmi 256×256'ya küçültür; boyut sınırı
@@ -15,8 +16,11 @@ import '../ortak/dosya.dart';
 const avatarEnFazla = 2 * 1024 * 1024;
 
 class ProfilResmi extends StatefulWidget {
-  const ProfilResmi({super.key, this.boyut = 56});
+  const ProfilResmi({super.key, this.boyut = 56, this.duzenlenebilir = true});
   final double boyut;
+
+  /// false: yalnızca resmi gösterir (hesap bloğu gibi kendi dokunma davranışı olan yerler için).
+  final bool duzenlenebilir;
 
   @override
   State<ProfilResmi> createState() => _ProfilResmiState();
@@ -27,7 +31,7 @@ class _ProfilResmiState extends State<ProfilResmi> {
   bool _mesgul = false;
 
   String get _id => '${Uyg.ben.value?['id'] ?? ''}';
-  bool get _duzenler => Uyg.taklit == null && _id.isNotEmpty;
+  bool get _duzenler => widget.duzenlenebilir && Uyg.taklit == null && _id.isNotEmpty;
 
   @override
   void initState() {
@@ -96,9 +100,9 @@ class _ProfilResmiState extends State<ProfilResmi> {
       enabled: !_mesgul,
       onSelected: (v) => v == 0 ? _sec() : _kaldir(),
       itemBuilder: (_) => [
-        const PopupMenuItem(value: 0, child: ListTile(leading: Icon(Icons.upload_rounded), title: Text('Resim yükle'), dense: true)),
+        const PopupMenuItem(value: 0, child: ListTile(leading: Icon(Simgeler.upload), title: Text('Resim yükle'), dense: true)),
         if (_resim != null)
-          const PopupMenuItem(value: 1, child: ListTile(leading: Icon(Icons.delete_outline_rounded), title: Text('Resmi kaldır'), dense: true)),
+          const PopupMenuItem(value: 1, child: ListTile(leading: Icon(Simgeler.deleteOutline), title: Text('Resmi kaldır'), dense: true)),
       ],
       child: Stack(
         clipBehavior: Clip.none,
@@ -112,7 +116,7 @@ class _ProfilResmiState extends State<ProfilResmi> {
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(color: r.vurgu, shape: BoxShape.circle, border: Border.all(color: r.kart, width: 2)),
-              child: const Icon(Icons.photo_camera_rounded, size: 13, color: Colors.white),
+              child: const Icon(SimgelerKalin.photoCamera, size: 13, color: Colors.white),
             ),
           ),
         ],

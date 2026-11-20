@@ -48,6 +48,17 @@ final class BogaPush: NSObject, FlutterPlugin, UNUserNotificationCenterDelegate 
           DispatchQueue.main.asyncAfter(deadline: .now() + 20) { self.bitir(nil) }
         }
       }
+    case "izin":
+      // Bildirim izin durumu: verildi | reddedildi | sorulmadi (Dart: lib/veri/bildirim.dart).
+      UNUserNotificationCenter.current().getNotificationSettings { s in
+        let v: String
+        switch s.authorizationStatus {
+        case .authorized, .provisional, .ephemeral: v = "verildi"
+        case .denied: v = "reddedildi"
+        default: v = "sorulmadi"
+        }
+        DispatchQueue.main.async { result(v) }
+      }
     case "baslangic":
       result(acilis)
       acilis = nil

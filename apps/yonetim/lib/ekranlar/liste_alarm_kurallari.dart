@@ -8,6 +8,7 @@ import '../ortak/tablo.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import 'liste_ortak.dart';
+import '../ortak/simgeler.dart';
 
 // Alarm kuralları ve bildirim kanalları (GET/POST/PUT/DELETE /alerts/rules, GET/POST/PATCH/DELETE /alerts/channels,
 // POST /alerts/channels/{id}/test, POST /alerts/channels/{id}/rotate-secret, GET /alerts/kinds).
@@ -225,11 +226,11 @@ class AlarmKurallariState extends State<AlarmKurallari> with AutomaticKeepAliveC
   }
 
   List<SatirEylemi> _eylemler(AlarmKurali k) => [
-    SatirEylemi(Icons.info_outline_rounded, 'Ayrıntı', () => _ayrinti(k)),
+    SatirEylemi(Simgeler.infoOutline, 'Ayrıntı', () => _ayrinti(k)),
     if (alarmSahibi(k.orgId)) ...[
-      SatirEylemi(Icons.edit_outlined, 'Düzenle', () => _duzenle(k)),
-      SatirEylemi(k.etkin ? Icons.toggle_off_outlined : Icons.toggle_on_outlined, k.etkin ? 'Kapat' : 'Etkinleştir', () => _etkinlik(k)),
-      SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), tehlikeli: true),
+      SatirEylemi(Simgeler.edit, 'Düzenle', () => _duzenle(k)),
+      SatirEylemi(k.etkin ? Simgeler.toggleOff : Simgeler.toggleOn, k.etkin ? 'Kapat' : 'Etkinleştir', () => _etkinlik(k)),
+      SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(k), tehlikeli: true),
     ],
   ];
 
@@ -252,21 +253,21 @@ class AlarmKurallariState extends State<AlarmKurallari> with AutomaticKeepAliveC
         ),
         if (!alarmSahibi(k.orgId))
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 8),
             child: Text('Bu kuralı değiştirme yetkiniz yok.', style: TextStyle(color: context.r.silik, fontSize: 12)),
           ),
       ],
     ),
     eylemler: alarmSahibi(k.orgId)
         ? [
-            SatirEylemiDugmesi(Icons.edit_outlined, 'Düzenle', () => _duzenle(k), ipucu: 'Eşik, kanallar, bekleme süresi'),
-            SatirEylemiDugmesi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), ipucu: 'Kural ve durumu kaldırılır', tehlikeli: true),
+            SatirEylemiDugmesi(Simgeler.edit, 'Düzenle', () => _duzenle(k), ipucu: 'Eşik, kanallar, bekleme süresi'),
+            SatirEylemiDugmesi(Simgeler.deleteOutline, 'Sil', () => _sil(k), ipucu: 'Kural ve durumu kaldırılır', tehlikeli: true),
           ]
         : const [],
   );
 
   Widget _durumRozeti(BuildContext c, AlarmKurali k) {
-    if (k.tetiklenen > 0) return Rozet('Tetiklendi${k.tetiklenen > 1 ? ' (${k.tetiklenen})' : ''}', renk: Marka.gul, ikon: Icons.notifications_active_rounded);
+    if (k.tetiklenen > 0) return Rozet('Tetiklendi${k.tetiklenen > 1 ? ' (${k.tetiklenen})' : ''}', renk: Marka.gul, ikon: Simgeler.notificationsActive);
     if (!k.etkin) return Rozet('Kapalı', renk: c.r.silik);
     return const Rozet('Normal', renk: Marka.zumrut);
   }
@@ -280,7 +281,7 @@ class AlarmKurallariState extends State<AlarmKurallari> with AutomaticKeepAliveC
       onTap: _ayrinti,
       eylemler: _eylemler,
       vurgulu: (k) => k.tetiklenen > 0,
-      bosIkon: Icons.rule_rounded,
+      bosIkon: Simgeler.rule,
       bosMetin: _q.isEmpty && _durum.isEmpty
           ? 'Kural yok. Örneğin kuyruk boyutu, geri dönme oranı veya alan adı denetimi için bir kural ekleyin.'
           : 'Eşleşen kural yok.',
@@ -295,7 +296,7 @@ class AlarmKurallariState extends State<AlarmKurallari> with AutomaticKeepAliveC
         filtreler: [
           FiltreDugmesi<String>(
             etiket: 'Durum',
-            ikon: Icons.flag_outlined,
+            ikon: Simgeler.flag,
             secenekler: [('', 'Tümü'), for (final e in durumlar.entries) (e.key, e.value)],
             secili: _durum,
             secildi: (v) {
@@ -445,7 +446,7 @@ class _AlarmKuraliDialogState extends State<AlarmKuraliDialog> {
     final t = widget.turler.bul(_tur);
     final kanallar = _kullanilabilir;
     return AlertDialog(
-      title: Text(widget.kural == null ? 'Yeni uyarı kuralı' : 'Kuralı düzenle', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(widget.kural == null ? 'Yeni uyarı kuralı' : 'Kuralı düzenle', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -514,13 +515,13 @@ class _AlarmKuraliDialogState extends State<AlarmKuraliDialog> {
               const SizedBox(height: 12),
               SegmentedButton<String>(
                 segments: const [
-                  ButtonSegment(value: 'warning', icon: Icon(Icons.warning_amber_rounded), label: Text('Uyarı')),
-                  ButtonSegment(value: 'critical', icon: Icon(Icons.error_outline_rounded), label: Text('Kritik')),
+                  ButtonSegment(value: 'warning', icon: Icon(Simgeler.warningAmber), label: Text('Uyarı')),
+                  ButtonSegment(value: 'critical', icon: Icon(Simgeler.errorOutline), label: Text('Kritik')),
                 ],
                 selected: {_onem},
                 onSelectionChanged: (s) => setState(() => _onem = s.first),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 'Kanallar',
                 style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
@@ -544,7 +545,7 @@ class _AlarmKuraliDialogState extends State<AlarmKuraliDialog> {
               ),
               SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, value: _etkin, onChanged: (v) => setState(() => _etkin = v), title: const Text('Etkin')),
               if (_hata != null && !{'kind', 'name', 'threshold', 'cooldown_minutes', 'channel_ids'}.contains(_alan))
-                Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
             ],
           ),
         ),
@@ -655,13 +656,13 @@ class AlarmKanallariState extends State<AlarmKanallari> with AutomaticKeepAliveC
   List<SatirEylemiDugmesi> _dugmeler(AlarmKanali k) => !alarmSahibi(k.orgId)
       ? const []
       : [
-          SatirEylemiDugmesi(Icons.send_outlined, 'Test gönder', () => _test(k), ipucu: 'Bu kanala örnek bildirim'),
-          SatirEylemiDugmesi(Icons.edit_outlined, 'Düzenle', () => _duzenle(k), ipucu: 'Ad, adresler, URL'),
-          SatirEylemiDugmesi(k.etkin ? Icons.toggle_off_outlined : Icons.toggle_on_outlined, k.etkin ? 'Kapat' : 'Etkinleştir', () => _etkinlik(k)),
+          SatirEylemiDugmesi(Simgeler.send, 'Test gönder', () => _test(k), ipucu: 'Bu kanala örnek bildirim'),
+          SatirEylemiDugmesi(Simgeler.edit, 'Düzenle', () => _duzenle(k), ipucu: 'Ad, adresler, URL'),
+          SatirEylemiDugmesi(k.etkin ? Simgeler.toggleOff : Simgeler.toggleOn, k.etkin ? 'Kapat' : 'Etkinleştir', () => _etkinlik(k)),
           if (k.tur == 'webhook')
-            SatirEylemiDugmesi(Icons.key_rounded, 'Gizli anahtarı yenile', () => _anahtarYenile(k), ipucu: 'Eski anahtar hemen geçersiz olur'),
+            SatirEylemiDugmesi(Simgeler.key, 'Gizli anahtarı yenile', () => _anahtarYenile(k), ipucu: 'Eski anahtar hemen geçersiz olur'),
           if (k.tur != 'panel' || k.orgId != null)
-            SatirEylemiDugmesi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), ipucu: 'Kurallardan da çıkarılır', tehlikeli: true),
+            SatirEylemiDugmesi(Simgeler.deleteOutline, 'Sil', () => _sil(k), ipucu: 'Kurallardan da çıkarılır', tehlikeli: true),
         ];
 
   void _ayrinti(AlarmKanali k) => yonetimPenceresi(
@@ -680,7 +681,7 @@ class AlarmKanallariState extends State<AlarmKanallari> with AutomaticKeepAliveC
         ),
         if (!alarmSahibi(k.orgId))
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 8),
             child: Text('Bu kanalı değiştirme yetkiniz yok.', style: TextStyle(color: context.r.silik, fontSize: 12)),
           ),
       ],
@@ -691,9 +692,9 @@ class AlarmKanallariState extends State<AlarmKanallari> with AutomaticKeepAliveC
   String _son(AlarmKanali k) => k.sonZaman == null ? 'Henüz yok' : '${k.sonDurum == 'ok' ? 'Başarılı' : 'Başarısız'} · ${goreliZaman(k.sonZaman)}';
 
   IconData _ikon(String tur) => switch (tur) {
-    'email' => Icons.mail_outline_rounded,
-    'webhook' => Icons.webhook_rounded,
-    _ => Icons.notifications_none_rounded,
+    'email' => Simgeler.mailOutline,
+    'webhook' => Simgeler.webhook,
+    _ => Simgeler.notificationsNone,
   };
 
   @override
@@ -706,10 +707,10 @@ class AlarmKanallariState extends State<AlarmKanallari> with AutomaticKeepAliveC
       yukleyici: _y,
       onTap: _ayrinti,
       eylemler: (k) => [
-        SatirEylemi(Icons.info_outline_rounded, 'Ayrıntı', () => _ayrinti(k)),
+        SatirEylemi(Simgeler.infoOutline, 'Ayrıntı', () => _ayrinti(k)),
         for (final d in _dugmeler(k)) SatirEylemi(d.ikon, d.baslik, d.calistir, tehlikeli: d.tehlikeli),
       ],
-      bosIkon: Icons.send_outlined,
+      bosIkon: Simgeler.send,
       bosMetin: 'Kanal yok. E-posta, webhook veya panel kanalı ekleyin.',
       ust: Padding(
         padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 8),
@@ -728,7 +729,7 @@ class AlarmKanallariState extends State<AlarmKanallari> with AutomaticKeepAliveC
               data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
-                leading: Icon(Icons.key_rounded, color: r.soluk, size: 20),
+                leading: Icon(Simgeler.key, color: r.soluk, size: 20),
                 title: const Text('Webhook imzası', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                 expandedCrossAxisAlignment: CrossAxisAlignment.start,
                 childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -737,7 +738,7 @@ class AlarmKanallariState extends State<AlarmKanallari> with AutomaticKeepAliveC
                     'Her istek HTTPS POST ile JSON gövde taşır ve imzalanır; alıcı imzayı doğrulamalı ve 5 dakikadan eski zaman damgalarını reddetmelidir.',
                     style: TextStyle(color: r.soluk, fontSize: 12.5),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   const SelectableText(
                     'X-BogaMail-Timestamp: Unix zamanı (saniye)\n'
                     'X-BogaMail-Signature: sha256=hex(HMAC-SHA256(gizli_anahtar, zaman + "." + gövde))\n'
@@ -800,7 +801,7 @@ class AlarmKanallariState extends State<AlarmKanallari> with AutomaticKeepAliveC
 Future<void> gizliAnahtariGoster(BuildContext context, String gizli) => showDialog<void>(
   context: context,
   builder: (c) => AlertDialog(
-    title: Text('Webhook gizli anahtarı', style: gosterim(18, agirlik: FontWeight.w700)),
+    title: Text('Webhook gizli anahtarı', style: gosterim(18, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 460,
       child: Column(
@@ -879,7 +880,7 @@ class _AlarmKanaliDialogState extends State<AlarmKanaliDialog> {
     final r = context.r;
     String? h(String a) => _alan == a ? _hata : null;
     return AlertDialog(
-      title: Text(widget.kanal == null ? 'Yeni bildirim kanalı' : 'Kanalı düzenle', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(widget.kanal == null ? 'Yeni bildirim kanalı' : 'Kanalı düzenle', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 460,
         child: SingleChildScrollView(
@@ -934,7 +935,7 @@ class _AlarmKanaliDialogState extends State<AlarmKanaliDialog> {
                   ),
                 ),
               SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, value: _etkin, onChanged: (v) => setState(() => _etkin = v), title: const Text('Etkin')),
-              if (_hata != null && !{'kind', 'name', 'addresses', 'url'}.contains(_alan)) Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+              if (_hata != null && !{'kind', 'name', 'addresses', 'url'}.contains(_alan)) Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
             ],
           ),
         ),

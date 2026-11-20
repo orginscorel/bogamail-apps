@@ -163,6 +163,19 @@ String alintiGirisi(DateTime? tarih, String kimden) {
 }
 
 /// Düz metin gövdesinde sondaki alıntılanmış geçmişi ayırır (web splitQuotedText ile aynı kurallar).
+/// Düz metin: alıntı ve [imza] verilirse "-- " ayıracından (RFC 3676) sonraki imza ayrılır (web: splitSignatureText).
+/// Dönüş: ana metin ve katlanan kısım (imza + alıntı).
+({String ana, String alinti}) alintiVeImzaAyir(String metin, {bool imza = false}) {
+  final a = alintiAyir(metin);
+  if (!imza) return a;
+  final m = RegExp(r'\r?\n-- ?\r?\n').firstMatch(a.ana);
+  if (m == null || m.start == 0) return a;
+  final ana = a.ana.substring(0, m.start).replaceAll(RegExp(r'\s+$'), '');
+  if (ana.trim().isEmpty) return a;
+  final imzaMetni = a.ana.substring(m.start).replaceFirst(RegExp(r'^\r?\n'), '');
+  return (ana: ana, alinti: a.alinti.isEmpty ? imzaMetni : '$imzaMetni\n\n${a.alinti}');
+}
+
 ({String ana, String alinti}) alintiAyir(String metin) {
   final satirlar = metin.split(RegExp(r'\r?\n'));
   final giris = RegExp(

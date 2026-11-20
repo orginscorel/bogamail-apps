@@ -10,6 +10,7 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import 'hizmet_ortak.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
 
 /// Bayiler: bayi hesapları, limitleri, kullanım, marka varsayılanları, askıya alma ve bayi paneline giriş.
 /// Web: admin/resellers. Uç noktalar: GET /resellers/summary, GET /resellers/{id}, POST /resellers (yalnızca süper),
@@ -150,7 +151,7 @@ class _BayilerEkraniState extends State<BayilerEkrani> {
       showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(r.ad, style: gosterim(19, agirlik: FontWeight.w700)),
+          title: Text(r.ad, style: gosterim(19, agirlik: FontWeight.w600)),
           content: SizedBox(width: 560, child: govde),
           actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat'))],
         ),
@@ -161,15 +162,15 @@ class _BayilerEkraniState extends State<BayilerEkrani> {
   }
 
   List<SatirEylemi> _eylemler(BayiOzeti r) => [
-    if (_super && Uyg.taklit == null && r.durum == 'active') SatirEylemi(Icons.login_rounded, 'Bayi paneline gir', () => bayiPanelineGir(context, id: r.id, ad: r.ad)),
-    SatirEylemi(Icons.apartment_rounded, 'Ayrıntılar', () => _ayrinti(r)),
-    if (_duzenler) SatirEylemi(Icons.speed_rounded, 'Limitler ve iletişim', () => _limitler(r)),
-    if (_markaDuzenler) SatirEylemi(Icons.palette_outlined, 'Marka', () => _marka(r)),
+    if (_super && Uyg.taklit == null && r.durum == 'active') SatirEylemi(Simgeler.login, 'Bayi paneline gir', () => bayiPanelineGir(context, id: r.id, ad: r.ad)),
+    SatirEylemi(Simgeler.apartment, 'Ayrıntılar', () => _ayrinti(r)),
+    if (_duzenler) SatirEylemi(Simgeler.speed, 'Limitler ve iletişim', () => _limitler(r)),
+    if (_markaDuzenler) SatirEylemi(Simgeler.palette, 'Marka', () => _marka(r)),
     if (_duzenler)
       r.durum == 'active'
-          ? SatirEylemi(Icons.block_rounded, 'Askıya al', () => _durum(r, 'suspended'), tehlikeli: true)
-          : SatirEylemi(Icons.check_circle_outline_rounded, 'Etkinleştir', () => _durum(r, 'active')),
-    if (_super && Uyg.taklit == null) SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(r), tehlikeli: true),
+          ? SatirEylemi(Simgeler.block, 'Askıya al', () => _durum(r, 'suspended'), tehlikeli: true)
+          : SatirEylemi(Simgeler.checkCircleOutline, 'Etkinleştir', () => _durum(r, 'active')),
+    if (_super && Uyg.taklit == null) SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(r), tehlikeli: true),
   ];
 
   Widget _limitHucresi(BuildContext c, int kullanilan, int? enFazla, {bool bayt = false}) => Column(
@@ -190,11 +191,11 @@ class _BayilerEkraniState extends State<BayilerEkrani> {
       baslik: 'Bayiler',
       alt: _super ? 'Bayi hesapları, kota ve müşteri limitleri, marka ve bayi yöneticileri' : 'Bayi hesabınız: limitler, kullanım ve marka',
       yenile: _y.yenile,
-      birincil: _duzenler ? BirincilEylem(Icons.add_rounded, 'Yeni bayi', () => _limitler(null)) : null,
+      birincil: _duzenler ? BirincilEylem(Simgeler.add, 'Yeni bayi', () => _limitler(null)) : null,
       govde: VeriTablosu<BayiOzeti>(
         yukleyici: _y,
         bosMetin: _q.isEmpty ? 'Henüz bayi yok. Bayi ekleyip limitlerini belirleyin; bayi kendi müşterilerini ve paketlerini yönetir.' : 'Eşleşen bayi yok.',
-        bosIkon: Icons.handshake_outlined,
+        bosIkon: Simgeler.handshake,
         onTap: _ayrinti,
         eylemler: _eylemler,
         ust: _super
@@ -248,7 +249,7 @@ class _BayiAyrinti extends StatelessWidget {
     return FutureBuilder<dynamic>(
       future: Uyg.api.get('/api/v1/resellers/${bayi.id}'),
       builder: (c, s) {
-        if (s.hasError) return Bant(hataMetni(s.error!), renk: Marka.gul, ikon: Icons.error_outline_rounded);
+        if (s.hasError) return Bant(hataMetni(s.error!), renk: Marka.gul, ikon: Simgeler.errorOutline);
         if (!s.hasData) {
           return const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()));
         }
@@ -273,8 +274,8 @@ class _BayiAyrinti extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            const Text('Paket kataloğu', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
+            const Text('Paket kataloğu', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
             if (paketler.isEmpty)
               Text('Bayinin kendi paketi yok; Paketler bölümünden oluşturulabilir.', style: TextStyle(color: r.silik, fontSize: 13))
             else
@@ -285,8 +286,8 @@ class _BayiAyrinti extends StatelessWidget {
                   sag: DurumRozeti(metin(p['status'])),
                 ),
             const SizedBox(height: 16),
-            const Text('Bayi yöneticileri', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
+            const Text('Bayi yöneticileri', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
             if (yoneticiler.isEmpty)
               Text('Yönetici yok; Yöneticiler bölümünden "${rolEtiketi('reseller_admin')}" rolüyle ekleyin.', style: TextStyle(color: r.silik, fontSize: 13))
             else
@@ -393,7 +394,7 @@ class _LimitDialogState extends State<_LimitDialog> {
     );
     final mevcut = b;
     return AlertDialog(
-      title: Text(mevcut == null ? 'Yeni bayi' : 'Limitler ve iletişim', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(mevcut == null ? 'Yeni bayi' : 'Limitler ve iletişim', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 500,
         child: Form(
@@ -410,7 +411,7 @@ class _LimitDialogState extends State<_LimitDialog> {
                             'Mevcut kullanımın altına inen limit yalnızca yeni eklemeleri engeller.',
                   style: TextStyle(color: context.r.soluk, fontSize: 13),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 alan(
                   _ad,
                   'Bayi adı',
@@ -427,7 +428,7 @@ class _LimitDialogState extends State<_LimitDialog> {
                 alan(_kutu, 'En çok posta kutusu (boş = sınırsız)', tur: TextInputType.number, dogrula: sayiKontrol),
                 alan(_depolama, 'Toplam depolama, GB (boş = sınırsız)', tur: const TextInputType.numberWithOptions(decimal: true), dogrula: sayiKontrol),
                 alan(_not, 'Not', satir: 2, dogrula: (v) => (v ?? '').length > 2000 ? 'En fazla 2000 karakter' : null),
-                if (_hata != null) Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                if (_hata != null) Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ),
           ),
@@ -510,7 +511,7 @@ class _MarkaDialogState extends State<_MarkaDialog> {
         ? Color(int.parse('FF${_k['primary_color']!.text.trim().substring(1)}', radix: 16))
         : null;
     return AlertDialog(
-      title: Text('Bayi markası', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Bayi markası', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 480,
         child: Form(
@@ -524,7 +525,7 @@ class _MarkaDialogState extends State<_MarkaDialog> {
                   'Kendi markasını ayarlamamış müşteriler bu adı, rengi ve destek bilgilerini görür. Logo müşteri bazında Marka bölümünden yüklenir.',
                   style: TextStyle(color: context.r.soluk, fontSize: 13),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 for (final (a, e) in _alanlar)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -537,7 +538,7 @@ class _MarkaDialogState extends State<_MarkaDialog> {
                         labelText: e,
                         suffixIcon: a == 'primary_color' && renk != null
                             ? Padding(
-                                padding: const EdgeInsets.all(10),
+                                padding: const EdgeInsets.all(8),
                                 child: Container(
                                   width: 22,
                                   height: 22,
@@ -548,7 +549,7 @@ class _MarkaDialogState extends State<_MarkaDialog> {
                       ),
                     ),
                   ),
-                if (_hata != null) Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                if (_hata != null) Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ),
           ),
@@ -607,8 +608,8 @@ class _BayiSilDialogState extends State<BayiSilDialog> {
     final adetMetni = n == null ? 'Bu bayiye bağlı müşteriler var.' : 'Bu bayiye bağlı $n müşteri var.';
     return AlertDialog(
       scrollable: true,
-      icon: const Icon(Icons.delete_forever_rounded, color: Marka.gul, size: 30),
-      title: Text('"${widget.bayi.ad}" silinsin mi?', style: gosterim(19, agirlik: FontWeight.w700)),
+      icon: const Icon(Simgeler.deleteForever, color: Marka.gul, size: 30),
+      title: Text('"${widget.bayi.ad}" silinsin mi?', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 480,
         child: Column(
@@ -620,12 +621,12 @@ class _BayiSilDialogState extends State<BayiSilDialog> {
               'postaları etkilenmez. Bayi yöneticilerinin hesapları silinir ve oturumları kapatılır.',
               style: TextStyle(color: r.soluk, fontSize: 13),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             SegmentedButton<String>(
               segments: [
                 if (widget.digerleri.isNotEmpty)
-                  const ButtonSegment(value: 'tasi', icon: Icon(Icons.swap_horiz_rounded), label: Text('Başka bayiye taşı')),
-                const ButtonSegment(value: 'ayir', icon: Icon(Icons.link_off_rounded), label: Text('Platforma bağla')),
+                  const ButtonSegment(value: 'tasi', icon: Icon(Simgeler.swapHoriz), label: Text('Başka bayiye taşı')),
+                const ButtonSegment(value: 'ayir', icon: Icon(Simgeler.linkOff), label: Text('Platforma bağla')),
               ],
               selected: {_yol},
               onSelectionChanged: _mesgul ? null : (v) => setState(() => _yol = v.first),
@@ -655,7 +656,7 @@ class _BayiSilDialogState extends State<BayiSilDialog> {
               onChanged: _mesgul ? null : (v) => setState(() => _onay = v ?? false),
               title: const Text('Bu işlemin geri alınamayacağını anlıyorum', style: TextStyle(fontSize: 13.5)),
             ),
-            if (_hata != null) Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+            if (_hata != null) Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
           ],
         ),
       ),

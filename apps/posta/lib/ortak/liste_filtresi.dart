@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 /// İleti listesinin üstündeki süzgeç. Sunucudaki `filter` sorgu değeriyle eşleşir (webmail.go listFilters).
 enum ListeFiltresi {
-  tumu('Tümü', null, Icons.all_inbox_rounded),
-  okunmamis('Okunmamış', 'unread', Icons.mark_email_unread_rounded),
-  yildizli('Yıldızlı', 'flagged', Icons.star_rounded),
-  ekli('Ekli', 'attachments', Icons.attach_file_rounded);
+  tumu('Tümü', null, Simge.tumPosta),
+  okunmamis('Okunmamış', 'unread', Simge.okunmadiYap),
+  yildizli('Yıldızlı', 'flagged', Simge.yildizDolu),
+  ekli('Ekli', 'attachments', Simge.ek);
 
   const ListeFiltresi(this.ad, this.sunucuDegeri, this.ikon);
   final String ad;
@@ -52,8 +52,9 @@ class FiltreCubugu extends StatelessWidget {
       child: Row(
         children: [
           for (final f in ListeFiltresi.values)
+            // Genişlik etiket (ve sayı) uzunluğuyla orantılı: dar bölmede de hiçbir etiket kesilmez.
             Expanded(
-              flex: f == ListeFiltresi.okunmamis ? 13 : 10,
+              flex: 30 + f.ad.length * 9 + ((sayilar[f] ?? 0) > 0 ? 30 : 0),
               child: _Bolum(filtre: f, secili: f == secili, sayi: sayilar[f], dokun: () => degisti(f)),
             ),
         ],
@@ -72,7 +73,6 @@ class _Bolum extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final on = secili ? Colors.white : r.soluk;
     final sayiVar = sayi != null && sayi! > 0;
     return Semantics(
       button: true,
@@ -97,14 +97,13 @@ class _Bolum extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (secili) ...[Icon(Icons.check_rounded, size: 15, color: on), const SizedBox(width: 3)],
                   Flexible(
                     child: Text(
                       filtre.ad,
                       maxLines: 1,
                       overflow: TextOverflow.fade,
                       softWrap: false,
-                      style: TextStyle(fontSize: 12.5, fontWeight: secili ? FontWeight.w700 : FontWeight.w600, color: secili ? Colors.white : r.metin),
+                      style: TextStyle(fontSize: 13, fontWeight: secili ? FontWeight.w600 : FontWeight.w500, color: secili ? Colors.white : r.metin),
                     ),
                   ),
                   if (sayiVar) ...[
@@ -114,7 +113,7 @@ class _Bolum extends StatelessWidget {
                       decoration: BoxDecoration(color: secili ? Colors.white.withValues(alpha: .25) : r.vurgu, borderRadius: BorderRadius.circular(8)),
                       child: Text(
                         sayi! > 999 ? '999+' : '$sayi',
-                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Colors.white),
+                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Colors.white),
                       ),
                     ),
                   ],
@@ -144,7 +143,7 @@ class FiltreBandi extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
       child: Row(
         children: [
-          Icon(Icons.filter_alt_rounded, size: 16, color: r.vurgu),
+          Icon(Simge.suzgec, size: 16, color: r.vurgu),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -157,7 +156,7 @@ class FiltreBandi extends StatelessWidget {
           TextButton(
             onPressed: temizle,
             style: TextButton.styleFrom(foregroundColor: r.vurgu, visualDensity: VisualDensity.compact),
-            child: const Text('Temizle', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: const Text('Temizle', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),

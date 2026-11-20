@@ -4,6 +4,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import '../veri/bicim.dart';
+import 'simgeler.dart';
 
 /// Ekran genişliği iki sütunlu (liste + ayrıntı) düzen için yeterli mi.
 bool bolunmus(BuildContext c) => MediaQuery.sizeOf(c).width >= 1050;
@@ -86,7 +87,7 @@ class BilgiSatiri extends StatelessWidget {
             IconButton(
               visualDensity: VisualDensity.compact,
               tooltip: 'Kopyala',
-              icon: const Icon(Icons.copy_rounded, size: 17),
+              icon: const Icon(Simgeler.copy, size: 17),
               onPressed: () => kopyala(deger),
             ),
           ?sag,
@@ -107,7 +108,7 @@ class KopyaKutusu extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.r;
     return Container(
-      margin: const EdgeInsets.only(top: 6),
+      margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
       decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(10)),
       child: Row(
@@ -127,7 +128,7 @@ class KopyaKutusu extends StatelessWidget {
           IconButton(
             visualDensity: VisualDensity.compact,
             tooltip: 'Kopyala',
-            icon: const Icon(Icons.copy_rounded, size: 17),
+            icon: const Icon(Simgeler.copy, size: 17),
             onPressed: () => kopyala(deger, mesaj: mesaj),
           ),
         ],
@@ -158,13 +159,13 @@ class BolumKarti extends StatelessWidget {
             children: [
               if (ikon != null) ...[Icon(ikon, size: 19, color: r.birincil), const SizedBox(width: 8)],
               Expanded(
-                child: Text(baslik, style: gosterim(16, agirlik: FontWeight.w700)),
+                child: Text(baslik, style: gosterim(16, agirlik: FontWeight.w600)),
               ),
               ?sag,
             ],
           ),
           if (altBaslik != null) ...[const SizedBox(height: 4), Text(altBaslik!, style: TextStyle(color: r.silik, fontSize: 12.5))],
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           child,
         ],
       ),
@@ -187,7 +188,7 @@ class IstatistikKarti extends StatelessWidget {
     final r = context.r;
     return Kutu(
       onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -195,7 +196,7 @@ class IstatistikKarti extends StatelessWidget {
           Row(
             children: [
               Icon(ikon, size: 16, color: renk ?? r.silik),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   etiket,
@@ -204,7 +205,7 @@ class IstatistikKarti extends StatelessWidget {
                   style: TextStyle(color: r.soluk, fontSize: 12.5),
                 ),
               ),
-              if (onTap != null) Icon(Icons.chevron_right_rounded, size: 16, color: r.silik),
+              if (onTap != null) Icon(SimgelerKalin.chevronRight, size: 16, color: r.silik),
             ],
           ),
           const SizedBox(height: 4),
@@ -212,9 +213,9 @@ class IstatistikKarti extends StatelessWidget {
             deger,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: gosterim(22, renk: renk),
+            style: gosterim(22, agirlik: FontWeight.w600, renk: renk),
           ),
-          if (ek != null) ...[const SizedBox(height: 6), ek!],
+          if (ek != null) ...[const SizedBox(height: 8), ek!],
           if (alt != null)
             Text(
               alt!,
@@ -266,12 +267,12 @@ class _AramaAlaniState extends State<AramaAlani> {
     decoration: InputDecoration(
       hintText: widget.ipucu,
       isDense: true,
-      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+      prefixIcon: const Icon(Simgeler.search, size: 20),
       suffixIcon: _k.text.isEmpty
           ? null
           : IconButton(
               tooltip: 'Aramayı temizle',
-              icon: const Icon(Icons.close_rounded, size: 18),
+              icon: const Icon(Simgeler.close, size: 18),
               onPressed: () {
                 _k.clear();
                 _degis('');
@@ -295,7 +296,7 @@ class SecimCipleri<T> extends StatelessWidget {
       children: [
         for (final (d, e) in secenekler)
           Padding(
-            padding: const EdgeInsets.only(right: 6),
+            padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(label: Text(e), selected: d == secili, onSelected: (_) => secildi(d), showCheckmark: false),
           ),
       ],
@@ -318,7 +319,7 @@ class EylemSatiri extends StatelessWidget {
     final renk = tehlikeli ? Marka.gul : r.birincil;
     return Kutu(
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
       child: Row(
         children: [
           Container(
@@ -334,13 +335,13 @@ class EylemSatiri extends StatelessWidget {
               children: [
                 Text(
                   baslik,
-                  style: TextStyle(fontWeight: FontWeight.w600, color: tehlikeli ? Marka.gul : null),
+                  style: TextStyle(fontWeight: FontWeight.w500, color: tehlikeli ? Marka.gul : null),
                 ),
                 if (ipucu != null) Text(ipucu!, style: TextStyle(color: r.silik, fontSize: 12)),
               ],
             ),
           ),
-          Icon(Icons.chevron_right_rounded, color: r.silik),
+          Icon(Simgeler.chevronRight, color: r.silik),
         ],
       ),
     );
@@ -349,7 +350,7 @@ class EylemSatiri extends StatelessWidget {
 
 /// Bilgi / uyarı bandı.
 class Bant extends StatelessWidget {
-  const Bant(this.metin, {super.key, this.renk = Marka.mavi, this.ikon = Icons.info_outline_rounded, this.eylem});
+  const Bant(this.metin, {super.key, this.renk = Marka.mavi, this.ikon = Simgeler.infoOutline, this.eylem});
   final String metin;
   final Color renk;
   final IconData ikon;
@@ -367,7 +368,7 @@ class Bant extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(ikon, size: 20, color: renk),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(child: Text(metin, style: const TextStyle(fontSize: 13.5, height: 1.35))),
         if (eylem != null) ...[const SizedBox(width: 8), eylem!],
       ],
@@ -377,7 +378,7 @@ class Bant extends StatelessWidget {
 
 /// İki sütunlu düzende ayrıntı seçilmemişken gösterilen yer tutucu.
 class BosDetay extends StatelessWidget {
-  const BosDetay(this.metin, {super.key, this.ikon = Icons.touch_app_rounded});
+  const BosDetay(this.metin, {super.key, this.ikon = Simgeler.touchApp});
   final String metin;
   final IconData ikon;
   @override
@@ -386,7 +387,7 @@ class BosDetay extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(ikon, size: 44, color: context.r.silik.withValues(alpha: .6)),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(metin, style: TextStyle(color: context.r.silik)),
       ],
     ),
@@ -436,20 +437,20 @@ Future<bool> yazarakOnayla(BuildContext context, {required String baslik, requir
       builder: (c, yenile) {
         final tamam = k.text.trim().toLowerCase() == beklenen.trim().toLowerCase();
         return AlertDialog(
-          title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+          title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(mesaj),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text.rich(
                 TextSpan(
                   children: [
                     const TextSpan(text: 'Onaylamak için '),
                     TextSpan(
                       text: beklenen,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: 'monospace'),
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontFamily: 'monospace'),
                     ),
                     const TextSpan(text: ' yazın'),
                   ],
@@ -479,7 +480,7 @@ Future<void> sifreGoster(BuildContext context, {required String adres, required 
   context: context,
   barrierDismissible: false,
   builder: (c) => AlertDialog(
-    title: Text('Yeni şifre', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Yeni şifre', style: gosterim(19, agirlik: FontWeight.w600)),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,7 +491,7 @@ Future<void> sifreGoster(BuildContext context, {required String adres, required 
         Bant(
           not ?? 'Bu şifre yalnızca şimdi gösterilir; sunucuda düz metin olarak saklanmaz. Kullanıcıya güvenli bir kanaldan iletin.',
           renk: Marka.kehribar,
-          ikon: Icons.key_rounded,
+          ikon: Simgeler.key,
         ),
       ],
     ),
@@ -510,7 +511,7 @@ Future<T?> secimYap<T>(BuildContext context, {required String baslik, required L
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(baslik, style: gosterim(17, agirlik: FontWeight.w700)),
+            child: Text(baslik, style: gosterim(17, agirlik: FontWeight.w600)),
           ),
           Flexible(
             child: ListView(
@@ -520,7 +521,7 @@ Future<T?> secimYap<T>(BuildContext context, {required String baslik, required L
                   ListTile(
                     title: Text(e),
                     subtitle: alt == null ? null : Text(alt),
-                    trailing: d == secili ? Icon(Icons.check_rounded, color: context.r.birincil) : null,
+                    trailing: d == secili ? Icon(Simgeler.check, color: context.r.birincil) : null,
                     onTap: () => Navigator.pop(c, d),
                   ),
               ],
@@ -563,7 +564,7 @@ class ListeSatiri extends StatelessWidget {
                       baslik,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14.5),
                     ),
                     if (alt != null && alt!.isNotEmpty)
                       Padding(
@@ -612,7 +613,7 @@ class DetayBasligi extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SelectableText(baslik, style: gosterim(21, agirlik: FontWeight.w700)),
+              SelectableText(baslik, style: gosterim(21, agirlik: FontWeight.w600)),
               if (alt != null && alt!.isNotEmpty) Text(alt!, style: TextStyle(color: context.r.silik, fontSize: 13)),
             ],
           ),

@@ -1,7 +1,6 @@
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
-import '../oturum.dart';
 import '../ortak/esitleme.dart';
 import '../ortak/simgeler.dart';
 import '../ortak/surukle.dart';
@@ -13,7 +12,8 @@ import '../veri/posta_servisi.dart';
 import '../veri/yardimci.dart';
 import 'ayarlar.dart';
 import 'hesap/posta_yonetimi.dart';
-import 'hesaplar.dart';
+import '../veri/bildirim_izni.dart';
+import 'hesap_menusu.dart';
 
 /// Kenar menüsü: hesap başlığı + kota, klasörler (okunmamış sayılarıyla), görünümler, kullanıcı klasörleri, etiketler.
 /// Geniş ekranda kenar çubuğu; telefonda "Klasörler" sekmesinin sayfası ([sayfa]).
@@ -61,13 +61,13 @@ class _YanMenuState extends State<YanMenu> {
             top: !sayfa,
             child: Column(
               children: [
-                const _HesapBasligi(),
+                const BildirimIzniBandi(kenar: EdgeInsets.fromLTRB(12, 12, 12, 0)),
                 if (yeniIleti != null)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                     child: SizedBox(
                       width: double.infinity,
-                      child: FilledButton.icon(onPressed: yeniIleti, icon: const Icon(Icons.edit_rounded, size: 19), label: const Text('Yeni ileti')),
+                      child: FilledButton.icon(onPressed: yeniIleti, icon: const Icon(Simge.duzenle, size: 19), label: const Text('Yeni ileti')),
                     ),
                   ),
                 Expanded(
@@ -76,7 +76,7 @@ class _YanMenuState extends State<YanMenu> {
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
                           children: [
-                            if (d.hata != null)
+                            if (d.hata != null && d.klasorler.isEmpty)
                               Padding(
                                 padding: const EdgeInsets.all(12),
                                 child: Text(d.hata!, style: const TextStyle(color: Marka.gul)),
@@ -112,7 +112,7 @@ class _YanMenuState extends State<YanMenu> {
                             _Bolum(
                               baslik: 'Klasörlerim',
                               eylem: IconButton(
-                                icon: const Icon(Icons.create_new_folder_outlined, size: 20),
+                                icon: const Icon(Simge.klasorEkle, size: 20),
                                 tooltip: 'Klasör oluştur',
                                 onPressed: () => _klasorOlustur(context),
                               ),
@@ -136,13 +136,13 @@ class _YanMenuState extends State<YanMenu> {
                                       hintText: 'Klasör ara',
                                       isDense: true,
                                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                      prefixIcon: Icon(Icons.search_rounded, size: 18, color: r.silik),
+                                      prefixIcon: Icon(Simge.ara, size: 18, color: r.silik),
                                       prefixIconConstraints: const BoxConstraints(minWidth: 36),
                                       suffixIcon: _klasorAra.text.isEmpty
                                           ? null
                                           : IconButton(
                                               tooltip: 'Aramayı temizle',
-                                              icon: const Icon(Icons.close_rounded, size: 16),
+                                              icon: const Icon(Simge.kapat, size: 16),
                                               onPressed: () => setState(_klasorAra.clear),
                                             ),
                                     ),
@@ -158,7 +158,7 @@ class _YanMenuState extends State<YanMenu> {
                             _Bolum(
                               baslik: 'Etiketler',
                               eylem: IconButton(
-                                icon: const Icon(Icons.new_label_outlined, size: 20),
+                                icon: const Icon(Simge.etiketEkle, size: 20),
                                 tooltip: 'Etiket oluştur',
                                 onPressed: () => _etiketOlustur(context),
                               ),
@@ -169,21 +169,26 @@ class _YanMenuState extends State<YanMenu> {
                                 child: Text('Henüz etiket yok.', style: TextStyle(color: r.silik, fontSize: 13)),
                               ),
                             for (final e in d.etiketler)
-                              _oge(context, Icons.label_rounded, e.ad, Konum.etiket(e.id), sayi: e.okunmamis, renk: etiketRengi(e.renk), birakilir: true),
+                              _oge(context, Simge.etiket, e.ad, Konum.etiket(e.id), sayi: e.okunmamis, renk: etiketRengi(e.renk), birakilir: true),
                             // Web kenar menüsündeki araçlar: Kişiler, Planlanan, Karantina, Gönderim durumu.
                             const _Bolum(baslik: 'Araçlar'),
-                            _arac(context, Icons.contacts_outlined, 'Kişiler', KisilerEkrani.new),
-                            _arac(context, Icons.schedule_send_outlined, 'Planlanan', PlanlananlarEkrani.new),
-                            _arac(context, Icons.gpp_maybe_outlined, 'Karantina', KarantinaEkrani.new),
-                            _arac(context, Icons.monitor_heart_outlined, 'Gönderim durumu', GonderimDurumuEkrani.new),
+                            _arac(context, Simge.kisiler, 'Kişiler', KisilerEkrani.new),
+                            _arac(context, Simge.planliGonder, 'Planlanan', PlanlananlarEkrani.new),
+                            _arac(context, Simge.gereksiz, 'Karantina', KarantinaEkrani.new),
+                            _arac(context, Simge.gonderimDurumu, 'Gönderim durumu', GonderimDurumuEkrani.new),
                           ],
                         ),
                 ),
-                const Divider(),
+                Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
+                // Hesap bloğu altta: avatar, ad, adres; dokununca hesap menüsü (geçiş, ekle, yönet, çıkış).
+                HesapBlogu(cekmecede: cekmecede),
                 if (!sayfa && !cekmecede)
                   ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: const Text('Ayarlar'),
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    leading: const Icon(Simge.ayarlar, size: 20),
+                    title: const Text('Ayarlar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     onTap: () {
                       final nav = Navigator.of(context);
                       if (cekmecede) nav.pop();
@@ -307,7 +312,7 @@ class _YanMenuState extends State<YanMenu> {
             excludeSemantics: true,
             button: true,
             child: SizedBox(
-              height: sayfa ? 50 : 44,
+              height: sayfa ? 44 : 36,
               child: Row(
                 children: [
                   AnimatedContainer(
@@ -317,16 +322,16 @@ class _YanMenuState extends State<YanMenu> {
                     decoration: BoxDecoration(color: aktif ? r.vurgu : Colors.transparent, borderRadius: BorderRadius.circular(2)),
                   ),
                   const SizedBox(width: 9),
-                  Icon(ikon, size: 21, color: renk ?? (aktif ? r.vurgu : r.soluk)),
-                  const SizedBox(width: 14),
+                  Icon(ikon, size: 20, color: renk ?? (aktif ? r.vurgu : r.soluk)),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       ad,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: aktif || (sayi > 0 && !solukSayi) ? FontWeight.w700 : FontWeight.w500,
+                        fontSize: 14,
+                        fontWeight: aktif || (sayi > 0 && !solukSayi) ? FontWeight.w600 : FontWeight.w500,
                         color: aktif ? r.vurgu : r.metin,
                       ),
                     ),
@@ -337,7 +342,7 @@ class _YanMenuState extends State<YanMenu> {
                       decoration: BoxDecoration(color: solukSayi ? r.ic : r.vurgu, borderRadius: BorderRadius.circular(20)),
                       child: Text(
                         sayi > 999 ? '999+' : '$sayi',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: solukSayi ? r.soluk : Colors.white),
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: solukSayi ? r.soluk : Colors.white),
                       ),
                     ),
                   menu ?? const SizedBox(width: 12),
@@ -364,7 +369,7 @@ class _YanMenuState extends State<YanMenu> {
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, yenile) => AlertDialog(
-          title: Text('Yeni etiket', style: gosterim(19, agirlik: FontWeight.w700)),
+          title: Text('Yeni etiket', style: gosterim(19, agirlik: FontWeight.w600)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,7 +399,7 @@ class _YanMenuState extends State<YanMenu> {
                             shape: BoxShape.circle,
                             border: renk == e.key ? Border.all(color: c.r.metin, width: 2.5) : null,
                           ),
-                          child: renk == e.key ? const Icon(Icons.check_rounded, color: Colors.white, size: 18) : null,
+                          child: renk == e.key ? const Icon(Simge.onay, color: Colors.white, size: 18) : null,
                         ),
                       ),
                     ),
@@ -429,7 +434,7 @@ class _Bolum extends StatelessWidget {
         Expanded(
           child: Text(
             baslik.toUpperCase(),
-            style: TextStyle(color: context.r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1),
+            style: TextStyle(color: context.r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 1),
           ),
         ),
         ?eylem,
@@ -446,7 +451,7 @@ class _KlasorMenusu extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       tooltip: '${klasor.ad} seçenekleri',
-      icon: Icon(Icons.more_horiz_rounded, size: 19, color: context.r.silik),
+      icon: Icon(Simge.dahaFazla, size: 19, color: context.r.silik),
       onSelected: (v) async {
         final d = PostaDurum.ben;
         switch (v) {
@@ -479,102 +484,20 @@ class _KlasorMenusu extends StatelessWidget {
       itemBuilder: (_) => const [
         PopupMenuItem(
           value: 'ad',
-          child: ListTile(leading: Icon(Icons.drive_file_rename_outline), title: Text('Yeniden adlandır')),
+          child: ListTile(leading: Icon(Simge.yenidenAdlandir), title: Text('Yeniden adlandır')),
         ),
         PopupMenuItem(
           value: 'okundu',
-          child: ListTile(leading: Icon(Icons.done_all_rounded), title: Text('Tümünü okundu işaretle')),
+          child: ListTile(leading: Icon(Simge.hepsiOkundu), title: Text('Tümünü okundu işaretle')),
         ),
         PopupMenuItem(
           value: 'sil',
           child: ListTile(
-            leading: Icon(Icons.delete_outline_rounded, color: Marka.gul),
+            leading: Icon(Simge.sil, color: Marka.gul),
             title: Text('Klasörü sil'),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _HesapBasligi extends StatelessWidget {
-  const _HesapBasligi();
-
-  @override
-  Widget build(BuildContext context) {
-    final r = context.r;
-    return ValueListenableBuilder<Map<String, dynamic>?>(
-      valueListenable: Uyg.kutu,
-      builder: (_, k, _) {
-        final ad = Uyg.ad.trim();
-        final adres = Uyg.adres;
-        final kota = (k?['quota_bytes'] as num?)?.toInt() ?? 0;
-        final kullanilan = (k?['used_bytes'] as num?)?.toInt() ?? 0;
-        final sinirsiz = sinirsizKota(kota);
-        final oran = sinirsiz ? 0.0 : (kullanilan / kota).clamp(0.0, 1.0);
-        final renk = oran >= .9 ? Marka.gul : (oran >= .75 ? Marka.kehribar : r.birincil);
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Avatar(ad.isEmpty ? adres : ad, boyut: 46, tohum: adres),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ad.isEmpty ? adres : ad,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: gosterim(16, agirlik: FontWeight.w700),
-                        ),
-                        if (ad.isNotEmpty)
-                          Text(
-                            adres,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: r.silik, fontSize: 12.5),
-                          ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    key: const ValueKey('hesap-degistir'),
-                    tooltip: 'Hesap değiştir / ekle',
-                    icon: const Icon(Icons.unfold_more_rounded),
-                    onPressed: () => hesapSeciciAc(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Semantics(
-                label: sinirsiz
-                    ? 'Kota: ${boyutYaz(kullanilan)} kullanılıyor, sınırsız'
-                    : 'Kota: ${boyutYaz(kota)} alanın ${boyutYaz(kullanilan)} kadarı kullanılıyor',
-                excludeSemantics: true,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(value: sinirsiz ? 0 : oran, minHeight: 5, backgroundColor: r.ic, color: renk),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      sinirsiz ? '${boyutYaz(kullanilan)} kullanılıyor · Sınırsız' : '${boyutYaz(kullanilan)} / ${boyutYaz(kota)} (%${(oran * 100).round()})',
-                      style: TextStyle(color: r.silik, fontSize: 11.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

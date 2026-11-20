@@ -7,6 +7,7 @@ import '../ortak/bilesenler.dart';
 import '../ortak/iskelet.dart';
 import '../oturum.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 /// Sunucular (web: /admin/nodes): düğüm durumu, kaynaklar, diskler ve dinleyiciler. GET /system (yalnızca süper yönetici),
 /// 10 saniyede bir kendiliğinden yenilenir.
@@ -47,8 +48,8 @@ class _SunucularEkraniState extends State<SunucularEkrani> {
         getir: () async => SistemDurumu.coz(harita(await Uyg.api.get('/api/v1/system'))),
         icerik: (c, v, _) => IcerikListesi(
           children: [
-            if (v.not.isNotEmpty) ...[Bant(v.not, ikon: Icons.dns_rounded), const SizedBox(height: 12)],
-            if (v.dugumler.isEmpty) const Kapali('Düğüm bilgisi alınamadı.', ikon: Icons.dns_outlined),
+            if (v.not.isNotEmpty) ...[Bant(v.not, ikon: Simgeler.dns), const SizedBox(height: 12)],
+            if (v.dugumler.isEmpty) const Kapali('Düğüm bilgisi alınamadı.', ikon: Simgeler.dns),
             for (final d in v.dugumler) ...[DugumKarti(dugum: d), const SizedBox(height: 16)],
           ],
         ),
@@ -169,7 +170,7 @@ class DugumKarti extends StatelessWidget {
       ],
     );
     Widget cubuk(String etiket, String deger, int kullanilan, int toplam) => Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -179,7 +180,7 @@ class DugumKarti extends StatelessWidget {
               Text(deger, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           if (toplam > 0) KullanimCubugu(kullanilan: kullanilan, toplam: toplam, yazi: false),
         ],
       ),
@@ -197,7 +198,7 @@ class DugumKarti extends StatelessWidget {
       children: [
         for (final l in d.dinleyiciler)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
                 DurumNoktasi(l.acik ? Marka.zumrut : r.silik.withValues(alpha: .5)),
@@ -215,7 +216,7 @@ class DugumKarti extends StatelessWidget {
       ],
     );
     return BolumKarti(
-      ikon: Icons.dns_rounded,
+      ikon: Simgeler.dns,
       baslik: d.ad,
       altBaslik: '${d.rol} · bogamaild ${d.surum} · ${d.goSurumu} · ${d.isletim}',
       child: LayoutBuilder(

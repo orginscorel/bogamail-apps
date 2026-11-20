@@ -15,6 +15,7 @@ import '../veri/operasyon.dart';
 import 'bekletilenler.dart';
 import 'kuyruk_detay.dart';
 import 'liste_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Kuyruk yönetimi (GET /queue/manager): kabul edilmiş ama henüz teslim edilmemiş iletiler; bekletilen giden iletiler
 /// ayrı sekmede (GET /outbound-holds).
@@ -47,8 +48,8 @@ class _KuyrukEkraniState extends State<KuyrukEkrani> {
       tooltip: _canli ? 'Canlı görünümü duraklat' : 'Canlı görünüm (3 sn)',
       isSelected: _canli,
       onPressed: () => setState(() => _canli = !_canli),
-      icon: const Icon(Icons.play_circle_outline_rounded),
-      selectedIcon: const Icon(Icons.pause_circle_filled_rounded, color: Marka.zumrut),
+      icon: const Icon(Simgeler.playCircleOutline),
+      selectedIcon: const Icon(Simgeler.pauseCircleFilled, color: Marka.zumrut),
     );
     final liste = KuyrukListesi(key: _liste, canli: _canli);
     final iskelet = Iskelet(
@@ -204,13 +205,13 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
   }
 
   List<SatirEylemi> _eylemler(KuyrukOgesi o) => [
-    SatirEylemi(Icons.description_outlined, 'Ayrıntılar ve başlıklar', () => _ac(o)),
-    if (_yazabilir) SatirEylemi(Icons.replay_rounded, 'Şimdi yeniden dene', () => _toplu('retry', kimlikler: [o.kimlik])),
+    SatirEylemi(Simgeler.description, 'Ayrıntılar ve başlıklar', () => _ac(o)),
+    if (_yazabilir) SatirEylemi(Simgeler.replay, 'Şimdi yeniden dene', () => _toplu('retry', kimlikler: [o.kimlik])),
     if (_yonetir && o.giden)
       o.durum == 'held'
-          ? SatirEylemi(Icons.play_arrow_rounded, 'Serbest bırak', () => _toplu('release', kimlikler: [o.kimlik]))
-          : SatirEylemi(Icons.pause_rounded, 'Beklet', () => _toplu('hold', kimlikler: [o.kimlik])),
-    if (_yonetir) SatirEylemi(Icons.delete_outline_rounded, 'Kuyruktan sil', () => _toplu('delete', kimlikler: [o.kimlik]), tehlikeli: true),
+          ? SatirEylemi(Simgeler.playArrow, 'Serbest bırak', () => _toplu('release', kimlikler: [o.kimlik]))
+          : SatirEylemi(Simgeler.pause, 'Beklet', () => _toplu('hold', kimlikler: [o.kimlik])),
+    if (_yonetir) SatirEylemi(Simgeler.deleteOutline, 'Kuyruktan sil', () => _toplu('delete', kimlikler: [o.kimlik]), tehlikeli: true),
   ];
 
   Widget _ozet(BuildContext context) {
@@ -222,18 +223,18 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
       enAz: 150,
       bosluk: 8,
       children: [
-        OzetKutusu('Kuyrukta', sayiYaz(tamsayi(st['total'])), alt: boyutYaz(tamsayi(st['bytes'])), ikon: Icons.inbox_rounded),
-        OzetKutusu('Bekliyor', sayiYaz(tamsayi(st['pending'])), ikon: Icons.schedule_rounded),
-        OzetKutusu('Ertelendi', sayiYaz(tamsayi(st['deferred'])), ikon: Icons.update_rounded, renk: tamsayi(st['deferred']) > 0 ? Marka.kehribar : null),
-        OzetKutusu('Bekletiliyor', sayiYaz(tamsayi(st['held'])), ikon: Icons.pause_circle_outline_rounded),
+        OzetKutusu('Kuyrukta', sayiYaz(tamsayi(st['total'])), alt: boyutYaz(tamsayi(st['bytes'])), ikon: Simgeler.inbox),
+        OzetKutusu('Bekliyor', sayiYaz(tamsayi(st['pending'])), ikon: Simgeler.schedule),
+        OzetKutusu('Ertelendi', sayiYaz(tamsayi(st['deferred'])), ikon: Simgeler.update, renk: tamsayi(st['deferred']) > 0 ? Marka.kehribar : null),
+        OzetKutusu('Bekletiliyor', sayiYaz(tamsayi(st['held'])), ikon: Simgeler.pauseCircleOutline),
         OzetKutusu(
           'En eski',
           yasYaz(yas),
           alt: tamZaman(tarihOku(st['oldest'])),
-          ikon: Icons.hourglass_bottom_rounded,
+          ikon: Simgeler.hourglassBottom,
           renk: (yas ?? 0) > 6 * 3600 ? Marka.gul : null,
         ),
-        OzetKutusu('Giden / gelen', '${tamsayi(st['outbound'])} / ${tamsayi(st['inbound'])}', ikon: Icons.swap_vert_rounded),
+        OzetKutusu('Giden / gelen', '${tamsayi(st['outbound'])} / ${tamsayi(st['inbound'])}', ikon: Simgeler.swapVert),
       ],
     );
   }
@@ -276,13 +277,13 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
               'Yalnızca alan adlarınıza ait kuyruk kayıtları gösterilir.${Uyg.musteri ? ' İletilerinizi yeniden deneyebilirsiniz; bekletme ve silme platform yöneticisindedir.' : ''}',
             ),
           ),
-        if (y != null && y.istatistikVar) Padding(padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 0), child: _ozet(context)),
+        if (y != null && y.istatistikVar) Padding(padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 0), child: _ozet(context)),
         if (y != null && y.hataSayilari.isNotEmpty)
           Padding(
-            padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 0),
+            padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 0),
             child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: 8,
+              runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text('Erteleme nedenleri:', style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600)),
@@ -303,19 +304,19 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
           sag: y == null
               ? null
               : Padding(
-                  padding: const EdgeInsets.only(left: 10),
+                  padding: const EdgeInsets.only(left: 8),
                   child: Text('${sayiYaz(y.eslesen)} eşleşen', style: TextStyle(color: r.silik, fontSize: 12.5)),
                 ),
           filtreler: [
-            dugme('Yön', yonler, _yon, (v) => _yon = v, ikon: Icons.swap_vert_rounded),
-            dugme('Durum', durumlar, _durum, (v) => _durum = v, ikon: Icons.flag_outlined),
-            dugme('Sınıf', siniflar, _sinif, (v) => _sinif = v, ikon: Icons.category_outlined),
-            if (hataEt.isNotEmpty) dugme('Hata sınıfı', hataEt, _hataSinifi, (v) => _hataSinifi = v, ikon: Icons.error_outline_rounded),
-            dugme('Yaş', yaslar, _yas, (v) => _yas = v, ikon: Icons.hourglass_bottom_rounded),
-            dugme('Boyut', boyutlar, _boyut, (v) => _boyut = v, ikon: Icons.straighten_rounded),
+            dugme('Yön', yonler, _yon, (v) => _yon = v, ikon: Simgeler.swapVert),
+            dugme('Durum', durumlar, _durum, (v) => _durum = v, ikon: Simgeler.flag),
+            dugme('Sınıf', siniflar, _sinif, (v) => _sinif = v, ikon: Simgeler.category),
+            if (hataEt.isNotEmpty) dugme('Hata sınıfı', hataEt, _hataSinifi, (v) => _hataSinifi = v, ikon: Simgeler.errorOutline),
+            dugme('Yaş', yaslar, _yas, (v) => _yas = v, ikon: Simgeler.hourglassBottom),
+            dugme('Boyut', boyutlar, _boyut, (v) => _boyut = v, ikon: Simgeler.straighten),
             if (!Uyg.musteri)
               ActionChip(
-                avatar: const Icon(Icons.business_rounded, size: 16),
+                avatar: const Icon(SimgelerKalin.business, size: 16),
                 label: Text(_orgId == null ? 'Müşteri' : 'Müşteriyi değiştir'),
                 onPressed: () async {
                   final o = await musteriSec(context);
@@ -328,14 +329,14 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
                 },
               ),
             ActionChip(
-              avatar: const Icon(Icons.language_rounded, size: 16),
+              avatar: const Icon(SimgelerKalin.language, size: 16),
               label: const Text('Hedef alan adı'),
               onPressed: () async {
                 final v = await metinSor(context, 'Hedef alan adı', ilk: _alan, ipucu: 'ornek.com', tamam: 'Süz');
                 if (v != null) _filtre(() => _alan = v.trim());
               },
             ),
-            dugme('Grupla', gruplar, _grup, (v) => _grup = v, ikon: Icons.workspaces_outline, tumu: 'Gruplama yok'),
+            dugme('Grupla', gruplar, _grup, (v) => _grup = v, ikon: Simgeler.workspaces, tumu: 'Gruplama yok'),
           ],
           etkinler: [
             if (_yon.isNotEmpty) EtkinFiltre('Yön: ${yonler[_yon]}', () => _filtre(() => _yon = '')),
@@ -352,15 +353,15 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
                 });
               }),
             if (_alan.isNotEmpty) EtkinFiltre('Alan adı: $_alan', () => _filtre(() => _alan = '')),
-            if (_grup.isNotEmpty) EtkinFiltre('Gruplama: ${gruplar[_grup]}', () => _filtre(() => _grup = ''), ikon: Icons.workspaces_outline),
+            if (_grup.isNotEmpty) EtkinFiltre('Gruplama: ${gruplar[_grup]}', () => _filtre(() => _grup = ''), ikon: Simgeler.workspaces),
           ],
         ),
         if (_grup.isNotEmpty && gruplarListe.isNotEmpty)
           Padding(
             padding: EdgeInsets.fromLTRB(yatay, 0, yatay, 8),
             child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 for (final g in gruplarListe.take(30))
                   ActionChip(
@@ -387,8 +388,8 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
           ),
         if (_yazabilir && eslesen > 0)
           Container(
-            margin: EdgeInsets.fromLTRB(yatay, 0, yatay, 6),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            margin: EdgeInsets.fromLTRB(yatay, 0, yatay, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(color: r.ic.withValues(alpha: .6), borderRadius: BorderRadius.circular(12)),
             child: Wrap(
               spacing: 4,
@@ -397,11 +398,11 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
               children: [
                 Text(secili.isEmpty ? 'Seçim yok' : '${secili.length} seçili', style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600)),
                 if (secili.isNotEmpty) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   ..._topluDugmeler('Seçilenler', () => (kimlikler: secili, tumu: false)),
                   TextButton(onPressed: () => setState(_secim.clear), child: const Text('Seçimi temizle')),
                 ],
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 ..._topluDugmeler('Eşleşen tümü (${sayiYaz(eslesen)})', () => (kimlikler: const <String>[], tumu: true)),
               ],
             ),
@@ -421,12 +422,12 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
       label: Text(e),
     );
     return [
-      Text('$etiket:', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-      d(Icons.replay_rounded, 'Yeniden dene', 'retry'),
+      Text('$etiket:', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+      d(Simgeler.replay, 'Yeniden dene', 'retry'),
       if (_yonetir) ...[
-        d(Icons.pause_rounded, 'Beklet', 'hold'),
-        d(Icons.play_arrow_rounded, 'Serbest bırak', 'release'),
-        d(Icons.delete_outline_rounded, 'Sil', 'delete', tehlikeli: true),
+        d(Simgeler.pause, 'Beklet', 'hold'),
+        d(Simgeler.playArrow, 'Serbest bırak', 'release'),
+        d(Simgeler.deleteOutline, 'Sil', 'delete', tehlikeli: true),
       ],
     ];
   }
@@ -445,7 +446,7 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
     String altSatir(KuyrukOgesi o) => o.frenNedeni.isNotEmpty
         ? 'Güvenlik freni: ${o.frenNedeni}'
         : (o.sonHata.isNotEmpty ? '${hataEt[o.hataSinifi] ?? o.hataSinifi}: ${o.sonHata}' : '→ ${_alicilar(o)}');
-    Widget yonIkonu(KuyrukOgesi o) => Icon(o.giden ? Icons.north_east_rounded : Icons.south_west_rounded, size: 18, color: o.giden ? Marka.mavi : Marka.zumrut);
+    Widget yonIkonu(KuyrukOgesi o) => Icon(o.giden ? Simgeler.northEast : Simgeler.southWest, size: 18, color: o.giden ? Marka.mavi : Marka.zumrut);
     final bos = (_q + _yon + _durum + _hataSinifi + _sinif + _yas + _boyut + _alan + (_orgId ?? '')).isEmpty;
     return VeriTablosu<KuyrukOgesi>(
       yukleyici: _y,
@@ -454,7 +455,7 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
       secili: (o) => _secim.contains(o.kimlik),
       vurgulu: (o) => o.frenNedeni.isNotEmpty,
       tabloEnAz: 820,
-      bosIkon: Icons.done_all_rounded,
+      bosIkon: Simgeler.doneAll,
       bosMetin: bos ? 'Kuyruk boş: tüm kabul edilen iletiler teslim edildi.' : 'Eşleşen ileti yok. Filtreleri değiştirin.',
       ust: _ust(context),
       sutunlar: [
@@ -469,8 +470,8 @@ class _KuyrukListesiState extends State<KuyrukListesi> with AutomaticKeepAliveCl
               Row(
                 children: [
                   yonIkonu(o),
-                  const SizedBox(width: 6),
-                  if (o.sinif == 'bulk') ...[Rozet('Toplu', renk: r.birincil), const SizedBox(width: 6)],
+                  const SizedBox(width: 8),
+                  if (o.sinif == 'bulk') ...[Rozet('Toplu', renk: r.birincil), const SizedBox(width: 8)],
                   Expanded(
                     child: Text(o.gonderen.isEmpty ? '<>' : o.gonderen, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                   ),

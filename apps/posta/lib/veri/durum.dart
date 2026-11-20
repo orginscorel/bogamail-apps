@@ -132,7 +132,7 @@ class PostaDurum extends ChangeNotifier {
   (IconData, Color?) gorsel(Konum k) => switch (k.tur) {
     KonumTur.klasor => (klasorSimgesi(klasor(k.id)?.rol), klasorRengi(klasor(k.id)?.rol)),
     KonumTur.gorunum => (gorunumSimgesi(k.id), gorunumRengi(k.id)),
-    KonumTur.etiket => (Icons.label_rounded, etiketRengi(etiket(k.id)?.renk ?? 'gray')),
+    KonumTur.etiket => (Simge.etiket, etiketRengi(etiket(k.id)?.renk ?? 'gray')),
     KonumTur.birlesik => (gorunumSimgesi('unified'), null),
   };
 
@@ -176,7 +176,7 @@ class PostaDurum extends ChangeNotifier {
         klasorler = o.$1;
         etiketler = o.$2;
         yuklendi = true;
-        konum ??= rolu('inbox') != null ? Konum.klasor(rolu('inbox')!.id) : null;
+        konum ??= _baslangicKonumu();
         notifyListeners();
       }
     }
@@ -185,7 +185,7 @@ class PostaDurum extends ChangeNotifier {
       klasorler = r[0] as List<Klasor>;
       etiketler = r[1] as List<Etiket>;
       yuklendi = true;
-      konum ??= rolu('inbox') != null ? Konum.klasor(rolu('inbox')!.id) : null;
+      konum ??= _baslangicKonumu();
       _rozet();
       notifyListeners();
     } catch (e) {
@@ -233,6 +233,20 @@ class PostaDurum extends ChangeNotifier {
   }
 
   void _rozet() => Push.rozet(rolu('inbox')?.okunmamis ?? 0);
+
+  /// Hesap geçişinde korunacak yer: klasör rolü (inbox→inbox) ya da görünüm/birleşik. İlk konum seçilirken tüketilir.
+  String? gecisRolu;
+  Konum? gecisKonumu;
+
+  Konum? _baslangicKonumu() {
+    final g = gecisKonumu;
+    final rl = gecisRolu;
+    gecisKonumu = null;
+    gecisRolu = null;
+    if (g != null) return g;
+    final k = (rl != null ? rolu(rl) : null) ?? rolu('inbox');
+    return k != null ? Konum.klasor(k.id) : null;
+  }
 
   void git(Konum k) {
     if (konum == k) return;

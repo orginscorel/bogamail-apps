@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:dio_http2_adapter/dio_http2_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -88,6 +90,11 @@ class BogaApi {
         validateStatus: (_) => true,
       ),
     );
+    // HTTP/2 (sunucu h2 sunar): paralel istekler (liste, ileti, önyükleme, görseller) tek bağlantıda çoğullanır,
+    // her istek için yeni TLS el sıkışması yapılmaz. ALPN ile h2 yoksa HTTP/1.1 bağdaştırıcısına düşülür.
+    if (!kIsWeb) {
+      dio.httpClientAdapter = Http2Adapter(ConnectionManager(idleTimeout: const Duration(seconds: 45)), fallbackAdapter: IOHttpClientAdapter());
+    }
     dio.interceptors.add(CookieManager(_jar));
     dio.interceptors.add(
       InterceptorsWrapper(

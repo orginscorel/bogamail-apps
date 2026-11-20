@@ -199,6 +199,25 @@ class Posta {
   }
 
   /// Bellekteki ileti (ilk karede, eşzamanlı).
+  /// Konuşma (eskiden yeniye): aynı Message-ID/In-Reply-To/References zincirindeki iletiler.
+  static Future<List<IletiOzet>> konusma(String id) async {
+    final v = await _api.get('/api/v1/mail/messages/$id/thread');
+    unawaited(Onbellek.ben.yaz('konusma:$id', v));
+    return _konusmaListesi(v);
+  }
+
+  static List<IletiOzet>? konusmaHemen(String id) {
+    final v = Onbellek.ben.hemen('konusma:$id');
+    return v == null ? null : _konusmaListesi(v);
+  }
+
+  static Future<List<IletiOzet>?> konusmaOnbellek(String id) async {
+    final v = await Onbellek.ben.oku('konusma:$id');
+    return v == null ? null : _konusmaListesi(v);
+  }
+
+  static List<IletiOzet> _konusmaListesi(Object? v) => ((v is Map ? v['items'] : null) as List? ?? const []).map(IletiOzet.json).toList();
+
   static IletiDetay? iletiHemen(String id) {
     final v = Onbellek.ben.hemen('ileti:$id');
     return v == null ? null : IletiDetay.json(v);

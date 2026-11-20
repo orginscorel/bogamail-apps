@@ -12,7 +12,7 @@ Future<void> izinReddedildi(BuildContext context, {required bool kamera}) async 
   await showDialog<void>(
     context: context,
     builder: (c) => AlertDialog(
-      icon: Icon(kamera ? Icons.no_photography_outlined : Icons.hide_image_outlined),
+      icon: Icon(kamera ? Simge.gorselYok : Simge.gorselGizle),
       title: Text(kamera ? 'Kamera izni gerekli' : 'Fotoğraf izni gerekli'),
       content: Text(
         'BogaMail\'in $ne erişim izni kapalı. İletiye ${kamera ? 'çektiğiniz fotoğraf ve videoları' : 'galerinizden fotoğraf ve video'} '

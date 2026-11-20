@@ -13,6 +13,7 @@ import 'alan_detay.dart';
 import 'bolumler.dart';
 import 'liste_ortak.dart';
 import 'posta_kutulari.dart';
+import '../ortak/simgeler.dart';
 
 /// Alan adları: sıralanabilir tablo (telefonda kartlar), mod / müşteri filtreleri, paket alan adı kotası,
 /// satır menüsü ve sağdan açılan ayrıntı paneli (DNS, DKIM, gateway hedefi, posta programı ayarları).
@@ -139,14 +140,14 @@ class _AlanAdlariEkraniState extends State<AlanAdlariEkrani> {
   List<SatirEylemi> _eylemler(AlanAdi a) {
     final yonetir = Uyg.yetki('domains.manage');
     return [
-      SatirEylemi(Icons.dns_outlined, 'DNS kayıtları ve ayrıntı', () => _ac(a)),
-      if (a.hosting && Bolum.kutular.gorunur) SatirEylemi(Icons.inbox_rounded, 'Posta kutuları', () => _kutular(a)),
-      if (!Uyg.musteri && _orgId == null) SatirEylemi(Icons.filter_alt_outlined, 'Bu müşteriye göre süz', () => _musteriSuz(a.orgId, a.orgAdi)),
+      SatirEylemi(Simgeler.dns, 'DNS kayıtları ve ayrıntı', () => _ac(a)),
+      if (a.hosting && Bolum.kutular.gorunur) SatirEylemi(Simgeler.inbox, 'Posta kutuları', () => _kutular(a)),
+      if (!Uyg.musteri && _orgId == null) SatirEylemi(Simgeler.filterAlt, 'Bu müşteriye göre süz', () => _musteriSuz(a.orgId, a.orgAdi)),
       if (Uyg.ortak && yonetir)
         a.durum == 'suspended'
-            ? SatirEylemi(Icons.play_circle_outline_rounded, 'Askıyı kaldır', () => _durum(a, 'pending'))
-            : SatirEylemi(Icons.pause_circle_outline_rounded, 'Askıya al', () => _durum(a, 'suspended')),
-      if (yonetir) SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(a), tehlikeli: true),
+            ? SatirEylemi(Simgeler.playCircleOutline, 'Askıyı kaldır', () => _durum(a, 'pending'))
+            : SatirEylemi(Simgeler.pauseCircleOutline, 'Askıya al', () => _durum(a, 'suspended')),
+      if (yonetir) SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(a), tehlikeli: true),
     ];
   }
 
@@ -168,7 +169,7 @@ class _AlanAdlariEkraniState extends State<AlanAdlariEkrani> {
           setState(() => _mod = '');
           _y.yenile();
         }),
-      if (_orgId != null && !Uyg.musteri) EtkinFiltre('Müşteri: ${_orgAdi ?? 'seçili'}', () => _musteriSuz(null, null), ikon: Icons.business_rounded),
+      if (_orgId != null && !Uyg.musteri) EtkinFiltre('Müşteri: ${_orgAdi ?? 'seçili'}', () => _musteriSuz(null, null), ikon: Simgeler.business),
     ];
     return Iskelet(
       baslik: widget.orgAdi == null ? 'Alan Adları' : '${widget.orgAdi} · Alan adları',
@@ -177,7 +178,7 @@ class _AlanAdlariEkraniState extends State<AlanAdlariEkrani> {
           : 'Barındırılan ve gateway modundaki alan adları',
       yenile: _yenile,
       birincil: yonetir
-          ? BirincilEylem(Icons.add_rounded, 'Alan adı ekle', () {
+          ? BirincilEylem(Simgeler.add, 'Alan adı ekle', () {
               if (dolu) {
                 bildir('Paket sınırına ulaşıldı', mesaj: 'Paketin alan adı sınırı dolu; yeni alan adı için paket yükseltilmeli.', tur: MesajTur.uyari);
                 return;
@@ -199,7 +200,7 @@ class _AlanAdlariEkraniState extends State<AlanAdlariEkrani> {
         onTap: _ac,
         eylemler: _eylemler,
         bosMetin: _q.isEmpty && etkin.isEmpty ? 'Henüz alan adı yok. Bir müşteriye alan adı ekleyerek başlayın.' : 'Eşleşen alan adı yok.',
-        bosIkon: Icons.language_rounded,
+        bosIkon: Simgeler.language,
         ust: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -218,7 +219,7 @@ class _AlanAdlariEkraniState extends State<AlanAdlariEkrani> {
                 if (_ikiMod)
                   FiltreDugmesi<String>(
                     etiket: 'Mod',
-                    ikon: Icons.alt_route_rounded,
+                    ikon: Simgeler.altRoute,
                     secenekler: const [('', 'Tümü'), ('hosting', 'Hosting'), ('gateway', 'Gateway')],
                     secili: _mod,
                     secildi: (v) {
@@ -228,7 +229,7 @@ class _AlanAdlariEkraniState extends State<AlanAdlariEkrani> {
                   ),
                 if (!Uyg.musteri)
                   ActionChip(
-                    avatar: const Icon(Icons.business_rounded, size: 16),
+                    avatar: const Icon(SimgelerKalin.business, size: 16),
                     label: Text(_orgId == null ? 'Müşteri seç' : 'Müşteriyi değiştir'),
                     onPressed: () async {
                       final o = await musteriSec(context);
@@ -274,7 +275,7 @@ class ModRozeti extends StatelessWidget {
   final bool hosting;
   @override
   Widget build(BuildContext context) =>
-      Rozet(hosting ? 'Hosting' : 'Gateway', renk: hosting ? context.r.birincil : Marka.mavi, ikon: hosting ? Icons.dns_rounded : Icons.alt_route_rounded);
+      Rozet(hosting ? 'Hosting' : 'Gateway', renk: hosting ? context.r.birincil : Marka.mavi, ikon: hosting ? Simgeler.dns : Simgeler.altRoute);
 }
 
 /// Müşterinin paket alan adı kotası (GET /organizations/{id}/entitlements): kullanılan, sınır, izinli modlar.
@@ -314,12 +315,12 @@ class AlanKotaCubugu extends StatelessWidget {
     final r = context.r;
     final s = k.sinir;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       decoration: BoxDecoration(color: r.kart, borderRadius: BorderRadius.circular(14), border: Border.all(color: r.kenar)),
       child: Row(
         children: [
-          Icon(Icons.language_rounded, size: 18, color: r.birincil),
-          const SizedBox(width: 10),
+          Icon(Simgeler.language, size: 18, color: r.birincil),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -332,7 +333,7 @@ class AlanKotaCubugu extends StatelessWidget {
                     Text.rich(
                       TextSpan(
                         children: [
-                          TextSpan(text: '${k.kullanilan}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                          TextSpan(text: '${k.kullanilan}', style: const TextStyle(fontWeight: FontWeight.w600)),
                           TextSpan(text: ' / ${s ?? 'sınırsız'} alan adı${k.paket.isEmpty ? '' : ' · ${k.paket} paketi'}', style: TextStyle(color: r.soluk)),
                         ],
                       ),
@@ -348,7 +349,7 @@ class AlanKotaCubugu extends StatelessWidget {
                   ],
                 ),
                 if (s != null && s > 0) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
@@ -378,7 +379,7 @@ class _AlanIkonu extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(color: r.birincilYumusak, borderRadius: BorderRadius.circular(12)),
-      child: Icon(a.hosting ? Icons.dns_rounded : Icons.alt_route_rounded, color: r.birincil, size: 20),
+      child: Icon(a.hosting ? Simgeler.dns : Simgeler.altRoute, color: r.birincil, size: 20),
     );
   }
 }
@@ -388,9 +389,9 @@ class DnsRozeti extends StatelessWidget {
   final String durum;
   @override
   Widget build(BuildContext context) => switch (durum) {
-    'ok' => const Rozet('DNS tamam', renk: Marka.zumrut, ikon: Icons.check_circle_rounded),
-    'issues' => const Rozet('DNS sorunu', renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
-    _ => Rozet('Denetlenmedi', renk: context.r.silik, ikon: Icons.radio_button_unchecked_rounded),
+    'ok' => const Rozet('DNS tamam', renk: Marka.zumrut, ikon: Simgeler.checkCircle),
+    'issues' => const Rozet('DNS sorunu', renk: Marka.kehribar, ikon: Simgeler.warningAmber),
+    _ => Rozet('Denetlenmedi', renk: context.r.silik, ikon: Simgeler.radioButtonUnchecked),
   };
 }
 
@@ -469,7 +470,7 @@ class _AlanEkleDialogState extends State<AlanEkleDialog> {
     final musteriGerekli = !Uyg.musteri;
     final hazir = _ad.text.trim().isNotEmpty && (!musteriGerekli || _orgId != null) && !_mesgul && !(_kota?.dolu ?? false);
     return AlertDialog(
-      title: Text('Alan adı ekle', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Alan adı ekle', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 440,
         child: SingleChildScrollView(
@@ -481,7 +482,7 @@ class _AlanEkleDialogState extends State<AlanEkleDialog> {
                 'Türkçe karakterli (IDN) alan adları desteklenir ve otomatik olarak punycode biçimine çevrilir.',
                 style: TextStyle(color: context.r.silik, fontSize: 13),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               if (musteriGerekli) ...[
                 SecimAlani(
                   etiket: 'Müşteri',
@@ -511,12 +512,12 @@ class _AlanEkleDialogState extends State<AlanEkleDialog> {
                 onSubmitted: (_) => hazir ? _kaydet() : null,
               ),
               if (_kota != null) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 if (_kota!.dolu)
                   Bant(
                     'Paketin alan adı sınırına ulaşıldı (${_kota!.kullanilan} / ${_kota!.sinir}). Yeni alan adı için paket yükseltilmeli.',
                     renk: Marka.kehribar,
-                    ikon: Icons.warning_amber_rounded,
+                    ikon: Simgeler.warningAmber,
                   )
                 else
                   Text(
@@ -525,21 +526,21 @@ class _AlanEkleDialogState extends State<AlanEkleDialog> {
                   ),
               ],
               if (_modlar.length > 1) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Text(
                   'Kullanım modu',
                   style: TextStyle(color: context.r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 SegmentedButton<String>(
                   segments: const [
-                    ButtonSegment(value: 'hosting', icon: Icon(Icons.dns_rounded), label: Text('Mail Hosting')),
-                    ButtonSegment(value: 'gateway', icon: Icon(Icons.alt_route_rounded), label: Text('MX Gateway')),
+                    ButtonSegment(value: 'hosting', icon: Icon(Simgeler.dns), label: Text('Mail Hosting')),
+                    ButtonSegment(value: 'gateway', icon: Icon(Simgeler.altRoute), label: Text('MX Gateway')),
                   ],
                   selected: {_etkinMod},
                   onSelectionChanged: (s) => setState(() => _mod = s.first),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   _etkinMod == 'hosting' ? 'Posta kutuları bizde barınır.' : 'Gelen posta spam/virüs taramasından sonra müşterinin kendi sunucusuna iletilir. Hedef sunucuyu alan adı ayrıntısından veya Mail Gateway sayfasından girin; hedef tanımlanana kadar posta geçici hatayla (451) ertelenir, kaybolmaz.',
                   style: TextStyle(color: context.r.silik, fontSize: 12.5),
@@ -547,7 +548,7 @@ class _AlanEkleDialogState extends State<AlanEkleDialog> {
               ],
               if (_hata != null && _alan != 'name' && _alan != 'organization_id') ...[
                 const SizedBox(height: 12),
-                Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ],
           ),

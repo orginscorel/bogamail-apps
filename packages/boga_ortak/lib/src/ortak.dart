@@ -1,3 +1,5 @@
+import 'simge.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -22,10 +24,10 @@ void bildir(String baslik, {String? mesaj, MesajTur tur = MesajTur.bilgi}) {
     MesajTur.bilgi => Marka.mor,
   };
   final ikon = switch (tur) {
-    MesajTur.basari => Icons.check_circle_rounded,
-    MesajTur.uyari => Icons.warning_amber_rounded,
-    MesajTur.hata => Icons.error_rounded,
-    MesajTur.bilgi => Icons.info_rounded,
+    MesajTur.basari => Simge.basari,
+    MesajTur.uyari => Simge.uyari,
+    MesajTur.hata => Simge.hataDolu,
+    MesajTur.bilgi => Simge.bilgiDolu,
   };
   m.hideCurrentSnackBar();
   m.showSnackBar(
@@ -76,7 +78,7 @@ Future<bool> onayla(BuildContext context, String baslik, {String? mesaj, String 
   final v = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
       content: mesaj == null ? null : Text(mesaj),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
@@ -97,7 +99,7 @@ Future<String?> metinSor(BuildContext context, String baslik, {String? ilk, Stri
   return showDialog<String>(
     context: context,
     builder: (c) => AlertDialog(
-      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
       content: TextField(
         controller: k,
         autofocus: true,
@@ -117,7 +119,7 @@ Future<String?> metinSor(BuildContext context, String baslik, {String? ilk, Stri
 class Durum extends StatelessWidget {
   const Durum.yukleniyor({super.key}) : hata = null, bos = null, ikon = null, tekrar = null;
   const Durum.hata(String this.hata, {super.key, this.tekrar}) : bos = null, ikon = null;
-  const Durum.bos(String this.bos, {super.key, this.ikon = Icons.inbox_rounded, this.tekrar}) : hata = null;
+  const Durum.bos(String this.bos, {super.key, this.ikon = Simge.gelen, this.tekrar}) : hata = null;
 
   final String? hata;
   final String? bos;
@@ -141,7 +143,7 @@ class Durum extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(color: h ? Marka.gul.withValues(alpha: .1) : r.birincilYumusak, shape: BoxShape.circle),
-              child: Icon(h ? Icons.cloud_off_rounded : ikon, size: 34, color: h ? Marka.gul : r.birincil),
+              child: Icon(h ? Simge.cevrimdisi : ikon, size: 34, color: h ? Marka.gul : r.birincil),
             ),
             const SizedBox(height: 16),
             Text(
@@ -151,7 +153,7 @@ class Durum extends StatelessWidget {
             ),
             if (tekrar != null) ...[
               const SizedBox(height: 16),
-              OutlinedButton.icon(onPressed: tekrar, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Tekrar dene')),
+              OutlinedButton.icon(onPressed: tekrar, icon: const Icon(Simge.yenile, size: 18), label: const Text('Tekrar dene')),
             ],
           ],
         ),
@@ -203,7 +205,7 @@ class Baslik extends StatelessWidget {
         Expanded(
           child: Text(
             trBuyukHarf(metin),
-            style: TextStyle(color: context.r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1),
+            style: TextStyle(color: context.r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 1),
           ),
         ),
         ?sag,

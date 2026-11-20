@@ -175,7 +175,7 @@ class _AvatarKartiState extends State<AvatarKarti> {
                   ? Image.memory(_resim!, fit: BoxFit.cover)
                   : Container(
                       color: r.ic,
-                      child: Icon(Icons.person_rounded, color: r.silik, size: 34),
+                      child: Icon(Simge.kisiDolu, color: r.silik, size: 34),
                     ),
             ),
           ),
@@ -184,17 +184,13 @@ class _AvatarKartiState extends State<AvatarKarti> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Profil resmi', style: gosterim(16, agirlik: FontWeight.w700)),
+                Text('Profil resmi', style: gosterim(16, agirlik: FontWeight.w600)),
                 Text('İletilerinizde ve kurum içi sohbette görünür.', style: TextStyle(color: r.soluk, fontSize: 12.5)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: _mesgul ? null : _sec,
-                      icon: const Icon(Icons.upload_rounded, size: 18),
-                      label: Text(_var ? 'Değiştir' : 'Yükle'),
-                    ),
+                    OutlinedButton.icon(onPressed: _mesgul ? null : _sec, icon: const Icon(Simge.yukle, size: 18), label: Text(_var ? 'Değiştir' : 'Yükle')),
                     if (_var)
                       TextButton(
                         onPressed: _mesgul

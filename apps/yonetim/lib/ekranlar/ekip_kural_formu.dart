@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../veri/bicim.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 // Kurum geneli otomatik yanıt kuralı (internal/api/autoreply_rules.go autoRule, autorules.Conditions).
 
@@ -175,7 +176,7 @@ class _EkipKuralDialogState extends State<EkipKuralDialog> {
       children: [
         Text(
           baslik,
-          style: TextStyle(color: context.r.soluk, fontSize: 12, fontWeight: FontWeight.w700),
+          style: TextStyle(color: context.r.soluk, fontSize: 12, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         ...c,
@@ -187,7 +188,7 @@ class _EkipKuralDialogState extends State<EkipKuralDialog> {
     decoration: InputDecoration(
       labelText: etiket,
       suffixIcon: temizle != null && deger.isNotEmpty
-          ? IconButton(tooltip: 'Temizle', icon: const Icon(Icons.close_rounded, size: 18), onPressed: temizle)
+          ? IconButton(tooltip: 'Temizle', icon: const Icon(Simgeler.close, size: 18), onPressed: temizle)
           : null,
     ),
     child: InkWell(onTap: onTap, child: Text(deger.isEmpty ? '—' : deger)),
@@ -210,7 +211,7 @@ class _EkipKuralDialogState extends State<EkipKuralDialog> {
                 'Gelen ileti koşullara uyarsa yanıt gönderilir. Toplu postalar, listeler, otomatik iletiler ve doğrudan alıcı olmayan iletiler (RFC 3834) yanıtlanmaz.',
                 style: TextStyle(color: r.soluk, fontSize: 12.5),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
@@ -225,7 +226,7 @@ class _EkipKuralDialogState extends State<EkipKuralDialog> {
                   const Text('Etkin'),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Autocomplete<String>(
                 initialValue: TextEditingValue(text: _departman.text),
                 optionsBuilder: (v) => widget.departmanlar.where((d) => d.toLowerCase().contains(v.text.toLowerCase())),
@@ -316,7 +317,7 @@ class _EkipKuralDialogState extends State<EkipKuralDialog> {
                 maxLength: 300,
                 decoration: const InputDecoration(labelText: 'Yanıt konusu (boş: "Otomatik yanıt: …")', counterText: ''),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               TextField(
                 controller: _govde,
                 minLines: 4,
@@ -325,7 +326,7 @@ class _EkipKuralDialogState extends State<EkipKuralDialog> {
               ),
               const SizedBox(height: 4),
               Text('Değişkenler: {{ad}}, {{unvan}}, {{departman}}, {{telefon}}, {{sirket}}, {{eposta}}', style: TextStyle(color: r.silik, fontSize: 12)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
@@ -338,7 +339,7 @@ class _EkipKuralDialogState extends State<EkipKuralDialog> {
                   ),
                 ),
               ),
-              if (_hata != null) ...[const SizedBox(height: 10), Text(_hata!, style: const TextStyle(color: Marka.gul))],
+              if (_hata != null) ...[const SizedBox(height: 8), Text(_hata!, style: const TextStyle(color: Marka.gul))],
             ],
           ),
         ),

@@ -8,6 +8,7 @@ import '../ortak/iskelet.dart';
 import '../oturum.dart';
 import '../veri/json.dart';
 import 'bolumler.dart';
+import '../ortak/simgeler.dart';
 
 /// Platform ayarları (web: /admin/settings): spam eşikleri, Exchange ActiveSync, platform boyut limitleri ve salt okunur
 /// sistem yapılandırması. GET /settings, /activesync/settings, /settings/limits. Yalnızca süper yönetici; müşteri/bayi
@@ -63,13 +64,13 @@ class _PlatformAyarlariEkraniState extends State<PlatformAyarlariEkrani> {
         icerik: (c, v, yenile) {
           final spam = harita(v.ayarlar['spam']);
           final sol = <Widget>[
-            if (!yazabilir) const Bant('Müşteri görünümündeyken platform ayarları değiştirilemez.', renk: Marka.kehribar, ikon: Icons.visibility_rounded),
+            if (!yazabilir) const Bant('Müşteri görünümündeyken platform ayarları değiştirilemez.', renk: Marka.kehribar, ikon: Simgeler.visibility),
             SpamAyarKarti(key: ValueKey(jsonEncode(spam)), spam: spam, yazabilir: yazabilir, kaydedildi: yenile),
             if (v.eas != null)
               ActiveSyncKarti(key: ValueKey(jsonEncode(v.eas)), veri: v.eas!, kaydedildi: yenile)
             else
               BolumKarti(
-                ikon: Icons.smartphone_rounded,
+                ikon: Simgeler.smartphone,
                 baslik: 'Exchange ActiveSync (mobil eşitleme)',
                 child: Text(v.easHata ?? '', style: const TextStyle(color: Marka.gul)),
               ),
@@ -79,7 +80,7 @@ class _PlatformAyarlariEkraniState extends State<PlatformAyarlariEkrani> {
               BoyutLimitleriKarti(key: ValueKey(jsonEncode(v.limitler)), veri: v.limitler!, yazabilir: yazabilir && Uyg.platformYoneticisi, kaydedildi: yenile)
             else
               BolumKarti(
-                ikon: Icons.straighten_rounded,
+                ikon: Simgeler.straighten,
                 baslik: 'Boyut limitleri (platform varsayılanı)',
                 child: Text(v.limitHata ?? '', style: const TextStyle(color: Marka.gul)),
               ),
@@ -135,7 +136,7 @@ Widget _kaydetDugmesi({required bool mesgul, required VoidCallback? onPressed}) 
   alignment: Alignment.centerLeft,
   child: FilledButton.icon(
     onPressed: mesgul ? null : onPressed,
-    icon: mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_rounded),
+    icon: mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Simgeler.save),
     label: const Text('Kaydet'),
   ),
 );
@@ -211,7 +212,7 @@ class _SpamAyarKartiState extends State<SpamAyarKarti> {
       ),
     );
     return BolumKarti(
-      ikon: Icons.gpp_maybe_rounded,
+      ikon: Simgeler.gppMaybe,
       baslik: 'Spam filtresi',
       altBaslik: 'Puan ≥ Gereksiz eşiği → Gereksiz klasörü; ≥ Ret eşiği → SMTP aşamasında 550 ile ret (ileti saklanmaz).',
       child: Column(
@@ -226,7 +227,7 @@ class _SpamAyarKartiState extends State<SpamAyarKarti> {
           const SizedBox(height: 4),
           Wrap(spacing: 16, runSpacing: 12, children: [alan(_gereksiz, 'Gereksiz eşiği'), alan(_ret, 'Ret eşiği')]),
           _HataMetni(_hata),
-          if (y) ...[const SizedBox(height: 14), _kaydetDugmesi(mesgul: _mesgul, onPressed: _kaydet)],
+          if (y) ...[const SizedBox(height: 16), _kaydetDugmesi(mesgul: _mesgul, onPressed: _kaydet)],
         ],
       ),
     );
@@ -290,7 +291,7 @@ class _ActiveSyncKartiState extends State<ActiveSyncKarti> {
     final aciliyor = _etkin && !mantik(v['enabled']);
     final not = metin(v['license_note'], _easLisansNotu);
     return BolumKarti(
-      ikon: Icons.smartphone_rounded,
+      ikon: Simgeler.smartphone,
       baslik: 'Exchange ActiveSync (mobil eşitleme)',
       altBaslik:
           'Telefonların "Exchange" hesabıyla posta, takvim ve kişileri eşitlemesi. Kapalıyken uç nokta yanıt vermez (404) ve otomatik keşif ActiveSync önermez.',
@@ -300,7 +301,7 @@ class _ActiveSyncKartiState extends State<ActiveSyncKarti> {
           Bant(
             '$not. Protokol Microsoft Open Specifications ([MS-ASCMD] vb.) belgelerine göre uygulandı; ticari satıştan önce lisans durumunu değerlendirin.',
             renk: Marka.kehribar,
-            ikon: Icons.warning_amber_rounded,
+            ikon: Simgeler.warningAmber,
           ),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
@@ -339,7 +340,7 @@ class _ActiveSyncKartiState extends State<ActiveSyncKarti> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: () => bolumeGit(Bolum.cihazlar),
-              icon: const Icon(Icons.smartphone_rounded, size: 18),
+              icon: const Icon(Simgeler.smartphone, size: 18),
               label: const Text('Mobil cihazlar'),
             ),
           ),
@@ -533,7 +534,7 @@ class _BoyutLimitleriKartiState extends State<BoyutLimitleriKarti> {
     }
 
     return BolumKarti(
-      ikon: Icons.straighten_rounded,
+      ikon: Simgeler.straighten,
       baslik: 'Boyut limitleri (platform varsayılanı)',
       altBaslik:
           'Paket, müşteri veya posta kutusu düzeyinde ayrıca tanımlanmadıkça geçerli olan değerler.${y ? '' : ' Yalnızca süper yönetici değiştirebilir.'}',
@@ -552,7 +553,7 @@ class _BoyutLimitleriKartiState extends State<BoyutLimitleriKarti> {
             style: TextStyle(color: r.silik, fontSize: 12),
           ),
           _HataMetni(_hata),
-          if (y) ...[const SizedBox(height: 14), _kaydetDugmesi(mesgul: _mesgul, onPressed: _kaydet)],
+          if (y) ...[const SizedBox(height: 16), _kaydetDugmesi(mesgul: _mesgul, onPressed: _kaydet)],
         ],
       ),
     );
@@ -580,7 +581,7 @@ class SistemYapilandirmasiKarti extends StatelessWidget {
     final ipler = metinler(s['public_ips']);
     String yaDaKapali(Object? v) => metin(v).isEmpty ? 'kapalı' : metin(v);
     return BolumKarti(
-      ikon: Icons.tune_rounded,
+      ikon: Simgeler.tune,
       baslik: 'Sistem yapılandırması',
       altBaslik: 'Sunucu ortam değişkenlerinden (.env) okunur; güvenlik nedeniyle panelden değiştirilemez.',
       child: Column(

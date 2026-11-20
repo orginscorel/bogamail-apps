@@ -6,9 +6,10 @@ import 'package:intl/intl.dart';
 
 import 'ekranlar/kabuk.dart';
 import 'oturum.dart';
+import 'veri/arkaplan.dart';
 import 'veri/tercihler.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   kimlikAyarla(Kimlik.yonetim);
   await initializeDateFormatting('tr_TR');
@@ -16,6 +17,7 @@ Future<void> main() async {
   await temaYukle();
   await Uyg.api.baslat();
   Uyg.api.oturumDustu = Uyg.oturumDustu;
+  await Arkaplan.uygulamaAcildi(args);
   runApp(const YonetimUygulamasi());
 }
 

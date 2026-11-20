@@ -10,9 +10,9 @@ import '../../veri/takvim_servisi.dart';
 import 'etkinlik_duzenleyici.dart';
 
 enum TakvimGorunumu {
-  ay('Ay', Icons.calendar_view_month_rounded),
-  hafta('Hafta', Icons.calendar_view_week_rounded),
-  ajanda('Ajanda', Icons.view_agenda_outlined);
+  ay('Ay', Simge.ay),
+  hafta('Hafta', Simge.hafta),
+  ajanda('Ajanda', Simge.ajanda);
 
   const TakvimGorunumu(this.ad, this.ikon);
   final String ad;
@@ -185,7 +185,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
     final r = context.r;
     Widget govde;
     if (_kapali) {
-      govde = Durum.bos(_hata ?? 'Takvim paketinizde kapalı.', ikon: Icons.event_busy_outlined);
+      govde = Durum.bos(_hata ?? 'Takvim paketinizde kapalı.', ikon: Simge.etkinlikIptal);
     } else if (_hata != null && _etkinlikler.isEmpty) {
       govde = Durum.hata(_hata!, tekrar: _yukle);
     } else {
@@ -216,7 +216,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
                 ),
             ],
           ),
-          IconButton(tooltip: 'Takvimlerim', icon: const Icon(Icons.tune_rounded), onPressed: _kapali ? null : _takvimleriYonet),
+          IconButton(tooltip: 'Takvimlerim', icon: const Icon(Simge.ayarlarInce), onPressed: _kapali ? null : _takvimleriYonet),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
@@ -224,16 +224,16 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
             child: Row(
               children: [
-                IconButton(tooltip: 'Önceki', icon: const Icon(Icons.chevron_left_rounded), onPressed: () => _kaydir(-1)),
+                IconButton(tooltip: 'Önceki', icon: const Icon(Simge.geriOk), onPressed: () => _kaydir(-1)),
                 Expanded(
                   child: Text(
                     _baslik,
                     key: const ValueKey('takvim-baslik'),
                     textAlign: TextAlign.center,
-                    style: gosterim(17, agirlik: FontWeight.w700),
+                    style: gosterim(17, agirlik: FontWeight.w600),
                   ),
                 ),
-                IconButton(tooltip: 'Sonraki', icon: const Icon(Icons.chevron_right_rounded), onPressed: () => _kaydir(1)),
+                IconButton(tooltip: 'Sonraki', icon: const Icon(Simge.ileri), onPressed: () => _kaydir(1)),
               ],
             ),
           ),
@@ -241,7 +241,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
       ),
       floatingActionButton: _kapali
           ? null
-          : FloatingActionButton.extended(onPressed: () => _yeni(), icon: const Icon(Icons.add_rounded), label: const Text('Etkinlik')),
+          : FloatingActionButton.extended(onPressed: () => _yeni(), icon: const Icon(Simge.ekle), label: const Text('Etkinlik')),
       body: Column(
         children: [
           if (_yukleniyor) LinearProgressIndicator(minHeight: 2, color: r.vurgu) else const SizedBox(height: 2),
@@ -272,7 +272,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
                       child: Text(
                         g,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: r.silik),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: r.silik),
                       ),
                     ),
                   ),
@@ -315,7 +315,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
                                       '${g.day}',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        fontWeight: bugunMu || secili ? FontWeight.w800 : FontWeight.w500,
+                                        fontWeight: bugunMu || secili ? FontWeight.w600 : FontWeight.w500,
                                         color: bugunMu ? Colors.white : (buAy ? r.metin : r.silik),
                                       ),
                                     ),
@@ -372,7 +372,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
               izgara,
               Padding(
                 padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
-                child: Text(DateFormat('d MMMM EEEE', 'tr_TR').format(_secili), style: gosterim(16, agirlik: FontWeight.w700)),
+                child: Text(DateFormat('d MMMM EEEE', 'tr_TR').format(_secili), style: gosterim(16, agirlik: FontWeight.w600)),
               ),
               if (secilenler.isEmpty)
                 Padding(
@@ -414,7 +414,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
                           children: [
                             Text(
                               DateFormat('EEE', 'tr_TR').format(g),
-                              style: TextStyle(fontSize: 12, color: bugunMu ? r.vurgu : r.silik, fontWeight: FontWeight.w700),
+                              style: TextStyle(fontSize: 12, color: bugunMu ? r.vurgu : r.silik, fontWeight: FontWeight.w600),
                             ),
                             Container(
                               width: 36,
@@ -423,7 +423,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
                               decoration: bugunMu ? BoxDecoration(color: r.vurgu, shape: BoxShape.circle) : null,
                               child: Text(
                                 '${g.day}',
-                                style: gosterim(18, agirlik: FontWeight.w700, renk: bugunMu ? Colors.white : r.metin),
+                                style: gosterim(18, agirlik: FontWeight.w600, renk: bugunMu ? Colors.white : r.metin),
                               ),
                             ),
                           ],
@@ -470,7 +470,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
         child: ListView(
           children: const [
             SizedBox(height: 80),
-            Durum.bos('Önümüzdeki 60 günde etkinlik yok.', ikon: Icons.event_available_outlined),
+            Durum.bos('Önümüzdeki 60 günde etkinlik yok.', ikon: Simge.etkinlikOnay),
           ],
         ),
       );
@@ -489,7 +489,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
               padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
               child: Text(
                 _ayniGun(g.key, simdi) ? 'Bugün · ${DateFormat('d MMMM', 'tr_TR').format(g.key)}' : DateFormat('d MMMM EEEE', 'tr_TR').format(g.key),
-                style: TextStyle(fontWeight: FontWeight.w800, color: _ayniGun(g.key, simdi) ? r.vurgu : r.soluk),
+                style: TextStyle(fontWeight: FontWeight.w600, color: _ayniGun(g.key, simdi) ? r.vurgu : r.soluk),
               ),
             ),
             for (final e in g.value) EtkinlikKarti(etkinlik: e, gun: g.key, ac: () => _ac(e)),
@@ -552,7 +552,7 @@ class EtkinlikKarti extends StatelessWidget {
                         children: [
                           Text(
                             e.baslik,
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: r.metin),
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: r.metin),
                           ),
                           const SizedBox(height: 3),
                           Wrap(
@@ -560,10 +560,10 @@ class EtkinlikKarti extends StatelessWidget {
                             runSpacing: 2,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              _bilgi(context, Icons.schedule_rounded, etkinlikSaati(e, gun)),
-                              if (e.yer.isNotEmpty) _bilgi(context, Icons.place_outlined, e.yer),
-                              if (e.tekrar.isNotEmpty) _bilgi(context, Icons.repeat_rounded, tekrarAdlari[e.tekrar] ?? ''),
-                              if (e.katilimcilar.isNotEmpty) _bilgi(context, Icons.people_outline_rounded, '${e.katilimcilar.length} katılımcı'),
+                              _bilgi(context, Simge.saat, etkinlikSaati(e, gun)),
+                              if (e.yer.isNotEmpty) _bilgi(context, Simge.konum, e.yer),
+                              if (e.tekrar.isNotEmpty) _bilgi(context, Simge.tekrar, tekrarAdlari[e.tekrar] ?? ''),
+                              if (e.katilimcilar.isNotEmpty) _bilgi(context, Simge.kisilerGrup, '${e.katilimcilar.length} katılımcı'),
                             ],
                           ),
                         ],
@@ -632,7 +632,7 @@ class _TakvimlerEkraniState extends State<TakvimlerEkrani> {
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, yenile) => AlertDialog(
-          title: Text('Yeni takvim', style: gosterim(19, agirlik: FontWeight.w700)),
+          title: Text('Yeni takvim', style: gosterim(19, agirlik: FontWeight.w600)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -683,7 +683,7 @@ class _TakvimlerEkraniState extends State<TakvimlerEkrani> {
     final l = _l;
     return Scaffold(
       appBar: AppBar(title: const Text('Takvimlerim')),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Icons.add_rounded), label: const Text('Yeni takvim')),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Simge.ekle), label: const Text('Yeni takvim')),
       body: l == null
           ? (_hata != null ? Durum.hata(_hata!, tekrar: _yukle) : const Durum.yukleniyor())
           : ListView(
@@ -704,10 +704,10 @@ class _TakvimlerEkraniState extends State<TakvimlerEkrani> {
                           title: Text(t.ad, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: t.varsayilan ? const Text('Varsayılan takvim') : null,
                           secondary: t.varsayilan
-                              ? Icon(Icons.circle, color: takvimRengi(t.renk, context.r.vurgu))
+                              ? Icon(Simge.nokta, color: takvimRengi(t.renk, context.r.vurgu))
                               : IconButton(
                                   tooltip: 'Takvimi sil',
-                                  icon: const Icon(Icons.delete_outline_rounded),
+                                  icon: const Icon(Simge.sil),
                                   onPressed: () async {
                                     if (!await onayla(
                                       context,

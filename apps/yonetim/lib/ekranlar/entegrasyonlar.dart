@@ -7,6 +7,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../oturum.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 /// Entegrasyonlar (web: /admin/integrations): faturalama sistemi (WHMCS) API anahtarları. Yalnızca gerçek süper yönetici
 /// oturumu (sunucu: requirePlatform). Anahtar oluşturulunca bir kez gösterilir; iptal edilen anahtar hemen reddedilir.
@@ -121,7 +122,7 @@ class _EntegrasyonlarEkraniState extends State<EntegrasyonlarEkrani> {
       ),
     );
     return BolumKarti(
-      ikon: Icons.extension_rounded,
+      ikon: Simgeler.extension,
       baslik: 'WHMCS kurulumu',
       altBaslik: 'Modül: modules/servers/bogamail',
       child: Column(
@@ -150,7 +151,7 @@ class _EntegrasyonlarEkraniState extends State<EntegrasyonlarEkrani> {
 
   Widget _durum(BuildContext c, ApiAnahtari k) => k.iptalEdildi ? Rozet('İptal edildi', renk: c.r.silik) : const Rozet('Etkin', renk: Marka.zumrut);
 
-  List<SatirEylemi> _eylemler(ApiAnahtari k) => k.iptalEdildi ? const [] : [SatirEylemi(Icons.block_rounded, 'İptal et', () => _iptal(k), tehlikeli: true)];
+  List<SatirEylemi> _eylemler(ApiAnahtari k) => k.iptalEdildi ? const [] : [SatirEylemi(Simgeler.block, 'İptal et', () => _iptal(k), tehlikeli: true)];
 
   @override
   Widget build(BuildContext context) {
@@ -165,11 +166,11 @@ class _EntegrasyonlarEkraniState extends State<EntegrasyonlarEkrani> {
     final tablo = VeriTablosu<ApiAnahtari>(
       yukleyici: _y,
       bosMetin: 'Henüz anahtar yok. WHMCS modülünü bağlamak için bir anahtar oluşturun.',
-      bosIkon: Icons.key_rounded,
+      bosIkon: Simgeler.key,
       tabloEnAz: 640,
       ust: const Padding(
         padding: EdgeInsets.fromLTRB(12, 4, 12, 8),
-        child: Bant('Anahtar yalnızca oluşturulduğunda bir kez gösterilir ve yalnızca izin verilen IP adreslerinden çalışır.', ikon: Icons.key_rounded),
+        child: Bant('Anahtar yalnızca oluşturulduğunda bir kez gösterilir ve yalnızca izin verilen IP adreslerinden çalışır.', ikon: Simgeler.key),
       ),
       sutunlar: [
         Sutun('Ad', esnek: 3, hucre: (c, k) => IkiSatir(k.ad, alt: '${k.onek}…')),
@@ -180,7 +181,7 @@ class _EntegrasyonlarEkraniState extends State<EntegrasyonlarEkrani> {
       ],
       eylemler: _eylemler,
       kart: (c, k) => VeriKarti(
-        sol: Icon(Icons.key_rounded, color: k.iptalEdildi ? c.r.silik : c.r.birincil),
+        sol: Icon(Simgeler.key, color: k.iptalEdildi ? c.r.silik : c.r.birincil),
         baslik: k.ad,
         alt: '${k.onek}…',
         rozetler: [_durum(c, k)],
@@ -192,7 +193,7 @@ class _EntegrasyonlarEkraniState extends State<EntegrasyonlarEkrani> {
       baslik: 'Entegrasyonlar',
       alt: 'Faturalama sistemi (WHMCS) bağlantısı',
       yenile: _y.yenile,
-      birincil: BirincilEylem(Icons.add_rounded, 'Yeni API anahtarı', _yeni),
+      birincil: BirincilEylem(Simgeler.add, 'Yeni API anahtarı', _yeni),
       govde: LayoutBuilder(
         builder: (c, k) {
           if (k.maxWidth >= 1200) {
@@ -211,7 +212,7 @@ class _EntegrasyonlarEkraniState extends State<EntegrasyonlarEkrani> {
             children: [
               Expanded(child: tablo),
               ExpansionTile(
-                leading: const Icon(Icons.extension_rounded),
+                leading: const Icon(Simgeler.extension),
                 title: const Text('WHMCS kurulumu'),
                 childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 children: [_kurulum(c)],
@@ -305,7 +306,7 @@ class _AnahtarOlusturDialogState extends State<_AnahtarOlusturDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text('Faturalama sunucusunun IP adresini girin; anahtar başka adresten çalışmaz.'),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               TextField(
                 controller: _ad,
                 maxLength: 100,
@@ -325,7 +326,7 @@ class _AnahtarOlusturDialogState extends State<_AnahtarOlusturDialog> {
                 ),
               ),
               if (_hata != null && _hataAlani != 'name' && _hataAlani != 'allowed_ips') ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13)),
               ],
             ],
@@ -336,7 +337,7 @@ class _AnahtarOlusturDialogState extends State<_AnahtarOlusturDialog> {
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
         FilledButton.icon(
           onPressed: _mesgul || !hazir ? null : _olustur,
-          icon: _mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.key_rounded),
+          icon: _mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Simgeler.key),
           label: const Text('Oluştur'),
         ),
       ],

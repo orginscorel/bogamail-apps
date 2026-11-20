@@ -8,6 +8,7 @@ import '../oturum.dart';
 import '../ortak/bilesenler.dart';
 import '../ortak/iskelet.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 const _frenTurleri = {
   'spike': 'Ani gönderim artışı',
@@ -162,14 +163,14 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
       eylemler: [
         PopupMenuButton<int>(
           tooltip: 'Ayarlar',
-          icon: const Icon(Icons.tune_rounded),
+          icon: const Icon(Simgeler.tune),
           enabled: hazir,
           onSelected: (i) => [_motor, _frenler, _gelen, _isinma][i](),
           itemBuilder: (_) => const [
-            PopupMenuItem(value: 0, child: ListTile(leading: Icon(Icons.settings_outlined), title: Text('Motor sınırları'), dense: true)),
-            PopupMenuItem(value: 1, child: ListTile(leading: Icon(Icons.shield_outlined), title: Text('Fren eşikleri'), dense: true)),
-            PopupMenuItem(value: 2, child: ListTile(leading: Icon(Icons.speed_rounded), title: Text('Gelen koruma'), dense: true)),
-            PopupMenuItem(value: 3, child: ListTile(leading: Icon(Icons.local_fire_department_outlined), title: Text('IP ısınması'), dense: true)),
+            PopupMenuItem(value: 0, child: ListTile(leading: Icon(Simgeler.settings), title: Text('Motor sınırları'), dense: true)),
+            PopupMenuItem(value: 1, child: ListTile(leading: Icon(Simgeler.shield), title: Text('Fren eşikleri'), dense: true)),
+            PopupMenuItem(value: 2, child: ListTile(leading: Icon(Simgeler.speed), title: Text('Gelen koruma'), dense: true)),
+            PopupMenuItem(value: 3, child: ListTile(leading: Icon(Simgeler.localFireDepartment), title: Text('IP ısınması'), dense: true)),
           ],
         ),
       ],
@@ -197,11 +198,11 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: a),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(child: b),
             ],
           )
-        : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [a, const SizedBox(height: 14), b]);
+        : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [a, const SizedBox(height: 16), b]);
 
     final kv = <Widget>[
       BilgiSatiri('IP başına bağlantı', '${tamsayi(ic['max_per_ip']) == 0 ? 'sınırsız' : _n(ic['max_per_ip'])} eşzamanlı · ${tamsayi(ic['per_ip_per_minute']) == 0 ? 'sınırsız' : _n(ic['per_ip_per_minute'])}/dk'),
@@ -223,27 +224,27 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
               child: Bant(
                 'Toplu gönderim platform genelinde durduruldu. ${metin(st['pause_reason'])} Normal posta hızı %${(ondalik(st['normal_factor']) * 100).round()}.',
                 renk: Marka.gul,
-                ikon: Icons.pause_circle_outline_rounded,
+                ikon: Simgeler.pauseCircleOutline,
               ),
             ),
           Izgara(
             enAz: 220,
             children: [
               KpiKarti(
-                ikon: Icons.cable_rounded,
+                ikon: Simgeler.cable,
                 etiket: 'Açık bağlantı',
                 deger: '${tamsayi(st['running_connections'])} / ${tamsayi(st['max_connections'])}',
                 alt: 'toplu ${tamsayi(st['running_bulk'])} · normal için ayrılan ${tamsayi(st['reserved_normal'])}',
               ),
               KpiKarti(
-                ikon: Icons.done_all_rounded,
+                ikon: Simgeler.doneAll,
                 etiket: 'Son dakika teslim',
                 deger: _n(st['delivered_last_minute']),
                 alt: 'son 10 dk ${_n(st['delivered_10m'])}',
                 renk: Marka.zumrut,
               ),
               KpiKarti(
-                ikon: Icons.schedule_rounded,
+                ikon: Simgeler.schedule,
                 etiket: 'Ertelenen / hata (10 dk)',
                 deger: '${_n(st['deferred_10m'])} / ${_n(st['failed_10m'])}',
                 renk: tamsayi(st['deferred_10m']) > tamsayi(st['delivered_10m']) && tamsayi(st['deferred_10m']) > 0 ? Marka.kehribar : null,
@@ -251,7 +252,7 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
               () {
                 final q = harita(st['queued']);
                 return KpiKarti(
-                  ikon: Icons.format_list_numbered_rounded,
+                  ikon: Simgeler.formatListNumbered,
                   etiket: 'Kuyruk',
                   deger: sayiYaz(tamsayi(q['normal']) + tamsayi(q['bulk'])),
                   alt: 'normal ${_n(q['normal'])} · toplu ${_n(q['bulk'])} · bekletilen ${_n(q['held'])} (fren ${_n(q['held_by_brake'])})',
@@ -259,17 +260,17 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
               }(),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           BolumKarti(
             baslik: 'Son 10 dakika',
-            ikon: Icons.bar_chart_rounded,
+            ikon: Simgeler.barChart,
             altBaslik: 'Dakika başına teslim (yeşil), erteleme (sarı) ve kalıcı hata (kırmızı).',
             child: _Akis(noktalar: haritalar(st['per_minute'])),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           BolumKarti(
             baslik: 'Sağlayıcılar',
-            ikon: Icons.hub_outlined,
+            ikon: Simgeler.hub,
             altBaslik:
                 'MX adı sonekiyle tanınan sağlayıcılar ortak sınırı paylaşır; diğer alan adları kendi sınırını alır. Sağlayıcı "yavaşla" dediğinde (421 / 4.7.x) '
                 'hız yarıya iner, bekleme süresi 1 dakikadan başlayıp ikiye katlanır (en çok 1 saat); sorunsuz her 5 dakikada hız ×1,5 artar.',
@@ -277,22 +278,22 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                 ? Text('Son 10 dakikada doğrudan teslim yapılmadı.', style: TextStyle(color: r.soluk))
                 : Column(
                     children: [
-                      for (final (i, p) in haritalar(st['providers']).indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar), _SaglayiciSatiri(p)],
+                      for (final (i, p) in haritalar(st['providers']).indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)), _SaglayiciSatiri(p)],
                     ],
                   ),
           ),
           if (haritalar(st['down_domains']).isNotEmpty) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             BolumKarti(
               baslik: 'Ulaşılamayan alan adları',
-              ikon: Icons.cloud_off_rounded,
+              ikon: Simgeler.cloudOff,
               altBaslik: 'Art arda bağlantı hatası veren alan adlarına bekleme süresince bağlanılmaz; iletiler kuyrukta kalır ve sonra yeniden denenir.',
               child: Column(
                 children: [
                   for (final d in haritalar(st['down_domains']))
                     Container(
                       margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(border: Border.all(color: r.kenar), borderRadius: BorderRadius.circular(10)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,10 +312,10 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
             ),
           ],
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         BolumKarti(
           baslik: 'Güvenlik frenleri',
-          ikon: Icons.shield_outlined,
+          ikon: Simgeler.shield,
           altBaslik:
               'Ani gönderim artışı, yüksek erteleme / bilinmeyen alıcı / şikâyet oranı veya büyük kara listeye giriş otomatik olarak frenlenir. Etkilenen postalar '
               'silinmez, kuyrukta bekletilir; freni kaldırdığınızda gönderilir. Kara liste freni, listeden çıkınca kendiliğinden kalkar.',
@@ -324,8 +325,8 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
               if (etkin.isEmpty)
                 Row(
                   children: [
-                    const Icon(Icons.verified_user_outlined, color: Marka.zumrut),
-                    const SizedBox(width: 10),
+                    const Icon(Simgeler.verifiedUser, color: Marka.zumrut),
+                    const SizedBox(width: 8),
                     Expanded(child: Text('Etkin fren yok. Tüm gönderenler normal çalışıyor.', style: TextStyle(color: r.soluk))),
                   ],
                 )
@@ -361,7 +362,7 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                           ),
                         ),
                         if (metin(b['kind']) != 'dnsbl')
-                          OutlinedButton.icon(onPressed: () => _frenKaldir(b), icon: const Icon(Icons.lock_open_rounded, size: 17), label: const Text('Kaldır')),
+                          OutlinedButton.icon(onPressed: () => _frenKaldir(b), icon: const Icon(Simgeler.lockOpen, size: 17), label: const Text('Kaldır')),
                       ],
                     ),
                   ),
@@ -387,12 +388,12 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         ikili(
           _IsinmaKarti(w: harita(v['warmup']), duzenle: _isinma),
           BolumKarti(
             baslik: 'Kara liste (DNSBL)',
-            ikon: Icons.gpp_bad_outlined,
+            ikon: Simgeler.gppBad,
             altBaslik: 'Gönderim IP\'lerinin itibar taramasından. Büyük bir listeye girilince toplu gönderim durur, normal posta yavaşlar.',
             child: dnsbl.isEmpty
                 ? const Text('Hiçbir gönderim IP\'si kara listede değil.', style: TextStyle(color: Marka.zumrut))
@@ -407,7 +408,7 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                             children: [
                               Expanded(
                                 child: Wrap(
-                                  spacing: 6,
+                                  spacing: 8,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     Text(metin(l['ip']), style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
@@ -419,7 +420,7 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                               if (metin(l['delist_url']).isNotEmpty)
                                 TextButton.icon(
                                   onPressed: () => launchUrl(Uri.parse(metin(l['delist_url'])), mode: LaunchMode.externalApplication),
-                                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                                  icon: const Icon(SimgelerKalin.openInNew, size: 16),
                                   label: const Text('Listeden çıkarma'),
                                 ),
                             ],
@@ -429,11 +430,11 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                   ),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         ikili(
           BolumKarti(
             baslik: 'Şikâyet geri bildirimi (FBL)',
-            ikon: Icons.report_gmailerrorred_rounded,
+            ikon: Simgeler.reportGmailerrorred,
             altBaslik:
                 'ARF raporları aşağıdaki adreslerde işlenir; şikâyet edilen alıcı o müşteri için toplu gönderimde bastırılır. Son 30 gün: ${_n(fblSay['parsed_30d'])} rapor'
                 '${tamsayi(fblSay['unparsed_30d']) > 0 ? ', ${_n(fblSay['unparsed_30d'])} okunamayan' : ''}.',
@@ -448,7 +449,7 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                   ('Gmail Postmaster Tools', 'https://postmaster.google.com/'),
                 ])
                   Container(
-                    margin: const EdgeInsets.only(bottom: 6),
+                    margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
                     decoration: BoxDecoration(border: Border.all(color: r.kenar), borderRadius: BorderRadius.circular(10)),
                     child: Row(
@@ -458,7 +459,7 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                         IconButton(
                           tooltip: '$ad kayıt sayfası',
                           onPressed: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-                          icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                          icon: const Icon(Simgeler.openInNew, size: 18),
                         ),
                       ],
                     ),
@@ -473,7 +474,7 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
           ),
           BolumKarti(
             baslik: 'Gelen bağlantı koruması',
-            ikon: Icons.speed_rounded,
+            ikon: Simgeler.speed,
             altBaslik: 'MX (25) dinleyicisi: IP başına eşzamanlı bağlantı ve dakikalık sınır, erken konuşan istemci tespiti, hatalı oturumları yavaşlatma ve DNSBL kontrolü.',
             sag: TextButton(onPressed: _gelen, child: const Text('Düzenle')),
             child: Column(
@@ -492,21 +493,21 @@ class _TeslimatKontrolEkraniState extends State<TeslimatKontrolEkrani> {
                   ),
                 if (!mantik(inb['listening']))
                   Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.only(top: 8),
                     child: Text('MX dinleyicisi bu sunucuda çalışmıyor.', style: TextStyle(color: r.silik, fontSize: 12)),
                   ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            OutlinedButton.icon(onPressed: _motor, icon: const Icon(Icons.settings_outlined, size: 18), label: const Text('Motor sınırları')),
-            OutlinedButton.icon(onPressed: _frenler, icon: const Icon(Icons.shield_outlined, size: 18), label: const Text('Fren eşikleri')),
-            OutlinedButton.icon(onPressed: _gelen, icon: const Icon(Icons.speed_rounded, size: 18), label: const Text('Gelen koruma')),
+            OutlinedButton.icon(onPressed: _motor, icon: const Icon(Simgeler.settings, size: 18), label: const Text('Motor sınırları')),
+            OutlinedButton.icon(onPressed: _frenler, icon: const Icon(Simgeler.shield, size: 18), label: const Text('Fren eşikleri')),
+            OutlinedButton.icon(onPressed: _gelen, icon: const Icon(Simgeler.speed, size: 18), label: const Text('Gelen koruma')),
           ],
         ),
       ],
@@ -529,7 +530,7 @@ class _SaglayiciSatiri extends StatelessWidget {
     final hiz = ondalik(p['rate_per_minute']);
     final hazir = tamsayi(p['ready']);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -627,7 +628,7 @@ class _IsinmaKarti extends StatelessWidget {
     final yarin = gun + 1 < plan.length ? plan[gun + 1] : 0;
     return BolumKarti(
       baslik: 'Platform IP ısınması',
-      ikon: Icons.local_fire_department_outlined,
+      ikon: Simgeler.localFireDepartment,
       altBaslik: 'Yeni bir gönderim IP\'si günlük alıcı sınırı kademeli artırılarak ısıtılır. Paylaşımlı IP için geçerlidir; özel IP\'lerin ısınması IP Yönetimi sayfasındadır.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -656,7 +657,7 @@ class _IsinmaKarti extends StatelessWidget {
             )
           else
             Text('Isınma planı etkin değil. Bugün ${_n(w['sent_today'])} dış alıcıya gönderildi.', style: TextStyle(color: r.soluk)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton(onPressed: duzenle, child: Text(bas != null ? 'Isınmayı değiştir' : 'Isınmayı başlat')),
@@ -751,7 +752,7 @@ class _SayiAyarDialogState extends State<_SayiAyarDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text(widget.baslik, style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 620,
       child: SingleChildScrollView(
@@ -760,7 +761,7 @@ class _SayiAyarDialogState extends State<_SayiAyarDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(widget.aciklama, style: TextStyle(color: context.r.soluk, fontSize: 13)),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _SayiIzgarasi(alanlar: widget.alanlar, kontroller: _k),
             for (final (k, e) in widget.anahtarlar)
               SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(e, style: const TextStyle(fontSize: 14)), value: _b[k]!, onChanged: (v) => setState(() => _b[k] = v)),
@@ -779,7 +780,7 @@ class _SayiAyarDialogState extends State<_SayiAyarDialog> {
                 ),
               ),
             ],
-            if (_hata != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
+            if (_hata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
           ],
         ),
       ),
@@ -888,7 +889,7 @@ class _MotorDialogState extends State<_MotorDialog> {
   Widget build(BuildContext context) {
     final r = context.r;
     return AlertDialog(
-      title: Text('Motor sınırları', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Motor sınırları', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 640,
         child: SingleChildScrollView(
@@ -900,7 +901,7 @@ class _MotorDialogState extends State<_MotorDialog> {
                 'Toplam bağlantı, öncelik payı ve sağlayıcı bazında bağlantı / dakikalık ileti sınırları. Değişiklik bir dakika içinde uygulanır.',
                 style: TextStyle(color: r.soluk, fontSize: 13),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               _SayiIzgarasi(alanlar: _alanlar, kontroller: _k),
               const SizedBox(height: 16),
               const Text('Sağlayıcı sınırları', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -937,7 +938,7 @@ class _MotorDialogState extends State<_MotorDialog> {
                   ),
                 ),
               Text('Sütunlar: bağlantı · dakikada ileti (0 = sınırsız). "Diğer" satırı her alan adına ayrı uygulanır.', style: TextStyle(color: r.silik, fontSize: 12)),
-              if (_hata != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
+              if (_hata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
             ],
           ),
         ),
@@ -994,7 +995,7 @@ class _IsinmaDialogState extends State<_IsinmaDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text('Platform IP ısınması', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Platform IP ısınması', style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 440,
       child: Column(
@@ -1005,12 +1006,12 @@ class _IsinmaDialogState extends State<_IsinmaDialog> {
             'Başlangıç tarihi ısınma planının hangi gününde olunduğunu belirler. Durdurmak günlük sınırı ayarlardaki değere döndürür.',
             style: TextStyle(color: context.r.soluk, fontSize: 13),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: _sec,
             child: InputDecorator(
-              decoration: const InputDecoration(labelText: 'Başlangıç tarihi', suffixIcon: Icon(Icons.calendar_today_rounded)),
+              decoration: const InputDecoration(labelText: 'Başlangıç tarihi', suffixIcon: Icon(Simgeler.calendarToday)),
               child: Text(_metin),
             ),
           ),
@@ -1021,7 +1022,7 @@ class _IsinmaDialogState extends State<_IsinmaDialog> {
               child: OutlinedButton(onPressed: _mesgul ? null : () => _gonder(null), child: const Text('Isınmayı durdur')),
             ),
           ],
-          if (_hata != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
+          if (_hata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
         ],
       ),
     ),

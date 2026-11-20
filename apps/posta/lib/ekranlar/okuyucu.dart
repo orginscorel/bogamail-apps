@@ -21,6 +21,7 @@ import '../veri/tercihler.dart';
 import '../veri/yazma_hazirla.dart';
 import '../veri/yardimci.dart';
 import 'gorevler/gorevler_ekrani.dart';
+import 'konusma.dart';
 import 'okuyucu_parcalari.dart';
 import 'takvim/davet_karti.dart';
 import 'yazma.dart';
@@ -63,6 +64,9 @@ class Okuyucu extends StatefulWidget {
 }
 
 class OkuyucuState extends State<Okuyucu> {
+  /// Ekranda açık ileti (öndeyken aynı iletinin bildirimi gösterilmez).
+  static String? acikIleti;
+
   IletiDetay? _d;
   String? _hata;
   bool _mesgul = false;
@@ -72,10 +76,16 @@ class OkuyucuState extends State<Okuyucu> {
   bool _ayrinti = false;
   bool _daralt = false;
 
+  /// Konuşmadaki iletiler (eskiden yeniye). 2+ ileti varsa konuşma görünümü kullanılır.
+  List<IletiOzet>? _konusma;
+
   @override
   void initState() {
     super.initState();
+    acikIleti = widget.id;
+    _konusma = Posta.konusmaHemen(widget.id);
     _yukle();
+    unawaited(_konusmaYukle());
     PostaDurum.ben.surum.addListener(_canli);
   }
 
@@ -83,6 +93,7 @@ class OkuyucuState extends State<Okuyucu> {
   void didUpdateWidget(Okuyucu oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.id != widget.id) {
+      acikIleti = widget.id;
       setState(() {
         // Önyüklenmiş ileti bellekteyse ilk karede gösterilir (yükleniyor çarkı yok).
         _d = Posta.iletiHemen(widget.id);
@@ -92,13 +103,16 @@ class OkuyucuState extends State<Okuyucu> {
         _html = true;
         _ayrinti = false;
         _daralt = false;
+        _konusma = Posta.konusmaHemen(widget.id);
       });
       _yukle();
+      unawaited(_konusmaYukle());
     }
   }
 
   @override
   void dispose() {
+    if (acikIleti == widget.id) acikIleti = null;
     PostaDurum.ben.surum.removeListener(_canli);
     super.dispose();
   }
@@ -107,6 +121,24 @@ class OkuyucuState extends State<Okuyucu> {
   void _canli() {
     final x = PostaDurum.ben.sonDegisen;
     if (!_mesgul && !_gitti && _d != null && (x == null || x == widget.id)) _yukle(sessiz: true);
+  }
+
+  Future<void> _konusmaYukle() async {
+    final id = widget.id;
+    try {
+      if (_konusma == null) {
+        final o = await Posta.konusmaOnbellek(id).catchError((_) => null);
+        if (o != null && mounted && id == widget.id && _konusma == null) setState(() => _konusma = o);
+      }
+      final l = await Posta.konusma(id);
+      if (!mounted || id != widget.id) return;
+      final eski = _konusma;
+      if (eski == null || eski.length != l.length || !Iterable.generate(l.length).every((i) => eski[i].id == l[i].id)) {
+        setState(() => _konusma = l);
+      }
+    } catch (_) {
+      // Konuşma alınamazsa tek ileti görünümü (konu şeridiyle) kalır.
+    }
   }
 
   /// Okundu işareti iyimserdir: gösterimi bekletmez, ileti yeniden indirilmez (listeler yerinde güncellenir).
@@ -185,6 +217,7 @@ class OkuyucuState extends State<Okuyucu> {
       } else {
         PostaDurum.ben.sayilariYenile();
         await _yukle(sessiz: true);
+        unawaited(_konusmaYukle());
       }
     } catch (e) {
       bildir('İşlem tamamlanamadı', mesaj: hataMetni(e), tur: MesajTur.hata);
@@ -276,15 +309,14 @@ class OkuyucuState extends State<Okuyucu> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('Gönderen engellensin mi?', style: gosterim(17, agirlik: FontWeight.w700)),
+              child: Text('Gönderen engellensin mi?', style: gosterim(17, agirlik: FontWeight.w600)),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Text('Engellenen gönderenlerin yeni iletileri doğrudan Gereksiz klasörüne gider.', style: TextStyle(color: c.r.soluk)),
             ),
-            ListTile(leading: const Icon(Icons.person_off_outlined), title: Text('Yalnızca $a'), onTap: () => Navigator.pop(c, a)),
-            if (alan.length > 1)
-              ListTile(leading: const Icon(Icons.domain_disabled_outlined), title: Text('Tüm $alan alan adı'), onTap: () => Navigator.pop(c, alan)),
+            ListTile(leading: const Icon(Simge.kisiYok), title: Text('Yalnızca $a'), onTap: () => Navigator.pop(c, a)),
+            if (alan.length > 1) ListTile(leading: const Icon(Simge.alanYok), title: Text('Tüm $alan alan adı'), onTap: () => Navigator.pop(c, alan)),
             const SizedBox(height: 8),
           ],
         ),
@@ -335,7 +367,7 @@ class OkuyucuState extends State<Okuyucu> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-              child: Text('Takip hatırlatıcısı', style: gosterim(17, agirlik: FontWeight.w700)),
+              child: Text('Takip hatırlatıcısı', style: gosterim(17, agirlik: FontWeight.w600)),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -344,10 +376,10 @@ class OkuyucuState extends State<Okuyucu> {
                 style: TextStyle(color: c.r.soluk),
               ),
             ),
-            for (final g in gunler) ListTile(leading: const Icon(Icons.notifications_active_outlined), title: Text(g.$2), onTap: () => Navigator.pop(c, g.$1)),
+            for (final g in gunler) ListTile(leading: const Icon(Simge.hatirlatma), title: Text(g.$2), onTap: () => Navigator.pop(c, g.$1)),
             if (d.ozet.takip)
               ListTile(
-                leading: const Icon(Icons.notifications_off_outlined, color: Marka.gul),
+                leading: const Icon(Simge.bildirimKapali, color: Marka.gul),
                 title: const Text('Hatırlatıcıyı kaldır'),
                 onTap: () => Navigator.pop(c, 0),
               ),
@@ -417,39 +449,36 @@ class OkuyucuState extends State<Okuyucu> {
       child: ListTile(leading: Icon(i), title: Text(t)),
     );
     return [
-      if (!_taslak && !widget.sayfa) o('yanitTumu', Icons.reply_all_rounded, 'Tümünü yanıtla'),
-      o('okunmadi', Icons.mark_email_unread_outlined, 'Okunmadı yap'),
-      o('yildiz', d.ozet.yildizli ? Icons.star_rounded : Icons.star_border_rounded, d.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla'),
-      o('onemli', Icons.label_important_outline_rounded, d.ozet.onemli ? 'Önemli değil' : 'Önemli olarak işaretle'),
-      o('tasi', Icons.drive_file_move_outline, 'Taşı…'),
-      o('etiket', Icons.label_outline_rounded, 'Etiketle…'),
-      if (_rol != 'snoozed' && !_taslak && _rol != 'sent') o('ertele', Icons.snooze_rounded, 'Ertele…'),
-      if (_rol == 'junk')
-        o('spamDegil', Icons.thumb_up_alt_outlined, 'Gereksiz değil')
-      else if (!_taslak && _rol != 'sent')
-        o('spam', Icons.report_outlined, 'Gereksiz (spam)'),
-      if (!_taslak && (PostaDurum.ben.ayarlar?.ozellik('tasks') ?? true)) o('gorev', Icons.add_task_rounded, 'Göreve dönüştür…'),
-      if (!_taslak) o('takip', Icons.notifications_active_outlined, d.ozet.takip ? 'Takip hatırlatıcısı…' : 'Takip hatırlatıcısı kur…'),
+      if (!_taslak && !widget.sayfa) o('yanitTumu', Simge.tumuneYanitla, 'Tümünü yanıtla'),
+      o('okunmadi', Simge.okunmadiYap, 'Okunmadı yap'),
+      o('yildiz', d.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz, d.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla'),
+      o('onemli', Simge.onemli, d.ozet.onemli ? 'Önemli değil' : 'Önemli olarak işaretle'),
+      o('tasi', Simge.tasi, 'Taşı…'),
+      o('etiket', Simge.etiket, 'Etiketle…'),
+      if (_rol != 'snoozed' && !_taslak && _rol != 'sent') o('ertele', Simge.ertele, 'Ertele…'),
+      if (_rol == 'junk') o('spamDegil', Simge.begen, 'Gereksiz değil') else if (!_taslak && _rol != 'sent') o('spam', Simge.bildir, 'Gereksiz (spam)'),
+      if (!_taslak && (PostaDurum.ben.ayarlar?.ozellik('tasks') ?? true)) o('gorev', Simge.gorevEkle, 'Göreve dönüştür…'),
+      if (!_taslak) o('takip', Simge.hatirlatma, d.ozet.takip ? 'Takip hatırlatıcısı…' : 'Takip hatırlatıcısı kur…'),
       if (!_taslak && _rol != 'sent') ...[
         const PopupMenuDivider(),
-        o('kisi', Icons.person_add_alt_1_outlined, 'Göndereni kişilere ekle'),
-        o('engelle', Icons.block_rounded, 'Göndereni engelle…'),
-        o('olta', Icons.phishing_outlined, 'Oltalama olarak bildir'),
+        o('kisi', Simge.kisiEkle, 'Göndereni kişilere ekle'),
+        o('engelle', Simge.engelle, 'Göndereni engelle…'),
+        o('olta', Simge.oltalama, 'Oltalama olarak bildir'),
       ],
       const PopupMenuDivider(),
-      o('disa', Icons.download_rounded, 'İletiyi indir (.eml)'),
+      o('disa', Simge.indir, 'İletiyi indir (.eml)'),
     ];
   }
 
   List<Widget> _eylemDugmeleri() {
     if (_d == null) return const [];
     return [
-      if (_taslak) IconButton(icon: const Icon(Icons.edit_rounded), tooltip: 'Taslağı düzenle', onPressed: () => _menu('duzenle')),
-      if (_rol != 'archive' && !_taslak) IconButton(icon: const Icon(Icons.archive_outlined), tooltip: 'Arşivle', onPressed: _mesgul ? null : arsivle),
-      IconButton(icon: const Icon(Icons.delete_outline_rounded), tooltip: _rol == 'trash' ? 'Kalıcı sil' : 'Sil', onPressed: _mesgul ? null : sil),
+      if (_taslak) IconButton(icon: const Icon(Simge.duzenle), tooltip: 'Taslağı düzenle', onPressed: () => _menu('duzenle')),
+      if (_rol != 'archive' && !_taslak) IconButton(icon: const Icon(Simge.arsiv), tooltip: 'Arşivle', onPressed: _mesgul ? null : arsivle),
+      IconButton(icon: const Icon(Simge.sil), tooltip: _rol == 'trash' ? 'Kalıcı sil' : 'Sil', onPressed: _mesgul ? null : sil),
       if (!widget.sayfa && !_taslak) ...[
-        IconButton(icon: const Icon(Icons.reply_rounded), tooltip: 'Yanıtla (R)', onPressed: yanitla),
-        IconButton(icon: const Icon(Icons.forward_rounded), tooltip: 'İlet', onPressed: ilet),
+        IconButton(icon: const Icon(Simge.yanitla), tooltip: 'Yanıtla (R)', onPressed: yanitla),
+        IconButton(icon: const Icon(Simge.ilet), tooltip: 'İlet', onPressed: ilet),
       ],
       PopupMenuButton<String>(tooltip: 'Diğer işlemler', onSelected: _menu, itemBuilder: (_) => _menuOgeleri()),
     ];
@@ -476,18 +505,8 @@ class OkuyucuState extends State<Okuyucu> {
             child: Row(
               children: [
                 const SizedBox(width: 8),
-                IconButton(
-                  key: const ValueKey('onceki-ileti'),
-                  icon: const Icon(Icons.keyboard_arrow_up_rounded),
-                  tooltip: 'Önceki ileti (K)',
-                  onPressed: widget.onceki,
-                ),
-                IconButton(
-                  key: const ValueKey('sonraki-ileti'),
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                  tooltip: 'Sonraki ileti (J)',
-                  onPressed: widget.sonraki,
-                ),
+                IconButton(key: const ValueKey('onceki-ileti'), icon: const Icon(Simge.okYukari), tooltip: 'Önceki ileti (K)', onPressed: widget.onceki),
+                IconButton(key: const ValueKey('sonraki-ileti'), icon: const Icon(Simge.okAsagi), tooltip: 'Sonraki ileti (J)', onPressed: widget.sonraki),
                 if (_d != null) Expanded(child: _klasorRozeti()) else const Spacer(),
                 ..._eylemDugmeleri(),
                 const SizedBox(width: 6),
@@ -518,26 +537,38 @@ class OkuyucuState extends State<Okuyucu> {
     final htmlVar = v.html.trim().isNotEmpty;
     final htmlGoster = htmlVar && (_html || v.metin.trim().isEmpty);
     final tehlikeli = _rol == 'junk' || d.tehditler.isNotEmpty;
+    final k = _konusma;
+    if (k != null && k.length > 1 && !_taslak && k.any((m) => m.id == d.ozet.id)) {
+      return KonusmaGorunumu(
+        key: ValueKey('konusma-${d.ozet.id}'),
+        acilan: d,
+        ogeler: k,
+        yenile: () async {
+          await _yukle(sessiz: true);
+          await _konusmaYukle();
+        },
+      );
+    }
     final ust = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         _baslik(d),
-        for (final t in d.tehditler) GuvenlikBandi(tur: BantTuru.tehlike, baslik: 'Güvenlik uyarısı', metin: t, ikon: Icons.gpp_maybe_outlined),
+        for (final t in d.tehditler) GuvenlikBandi(tur: BantTuru.tehlike, baslik: 'Güvenlik uyarısı', metin: t, ikon: Simge.gereksiz),
         ...sezgiselUyarilar(d),
         if (_rol == 'junk')
           const GuvenlikBandi(
             tur: BantTuru.uyari,
             baslik: 'Gereksiz (spam) ileti',
             metin: 'Bu ileti gereksiz olarak sınıflandırıldı. Bağlantılara ve eklere dikkat edin; görseller kendiliğinden yüklenmez.',
-            ikon: Icons.report_outlined,
+            ikon: Simge.bildir,
           ),
         if (v.kesik)
           const GuvenlikBandi(
             tur: BantTuru.bilgi,
             baslik: 'İleti kısaltıldı',
             metin: 'İleti çok uzun olduğu için kısaltıldı. Tamamı için iletiyi indirin.',
-            ikon: Icons.content_cut_rounded,
+            ikon: Simge.kes,
           ),
         if (!_taslak) KonusmaSeridi(key: ValueKey('konusma-${d.ozet.id}'), iletiId: d.ozet.id, konu: v.konu, ac: (m) => okuyucuAc(context, m.id)),
         if (htmlVar && v.metin.trim().isNotEmpty)
@@ -636,10 +667,10 @@ class OkuyucuState extends State<Okuyucu> {
               d.gorunum.konu.isEmpty ? '(konu yok)' : d.gorunum.konu,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: gosterim(16, agirlik: FontWeight.w700),
+              style: gosterim(16, agirlik: FontWeight.w600),
             ),
           ),
-          Icon(Icons.expand_more_rounded, color: context.r.silik),
+          Icon(Simge.asagi, color: context.r.silik),
         ],
       ),
     ),
@@ -661,12 +692,12 @@ class OkuyucuState extends State<Okuyucu> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: SelectableText(v.konu.isEmpty ? '(konu yok)' : v.konu, style: gosterim(21, agirlik: FontWeight.w700, satir: 1.25)),
+                child: SelectableText(v.konu.isEmpty ? '(konu yok)' : v.konu, style: gosterim(21, agirlik: FontWeight.w600, satir: 1.25)),
               ),
               IconButton(
                 tooltip: d.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla',
                 onPressed: _mesgul ? null : () => _menu('yildiz'),
-                icon: Icon(d.ozet.yildizli ? Icons.star_rounded : Icons.star_border_rounded, color: d.ozet.yildizli ? yildizRengi : r.silik),
+                icon: Icon(d.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz, color: d.ozet.yildizli ? yildizRengi : r.silik),
               ),
             ],
           ),
@@ -677,10 +708,10 @@ class OkuyucuState extends State<Okuyucu> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  if (d.ozet.onemli) const Rozet('Önemli', renk: Marka.kehribar, ikon: Icons.label_important_rounded),
-                  if (d.ozet.takip) Rozet('Takipte', renk: r.vurgu, ikon: Icons.notifications_active_outlined),
-                  if (ekSayisi > 0) Rozet('$ekSayisi ek', renk: r.silik, ikon: Icons.attach_file_rounded),
-                  for (final e in etiketler) Rozet(e.ad, renk: etiketRengi(e.renk), ikon: Icons.label_rounded),
+                  if (d.ozet.onemli) const Rozet('Önemli', renk: Marka.kehribar, ikon: Simge.onemliDolu),
+                  if (d.ozet.takip) Rozet('Takipte', renk: r.vurgu, ikon: Simge.hatirlatma),
+                  if (ekSayisi > 0) Rozet('$ekSayisi ek', renk: r.silik, ikon: Simge.ek),
+                  for (final e in etiketler) Rozet(e.ad, renk: etiketRengi(e.renk), ikon: Simge.etiket),
                 ],
               ),
             ),
@@ -719,7 +750,7 @@ class OkuyucuState extends State<Okuyucu> {
                                         gonderen.gorunen,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: r.metin),
+                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5, color: r.metin),
                                       ),
                                     ),
                                     Tooltip(
@@ -741,7 +772,7 @@ class OkuyucuState extends State<Okuyucu> {
                               ],
                             ),
                           ),
-                          Icon(_ayrinti ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20, color: r.silik),
+                          Icon(_ayrinti ? Simge.yukari : Simge.asagi, size: 20, color: r.silik),
                         ],
                       ),
                       Padding(
@@ -804,8 +835,12 @@ class OkuyucuState extends State<Okuyucu> {
 
 /// Düz metin gövdesi: bağlantılar tıklanabilir, alıntılanan geçmiş "•••" ile katlanır.
 class DuzMetin extends StatefulWidget {
-  const DuzMetin({super.key, required this.metin, required this.baglantilar, required this.eposta});
+  const DuzMetin({super.key, required this.metin, required this.baglantilar, required this.eposta, this.imzayiKatla = false, this.boyut = 15});
   final String metin;
+
+  /// Konuşmada tekrarlanan imza da "•••" arkasına katlanır.
+  final bool imzayiKatla;
+  final double boyut;
   final Map<String, String> baglantilar;
   final ValueChanged<Uri> eposta;
   @override
@@ -863,8 +898,8 @@ class _DuzMetinState extends State<DuzMetin> {
     }
     _tanicilar.clear();
     final r = context.r;
-    final p = alintiAyir(widget.metin);
-    final stil = TextStyle(fontSize: 15, height: 1.55, color: r.metin);
+    final p = alintiVeImzaAyir(widget.metin, imza: widget.imzayiKatla);
+    final stil = TextStyle(fontSize: widget.boyut, height: 1.55, color: r.metin);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -877,13 +912,14 @@ class _DuzMetinState extends State<DuzMetin> {
               color: r.ic,
               borderRadius: BorderRadius.circular(6),
               child: InkWell(
+                key: const ValueKey('alinti-ac'),
                 borderRadius: BorderRadius.circular(6),
                 onTap: () => setState(() => _alinti = !_alinti),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   child: Text(
                     '•••',
-                    style: TextStyle(color: r.silik, fontWeight: FontWeight.w700, letterSpacing: 2),
+                    style: TextStyle(color: r.silik, fontWeight: FontWeight.w600, letterSpacing: 2),
                   ),
                 ),
               ),

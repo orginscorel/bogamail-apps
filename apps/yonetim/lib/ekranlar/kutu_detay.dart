@@ -9,6 +9,7 @@ import '../veri/modeller.dart';
 import 'kutu_formlari.dart';
 import 'kutu_islemleri.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
 
 /// Posta kutusu ayrıntısı: kota, durum, son giriş, yönlendirme, güvenlik, takma adlar ve işlemler.
 class KutuDetay extends StatefulWidget {
@@ -143,7 +144,7 @@ class _KutuDetayState extends State<KutuDetay> {
                 IconButton(
                   tooltip: 'İptal et',
                   visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.stop_circle_outlined, size: 20),
+                  icon: const Icon(Simgeler.stopCircle, size: 20),
                   onPressed: () async {
                     if (await islem(() => Uyg.api.post('/api/v1/migrations/$id/cancel'), tamam: 'Taşıma iptal edildi') != null) _yukle();
                   },
@@ -152,7 +153,7 @@ class _KutuDetayState extends State<KutuDetay> {
                 IconButton(
                   tooltip: 'Sürdür',
                   visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
+                  icon: const Icon(Simgeler.playCircleOutline, size: 20),
                   onPressed: () async {
                     if (await islem(() => Uyg.api.post('/api/v1/migrations/$id/resume'), tamam: 'Taşıma yeniden sıraya alındı') != null) _yukle();
                   },
@@ -160,7 +161,7 @@ class _KutuDetayState extends State<KutuDetay> {
             ],
           ),
           if (top > 0) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(value: (bitti / top).clamp(0, 1).toDouble(), minHeight: 6, backgroundColor: r.ic, color: r.vurgu),
@@ -206,13 +207,13 @@ class _KutuDetayState extends State<KutuDetay> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SelectableText(k.adres, style: gosterim(17, agirlik: FontWeight.w700)),
+                          SelectableText(k.adres, style: gosterim(17, agirlik: FontWeight.w600)),
                           if (k.gorunenAd.isNotEmpty) Text(k.gorunenAd, style: TextStyle(color: r.soluk)),
                         ],
                       ),
                     ),
                     DurumRozeti(k.durum),
-                    if (!widget.tamSayfa) IconButton(tooltip: 'Yenile', onPressed: _yukle, icon: const Icon(Icons.refresh_rounded)),
+                    if (!widget.tamSayfa) IconButton(tooltip: 'Yenile', onPressed: _yukle, icon: const Icon(Simgeler.refresh)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -220,7 +221,7 @@ class _KutuDetayState extends State<KutuDetay> {
                   'Kota',
                   style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 KullanimCubugu(kullanilan: k.kullanilan, toplam: k.kota),
               ],
             ),
@@ -228,7 +229,7 @@ class _KutuDetayState extends State<KutuDetay> {
           if (_hata != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Bant(_hata!, renk: Marka.gul, ikon: Icons.cloud_off_rounded),
+              child: Bant(_hata!, renk: Marka.gul, ikon: Simgeler.cloudOff),
             ),
           const Baslik('Bilgiler'),
           Kutu(
@@ -266,7 +267,7 @@ class _KutuDetayState extends State<KutuDetay> {
                           ? IconButton(
                               tooltip: 'Sil',
                               visualDensity: VisualDensity.compact,
-                              icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Marka.gul),
+                              icon: const Icon(Simgeler.deleteOutline, size: 18, color: Marka.gul),
                               onPressed: () async {
                                 if (await uygulamaSifresiSil(context, k, a)) _yukle();
                               },
@@ -280,7 +281,7 @@ class _KutuDetayState extends State<KutuDetay> {
                         onPressed: () async {
                           if (await kutuMfaSifirla(context, k)) _yukle();
                         },
-                        icon: const Icon(Icons.phonelink_erase_rounded, size: 18),
+                        icon: const Icon(Simgeler.phonelinkErase, size: 18),
                         label: const Text('İki adımlı doğrulamayı sıfırla'),
                       ),
                     ),
@@ -312,7 +313,7 @@ class _KutuDetayState extends State<KutuDetay> {
           if (_takmaAdlar != null && _takmaAdlar!.isNotEmpty) ...[
             const Baslik('Bu kutuya yönlenen takma adlar'),
             Kutu(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 children: [
                   for (final t in _takmaAdlar!)
@@ -329,27 +330,27 @@ class _KutuDetayState extends State<KutuDetay> {
           if (_tasimalar != null && _tasimalar!.isNotEmpty) ...[
             const Baslik('IMAP taşımaları'),
             Kutu(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(children: [for (final j in _tasimalar!) _tasimaSatiri(j)]),
             ),
           ],
           if (_yonetir) ...[
             const Baslik('İşlemler'),
             EylemSatiri(
-              ikon: Icons.mark_email_unread_outlined,
+              ikon: Simgeler.markEmailUnread,
               baslik: 'Posta kutusuna gir',
               ipucu: k.aktif ? 'Webmail\'i şifresiz, kayıt altında aç (30 dk)' : 'Askıdaki kutu açılamaz',
               onTap: k.aktif ? () => postaKutusunaGir(context, id: k.id, adres: k.adres) : null,
             ),
             const SizedBox(height: 8),
-            EylemSatiri(ikon: Icons.edit_rounded, baslik: 'Düzenle', ipucu: 'Görünen ad, kota, gönderim sınırı', onTap: _duzenle),
+            EylemSatiri(ikon: Simgeler.edit, baslik: 'Düzenle', ipucu: 'Görünen ad, kota, gönderim sınırı', onTap: _duzenle),
             const SizedBox(height: 8),
-            EylemSatiri(ikon: Icons.key_rounded, baslik: 'Şifreyi sıfırla', ipucu: 'Güçlü şifre üret, oturumları kapat', onTap: () => sifreSifirla(context, k)),
+            EylemSatiri(ikon: Simgeler.key, baslik: 'Şifreyi sıfırla', ipucu: 'Güçlü şifre üret, oturumları kapat', onTap: () => sifreSifirla(context, k)),
             const SizedBox(height: 8),
-            EylemSatiri(ikon: Icons.straighten_rounded, baslik: 'Boyut limitleri', ipucu: 'İleti, ek ve imza boyutu', onTap: () => boyutLimitleri(context, k)),
+            EylemSatiri(ikon: Simgeler.straighten, baslik: 'Boyut limitleri', ipucu: 'İleti, ek ve imza boyutu', onTap: () => boyutLimitleri(context, k)),
             const SizedBox(height: 8),
             EylemSatiri(
-              ikon: Icons.move_down_rounded,
+              ikon: Simgeler.moveDown,
               baslik: 'IMAP ile taşı',
               ipucu: 'Eski sunucudan postaları aktar',
               onTap: () async {
@@ -357,18 +358,18 @@ class _KutuDetayState extends State<KutuDetay> {
               },
             ),
             const SizedBox(height: 8),
-            EylemSatiri(ikon: Icons.history_rounded, baslik: 'Yedekten geri yükle', ipucu: 'Günlük yedekten silinen postaları geri getir', onTap: () => yedektenGeriYukle(context, k)),
+            EylemSatiri(ikon: Simgeler.history, baslik: 'Yedekten geri yükle', ipucu: 'Günlük yedekten silinen postaları geri getir', onTap: () => yedektenGeriYukle(context, k)),
             const SizedBox(height: 8),
-            EylemSatiri(ikon: Icons.download_rounded, baslik: 'Dışa aktar', ipucu: 'Tüm postalar (.zip / EML)', onTap: () => kutuyuDisariAktar(context, k)),
+            EylemSatiri(ikon: Simgeler.download, baslik: 'Dışa aktar', ipucu: 'Tüm postalar (.zip / EML)', onTap: () => kutuyuDisariAktar(context, k)),
             const SizedBox(height: 8),
             EylemSatiri(
-              ikon: k.aktif ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
+              ikon: k.aktif ? Simgeler.pauseCircleOutline : Simgeler.playCircleOutline,
               baslik: k.aktif ? 'Askıya al' : 'Etkinleştir',
               ipucu: k.aktif ? 'Giriş ve gönderimi durdur' : 'Hesabı yeniden kullanıma aç',
               onTap: _durum,
             ),
             const SizedBox(height: 8),
-            EylemSatiri(ikon: Icons.delete_outline_rounded, baslik: 'Posta kutusunu sil', ipucu: 'Geri alınamaz', tehlikeli: true, onTap: _sil),
+            EylemSatiri(ikon: Simgeler.deleteOutline, baslik: 'Posta kutusunu sil', ipucu: 'Geri alınamaz', tehlikeli: true, onTap: _sil),
           ],
         ],
       ),

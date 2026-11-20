@@ -10,6 +10,7 @@ import '../veri/json.dart';
 import 'kutu_formlari.dart';
 import 'kutu_islemleri.dart' show dosyaIndir;
 import 'musteri_model.dart';
+import '../ortak/simgeler.dart';
 
 // Müşteri ekranının ayrı pencereleri (web: org-features, size-limits, org-bulk-settings, org-outbound-ip,
 // promote-reseller, customer-export, login-host).
@@ -33,7 +34,7 @@ class _Pencere extends StatelessWidget {
       children: [
         Text(
           baslik,
-          style: gosterim(19, agirlik: FontWeight.w700),
+          style: gosterim(19, agirlik: FontWeight.w600),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -59,9 +60,9 @@ Widget _durumGovdesi(String? hata, VoidCallback tekrar) => hata != null
     ? Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Bant(hata, renk: Marka.gul, ikon: Icons.cloud_off_rounded),
+          Bant(hata, renk: Marka.gul, ikon: Simgeler.cloudOff),
           const SizedBox(height: 8),
-          TextButton.icon(onPressed: tekrar, icon: const Icon(Icons.refresh_rounded), label: const Text('Tekrar dene')),
+          TextButton.icon(onPressed: tekrar, icon: const Icon(Simgeler.refresh), label: const Text('Tekrar dene')),
         ],
       )
     : const Padding(
@@ -152,10 +153,10 @@ class _OzelliklerState extends State<_Ozellikler> {
               children: [
                 for (final g in gruplar.entries) ...[
                   Padding(
-                    padding: const EdgeInsets.only(top: 12, bottom: 6),
+                    padding: const EdgeInsets.only(top: 12, bottom: 8),
                     child: Text(
                       g.key,
-                      style: TextStyle(color: r.soluk, fontSize: 12, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: r.soluk, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
                   Container(
@@ -165,7 +166,7 @@ class _OzelliklerState extends State<_Ozellikler> {
                     ),
                     child: Column(
                       children: [
-                        for (final (i, f) in g.value.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar), _satir(context, f, paketOz)],
+                        for (final (i, f) in g.value.indexed) ...[if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)), _satir(context, f, paketOz)],
                       ],
                     ),
                   ),
@@ -202,7 +203,7 @@ class _OzelliklerState extends State<_Ozellikler> {
         Text(metin(f['name'], k), style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
         const SizedBox(height: 2),
         Wrap(
-          spacing: 6,
+          spacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text('Pakette: ${pakette ? 'var' : 'yok'}', style: TextStyle(color: r.silik, fontSize: 12)),
@@ -226,7 +227,7 @@ class _OzelliklerState extends State<_Ozellikler> {
                   secici,
                 ],
               )
-            : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [bilgi, const SizedBox(height: 6), secici]),
+            : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [bilgi, const SizedBox(height: 8), secici]),
       ),
     );
   }
@@ -359,7 +360,7 @@ class _BoyutLimitleriState extends State<_BoyutLimitleri> {
               children: [
                 for (final e in _boyutAnahtarlari.entries) ...[
                   Text(e.value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -383,14 +384,14 @@ class _BoyutLimitleriState extends State<_BoyutLimitleri> {
                   ),
                   const SizedBox(height: 4),
                   Text(_devralinan(e.key, hak, plat), style: TextStyle(color: r.silik, fontSize: 12)),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                 ],
                 Text(
                   'Öncelik: Kutu > Müşteri > Paket > Platform; en özel düzeyde tanımlı değer geçerlidir. İleti boyutu SMTP sunucusunun üst '
                   'sınırını (${boyutYaz(tamsayi(plat['smtp_hard_max_bytes']))}) aşamaz; ekler en fazla ileti boyutunun 3/4\'ü kadar olabilir.',
                   style: TextStyle(color: r.silik, fontSize: 12),
                 ),
-                if (_hata != null && _alan == null) ...[const SizedBox(height: 10), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+                if (_hata != null && _alan == null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
               ],
             ),
       eylemler: [
@@ -508,13 +509,13 @@ class _TopluGonderimState extends State<_TopluGonderim> {
               children: [
                 if (!mantik(harita(v?['organization'])['feature_enabled'], true))
                   const Padding(
-                    padding: EdgeInsets.only(bottom: 10),
+                    padding: EdgeInsets.only(bottom: 8),
                     child: Bant('Toplu gönderim bu müşterinin paketinde kapalı; ayarlar özellik açıldığında geçerli olur.', renk: Marka.kehribar),
                   ),
                 BilgiSatiri('Kişiler', '${sayiYaz(tamsayi(l['contacts']))} / ${sinir(l['max_contacts'])}'),
                 BilgiSatiri('Bu ay gönderilen', '${sayiYaz(tamsayi(l['sent_this_month']))} / ${sinir(l['max_campaign_sends_monthly'])}'),
                 BilgiSatiri('Sonraki kampanya', mantik(v?['next_campaign_needs_approval']) ? 'Onaya düşecek' : 'Doğrudan gönderilir'),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   initialValue: _onay,
                   isExpanded: true,
@@ -546,7 +547,7 @@ class _TopluGonderimState extends State<_TopluGonderim> {
                   maxLength: 1000,
                   decoration: InputDecoration(labelText: 'İç not', hintText: 'Müşteri görmez', errorText: _alan == 'note' ? _hata : null),
                 ),
-                if (_hata != null && _alan == null && v != null) Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                if (_hata != null && _alan == null && v != null) Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ),
       eylemler: [
@@ -683,13 +684,13 @@ class _CikisIpState extends State<_CikisIp> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(aktif ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, size: 20, color: aktif ? r.vurgu : r.silik),
-                  const SizedBox(width: 10),
+                  Icon(aktif ? Simgeler.radioButtonChecked : Simgeler.radioButtonOff, size: 20, color: aktif ? r.vurgu : r.silik),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [baslik, ...rozetler]),
+                        Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [baslik, ...rozetler]),
                         const SizedBox(height: 2),
                         Text(ipucu, style: TextStyle(color: r.silik, fontSize: 12)),
                       ],
@@ -791,7 +792,7 @@ class _CikisIpState extends State<_CikisIp> {
                       ),
                     ),
                   ),
-                if (_hata != null) ...[const SizedBox(height: 10), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+                if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
               ],
             ),
       eylemler: [
@@ -904,7 +905,7 @@ class _BayiYapState extends State<_BayiYap> {
           const SizedBox(height: 12),
           SifreAlani(denetleyici: _sifre),
         ],
-        if (_hata != null) ...[const SizedBox(height: 10), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+        if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
       ],
     ),
     eylemler: [
@@ -1004,15 +1005,15 @@ class _DisaAktarmaState extends State<_DisaAktarma> {
               onPressed: _mesgul || suruyor || !_kullanilabilir || l == null ? null : _baslat,
               icon: _mesgul || suruyor
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.inventory_2_outlined, size: 18),
+                  : const Icon(Simgeler.inventory2, size: 18),
               label: Text(suruyor ? 'Hazırlanıyor…' : 'Tümünü dışa aktar'),
             ),
           ),
           if (!_kullanilabilir) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text('Dışa aktarma hizmeti bu sunucuda yapılandırılmamış.', style: TextStyle(color: r.silik, fontSize: 12)),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           if (l == null)
             _durumGovdesi(_hata, _yukle)
           else if (l.isEmpty)
@@ -1026,9 +1027,9 @@ class _DisaAktarmaState extends State<_DisaAktarma> {
               child: Column(
                 children: [
                   for (final (i, x) in l.indexed) ...[
-                    if (i > 0) Divider(height: 1, color: r.kenar),
+                    if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+                      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
                       child: Row(
                         children: [
                           Expanded(
@@ -1060,7 +1061,7 @@ class _DisaAktarmaState extends State<_DisaAktarma> {
                           if (x.durum == 'ready')
                             IconButton(
                               tooltip: 'İndir',
-                              icon: const Icon(Icons.download_rounded),
+                              icon: const Icon(Simgeler.download),
                               onPressed: () => dosyaIndir(
                                 '/api/v1/organizations/${widget.m.id}/exports/${x.id}/download',
                                 'musteri-${widget.m.id.substring(0, 8)}-${x.id.substring(0, 8)}.zip',
@@ -1186,33 +1187,33 @@ class _GirisAdresiState extends State<_GirisAdresi> {
                   decoration: InputDecoration(labelText: 'Giriş adresi', hintText: 'posta.firmaniz.com', errorText: _hata),
                 ),
                 if (_duzenler) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       FilledButton.icon(
                         onPressed: _mesgul || _ad.text.trim().isEmpty || _ad.text.trim() == kayitli ? null : () => _kaydet(_ad.text.trim()),
-                        icon: const Icon(Icons.save_outlined, size: 18),
+                        icon: const Icon(Simgeler.save, size: 18),
                         label: const Text('Kaydet ve denetle'),
                       ),
                       if (kayitli.isNotEmpty)
                         OutlinedButton.icon(
                           onPressed: _mesgul ? null : _denetle,
-                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          icon: const Icon(Simgeler.refresh, size: 18),
                           label: const Text('Yeniden denetle'),
                         ),
                       if (kayitli.isNotEmpty)
                         OutlinedButton.icon(
                           onPressed: _mesgul ? null : () => _kaydet(''),
-                          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Marka.gul),
+                          icon: const Icon(Simgeler.deleteOutline, size: 18, color: Marka.gul),
                           label: const Text('Kaldır', style: TextStyle(color: Marka.gul)),
                         ),
                     ],
                   ),
                 ],
                 if (kayitli.isNotEmpty) ...[
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   BilgiSatiri(
                     'DNS durumu',
                     metin(h['detail'], '–'),
@@ -1229,17 +1230,17 @@ class _GirisAdresiState extends State<_GirisAdresi> {
                   ),
                   if (tarihOku(h['checked_at']) != null) BilgiSatiri('Son denetim', tamZaman(tarihOku(h['checked_at']))),
                 ],
-                const SizedBox(height: 14),
-                const Text('DNS kaydı', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                const SizedBox(height: 16),
+                const Text('DNS kaydı', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                 const SizedBox(height: 4),
                 Text('Alan adının DNS yönetiminde aşağıdakilerden birini ekleyin:', style: TextStyle(color: r.soluk, fontSize: 12.5)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 if (cname.isNotEmpty) KopyaKutusu(cname, etiket: 'CNAME  $ornek  (önerilen)'),
                 if (ipler.isNotEmpty) KopyaKutusu(ipler.join(', '), etiket: 'A/AAAA  $ornek'),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text('DNS her 6 saatte bir yeniden denetlenir; kayıt kaldırılırsa adres devre dışı kalır.', style: TextStyle(color: r.silik, fontSize: 12)),
                 if (!mantik(v['branding_enabled'], true)) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   const Bant('Paket özel marka içermediği için giriş sayfası markalanmaz.', renk: Marka.kehribar),
                 ],
               ],

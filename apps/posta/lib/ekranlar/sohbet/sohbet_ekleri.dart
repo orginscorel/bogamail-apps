@@ -75,7 +75,7 @@ class SohbetResmi extends StatelessWidget {
               future: _kucukResim(ek),
               builder: (_, s) {
                 if (s.hasData) return Image.memory(s.data!, fit: BoxFit.cover, gaplessPlayback: true);
-                if (s.hasError) return Icon(Icons.broken_image_outlined, color: r.silik);
+                if (s.hasError) return Icon(Simge.bozukGorsel, color: r.silik);
                 return const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)));
               },
             ),
@@ -98,7 +98,7 @@ class ResimGorunumu extends StatelessWidget {
       backgroundColor: Colors.black,
       foregroundColor: Colors.white,
       title: Text(ek.ad, style: const TextStyle(color: Colors.white, fontSize: 15)),
-      actions: [IconButton(tooltip: 'Paylaş / kaydet', icon: const Icon(Icons.ios_share_rounded), onPressed: () => sohbetEkiPaylas(ek))],
+      actions: [IconButton(tooltip: 'Paylaş / kaydet', icon: const Icon(Simge.paylas), onPressed: () => sohbetEkiPaylas(ek))],
     ),
     body: FutureBuilder<Uint8List>(
       future: Sohbet.ekIndir(ek.url),
@@ -225,7 +225,7 @@ class _SohbetDosyasiState extends State<SohbetDosyasi> {
               IconButton(
                 tooltip: _masaustu ? 'Kaydet' : 'Paylaş / kaydet',
                 visualDensity: VisualDensity.compact,
-                icon: Icon(_masaustu ? Icons.download_rounded : Icons.ios_share_rounded, size: 18, color: yazi.withValues(alpha: .8)),
+                icon: Icon(_masaustu ? Simge.indir : Simge.paylas, size: 18, color: yazi.withValues(alpha: .8)),
                 onPressed: () => sohbetEkiPaylas(e),
               ),
             ],
@@ -264,7 +264,7 @@ class TepkiHaplari extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   child: Text(
                     '${t.emoji} ${t.sayi}',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: t.benim ? r.vurgu : r.soluk),
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: t.benim ? r.vurgu : r.soluk),
                   ),
                 ),
               ),
@@ -279,7 +279,7 @@ class TepkiHaplari extends StatelessWidget {
               onTap: ekle,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                child: Icon(Icons.add_reaction_outlined, size: 16, color: r.silik),
+                child: Icon(Simge.tepkiEkle, size: 16, color: r.silik),
               ),
             ),
           ),

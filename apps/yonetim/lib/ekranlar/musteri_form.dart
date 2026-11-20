@@ -7,6 +7,7 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import 'kutu_formlari.dart';
 import 'musteri_model.dart';
+import '../ortak/simgeler.dart';
 
 /// Müşteri kartı: oluşturma (POST /organizations) ve düzenleme (PATCH /organizations/{id}).
 /// Web customer-form.tsx ile aynı alanlar: firma, yetkili, teknik irtibat, fatura/vergi, adres, paket, (ortaklar) dahili notlar.
@@ -235,21 +236,21 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
   );
 
   Widget _grup(IconData ikon, String baslik, List<Widget> l, {int sutun = 2}) => Padding(
-    padding: const EdgeInsets.only(bottom: 18),
+    padding: const EdgeInsets.only(bottom: 16),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
             Icon(ikon, size: 16, color: context.r.vurgu),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               baslik.toUpperCase(),
-              style: TextStyle(fontSize: 11.5, letterSpacing: .4, fontWeight: FontWeight.w700, color: context.r.soluk),
+              style: TextStyle(fontSize: 11.5, letterSpacing: .4, fontWeight: FontWeight.w600, color: context.r.soluk),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _izgara(l, sutun: sutun),
       ],
     ),
@@ -330,8 +331,8 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
               hata: _hataOf('status'),
             ),
         ]),
-        const SizedBox(height: 18),
-        _grup(Icons.person_outline_rounded, 'Yetkili kişi', [
+        const SizedBox(height: 16),
+        _grup(Simgeler.personOutline, 'Yetkili kişi', [
           _alanKutusu('contact_name', 'Ad soyad', zorunlu: _yeni, enFazla: 120),
           _alanKutusu('contact_phone', 'Telefon', zorunlu: _yeni, ipucu: '0532 555 12 34', tur: TextInputType.phone),
           _alanKutusu('contact_email', 'E-posta', zorunlu: _yeni, tur: TextInputType.emailAddress),
@@ -377,7 +378,7 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
   Widget _fatura() => ListView(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
     children: [
-      _grup(Icons.account_balance_outlined, 'Fatura', [
+      _grup(Simgeler.accountBalance, 'Fatura', [
         if (!_bireysel) _alanKutusu('legal_name', 'Ticari unvan', ipucu: 'Örnek Yazılım A.Ş.', enFazla: 300),
         _alanKutusu('tax_office', 'Vergi dairesi', enFazla: 120),
         _alanKutusu(
@@ -390,7 +391,7 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
         _alanKutusu('billing_email', 'Fatura e-postası', yardim: 'Boşsa yetkili e-postası', tur: TextInputType.emailAddress),
         if (!_bireysel) _alanKutusu('mersis_no', 'MERSİS no', tur: TextInputType.number, enFazla: 16),
       ]),
-      _grup(Icons.place_outlined, 'Adres', [
+      _grup(Simgeler.place, 'Adres', [
         _alanKutusu('address', 'Açık adres', enFazla: 500, satir: 2),
         _alanKutusu('district', 'İlçe', enFazla: 80),
         Autocomplete<String>(
@@ -418,7 +419,7 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
   Widget _diger() => ListView(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
     children: [
-      _grup(Icons.apartment_rounded, 'Firma ve yetkili ayrıntıları', [
+      _grup(Simgeler.apartment, 'Firma ve yetkili ayrıntıları', [
         if (!_bireysel)
           _secim<String>(
             'Çalışan sayısı',
@@ -431,7 +432,7 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
         _alanKutusu('contact_title', 'Yetkilinin görevi', ipucu: 'Genel Müdür, BT Sorumlusu…', enFazla: 120),
         _alanKutusu('contact_mobile', 'İkinci telefon', tur: TextInputType.phone),
       ]),
-      _grup(Icons.build_outlined, 'Teknik irtibat', [
+      _grup(Simgeler.build, 'Teknik irtibat', [
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
@@ -446,7 +447,7 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
         ],
       ]),
       if (_ortak)
-        _grup(Icons.sticky_note_2_outlined, 'Dahili (müşteri görmez)', [
+        _grup(Simgeler.stickyNote2, 'Dahili (müşteri görmez)', [
           _alanKutusu('source', 'Müşteri kaynağı', ipucu: 'Referans, web sitesi, fuar…', enFazla: 200),
           _alanKutusu('notes', 'Notlar', satir: 3, enFazla: 4000),
         ]),
@@ -462,20 +463,20 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 12, 4),
+          padding: const EdgeInsets.fromLTRB(20, 16, 12, 4),
           child: Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_yeni ? 'Yeni müşteri' : 'Müşteriyi düzenle', style: gosterim(19, agirlik: FontWeight.w700)),
+                    Text(_yeni ? 'Yeni müşteri' : 'Müşteriyi düzenle', style: gosterim(19, agirlik: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text('Yalnızca * işaretli alanlar zorunlu; diğer sekmeleri sonra da doldurabilirsiniz.', style: TextStyle(color: r.silik, fontSize: 12.5)),
                   ],
                 ),
               ),
-              IconButton(tooltip: 'Kapat', onPressed: _mesgul ? null : () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+              IconButton(tooltip: 'Kapat', onPressed: _mesgul ? null : () => Navigator.pop(context), icon: const Icon(Simgeler.close)),
             ],
           ),
         ),
@@ -501,7 +502,7 @@ class _MusteriFormuState extends State<MusteriFormu> with SingleTickerProviderSt
           child: TabBarView(controller: _sekme, children: [_temel(), _fatura(), _diger()]),
         ),
         Container(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: r.kenar)),
           ),

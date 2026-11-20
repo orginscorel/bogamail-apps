@@ -9,6 +9,7 @@ import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import 'bolumler.dart';
 import 'hizmet_ortak.dart';
+import '../ortak/simgeler.dart';
 import 'kutu_islemleri.dart' show dosyaIndir;
 
 /// Paketim: müşterinin paketi, özellikleri, canlı kullanımı, gönderim sınırları ve toplu dışa aktarma.
@@ -84,7 +85,7 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
       alt: _kendi ? 'Paketinizin özellikleri, canlı kullanımınız ve kalan haklarınız' : 'Müşterinin paketi, özellikleri ve canlı kullanımı',
       yenile: org == null ? null : () => _anahtar.currentState?.yenile(),
       govde: org == null
-          ? const Kapali('Müşteriler bölümünde bir müşterinin menüsünden "Paket ve kullanım"ı açın.', ikon: Icons.verified_outlined)
+          ? const Kapali('Müşteriler bölümünde bir müşterinin menüsünden "Paket ve kullanım"ı açın.', ikon: Simgeler.verified)
           : TekYukleme<_PaketVerisi>(
               key: _anahtar,
               getir: () => _getir(org),
@@ -99,7 +100,7 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
                     const SizedBox(height: 16),
                     BolumKarti(
                       baslik: 'Verilerinizi dışa aktarın',
-                      ikon: Icons.inventory_outlined,
+                      ikon: Simgeler.inventory,
                       child: DisaAktarma(orgId: org),
                     ),
                   ],
@@ -141,9 +142,9 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(color: r.birincil.withValues(alpha: .12), borderRadius: BorderRadius.circular(13)),
-              child: Icon(Icons.verified_rounded, color: r.birincil),
+              child: Icon(Simgeler.verified, color: r.birincil),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +154,7 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
                     runSpacing: 4,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text(metin(plan?['name'], 'Paketsiz (sınırsız)'), style: gosterim(18, agirlik: FontWeight.w700)),
+                      Text(metin(plan?['name'], 'Paketsiz (sınırsız)'), style: gosterim(18, agirlik: FontWeight.w600)),
                       const Rozet('Canlı', renk: Marka.zumrut),
                     ],
                   ),
@@ -206,12 +207,12 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
         enAz: 340,
         children: [
           Kutu(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Gönderilen (tüm kutular)', style: TextStyle(color: r.soluk, fontSize: 13)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     _sayi(c, k('sent_last_hour'), 'son 1 saat'),
@@ -228,12 +229,12 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
                     children: [
                       TextButton.icon(
                         onPressed: () => bolumeGit(Bolum.kutular),
-                        icon: const Icon(Icons.inbox_outlined, size: 18),
+                        icon: const Icon(Simgeler.inbox, size: 18),
                         label: const Text('Posta kutuları'),
                       ),
                       TextButton.icon(
                         onPressed: () => bolumeGit(Bolum.alanlar),
-                        icon: const Icon(Icons.language_rounded, size: 18),
+                        icon: const Icon(Simgeler.language, size: 18),
                         label: const Text('Alan adları'),
                       ),
                     ],
@@ -243,12 +244,12 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
             ),
           ),
           Kutu(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('Paket limitleri', style: TextStyle(color: r.soluk, fontSize: 13)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 for (final (a, d) in satirlar) DegerSatiri(a, d),
               ],
             ),
@@ -261,7 +262,7 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
   Widget _sayi(BuildContext c, int n, String alt) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(sayiYaz(n), style: gosterim(22, renk: c.r.metin)),
+      Text(sayiYaz(n), style: gosterim(22, agirlik: FontWeight.w600, renk: c.r.metin)),
       Text(alt, style: TextStyle(color: c.r.silik, fontSize: 12)),
     ],
   );
@@ -278,11 +279,11 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
         children: [
           for (final g in gruplar.entries)
             Kutu(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(g.key, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                  Text(g.key, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                   const SizedBox(height: 8),
                   for (final o in g.value) _ozellikSatiri(c, o, mantik(f[o.anahtar])),
                 ],
@@ -314,12 +315,12 @@ class _PaketimEkraniState extends State<PaketimEkrani> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(etkin ? Icons.check_rounded : Icons.remove_rounded, size: 17, color: etkin ? Marka.zumrut : r.silik),
+          Icon(etkin ? Simgeler.check : Simgeler.remove, size: 17, color: etkin ? Marka.zumrut : r.silik),
           const SizedBox(width: 8),
           Expanded(
             child: Text(o.ad, style: TextStyle(fontSize: 13, color: etkin ? r.metin : r.silik)),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           rozet,
         ],
       ),
@@ -344,7 +345,7 @@ class _GonderimSinirlari extends StatelessWidget {
     final bekletilen = tamsayi(v['held']);
     return BolumKarti(
       baslik: 'Gönderim sınırları',
-      ikon: Icons.speed_rounded,
+      ikon: Simgeler.speed,
       altBaslik: 'Platformun diğer müşterilerini korumak için müşteri başına uygulanan dış gönderim sınırları.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,7 +364,7 @@ class _GonderimSinirlari extends StatelessWidget {
                       : 'Yüksek geri dönme veya kötüye kullanım riski nedeniyle gönderim hızınız ${tamZaman(tarihOku(e['throttled_until']))} saatine kadar düşürüldü.') +
                   (sebep.isEmpty ? '' : ' ($sebep)'),
               renk: Marka.kehribar,
-              ikon: Icons.warning_amber_rounded,
+              ikon: Simgeler.warningAmber,
             ),
             const SizedBox(height: 12),
           ],
@@ -375,7 +376,7 @@ class _GonderimSinirlari extends StatelessWidget {
               Text('${sayiYaz(gonderilen)} / ${lim(saatlik)}', style: TextStyle(color: r.silik, fontSize: 12)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
@@ -491,17 +492,17 @@ class _DisaAktarmaState extends State<DisaAktarma> {
           onPressed: _mesgul || _etkin || !_hazir ? null : _baslat,
           icon: _mesgul || _etkin
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.inventory_outlined, size: 18),
+              : const Icon(Simgeler.inventory, size: 18),
           label: Text(_etkin ? 'Hazırlanıyor…' : 'Tümünü dışa aktar'),
         ),
         if (!_hazir)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 8),
             child: Text('Dışa aktarma hizmeti bu sunucuda yapılandırılmamış.', style: TextStyle(color: r.silik, fontSize: 12)),
           ),
         const SizedBox(height: 12),
         if (_hata != null)
-          Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded, eylem: TextButton(onPressed: _yukle, child: const Text('Tekrar')))
+          Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline, eylem: TextButton(onPressed: _yukle, child: const Text('Tekrar')))
         else if (l == null)
           const LinearProgressIndicator(minHeight: 2)
         else if (l.isEmpty)
@@ -537,7 +538,7 @@ class _DisaAktarmaState extends State<DisaAktarma> {
       sag: d == 'ready' && x['id'] != null
           ? IconButton(
               tooltip: 'İndir',
-              icon: const Icon(Icons.download_rounded),
+              icon: const Icon(Simgeler.download),
               onPressed: () => dosyaIndir('/api/v1/organizations/${widget.orgId}/exports/${x['id']}/download',
                   'bogamail-disa-aktarim-${x['id']}.zip', baslik: 'Arşiv indiriliyor'),
             )

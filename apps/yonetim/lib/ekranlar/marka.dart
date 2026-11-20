@@ -10,6 +10,7 @@ import '../ortak/bilesenler.dart';
 import '../ortak/dosya.dart' show dosyaSec;
 import '../ortak/iskelet.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 /// Marka (beyaz etiket): müşterinin webmail ve panelinde görünen ürün adı, ana renk, destek bilgileri, logo ve
 /// kendi alan adıyla giriş adresi. Web: admin/branding (+ login-host).
@@ -63,7 +64,7 @@ class _MarkaEkraniState extends State<MarkaEkrani> {
       baslik: 'Marka',
       alt: _orgAdi ?? 'Webmail ve müşteri panelinde görünen logo, ürün adı, ana renk ve destek bilgileri',
       eylemler: [
-        if (_ortak) IconButton(tooltip: 'Müşteri seçin', onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded)),
+        if (_ortak) IconButton(tooltip: 'Müşteri seçin', onPressed: _musteriSec, icon: const Icon(Simgeler.apartment)),
       ],
       yenile: org == null ? null : () => setState(() => _nesil++),
       govde: org == null
@@ -73,9 +74,9 @@ class _MarkaEkraniState extends State<MarkaEkrani> {
                 children: [
                   Kapali(
                     _ortak ? 'Markasını düzenlemek istediğiniz müşteriyi seçin.' : 'Bu kullanıcı bir müşteriye bağlı değil.',
-                    ikon: Icons.palette_outlined,
+                    ikon: Simgeler.palette,
                   ),
-                  if (_ortak) FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded), label: const Text('Müşteri seçin')),
+                  if (_ortak) FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Simgeler.apartment), label: const Text('Müşteri seçin')),
                 ],
               ),
             )
@@ -97,12 +98,12 @@ class _MarkaEkraniState extends State<MarkaEkrani> {
                       const Bant(
                         'Bu müşterinin paketinde özel marka özelliği yok: ayarlar kaydedilir ancak paket bu özelliği içerene kadar webmail\'de uygulanmaz.',
                         renk: Marka.kehribar,
-                        ikon: Icons.warning_amber_rounded,
+                        ikon: Simgeler.warningAmber,
                       ),
                       const SizedBox(height: 12),
                     ],
                     if (!duzenler) ...[
-                      const Bant('Marka ayarlarını değiştirme yetkiniz yok (branding.manage). Yalnızca görüntüleyebilirsiniz.', ikon: Icons.lock_outline_rounded),
+                      const Bant('Marka ayarlarını değiştirme yetkiniz yok (branding.manage). Yalnızca görüntüleyebilirsiniz.', ikon: Simgeler.lockOutline),
                       const SizedBox(height: 12),
                     ],
                     _MarkaDuzenleyici(key: ValueKey(b['version']), b: b, duzenler: duzenler, yenile: yenile),
@@ -133,7 +134,7 @@ class _MusteriSeciciState extends State<_MusteriSecici> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text('Müşteri seçin', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Müşteri seçin', style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 440,
       height: 420,
@@ -300,7 +301,7 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
     final genis = MediaQuery.sizeOf(context).width >= 1000;
     final form = BolumKarti(
       baslik: 'Ad, renk ve destek bilgileri',
-      ikon: Icons.palette_outlined,
+      ikon: Simgeler.palette,
       altBaslik: 'Boş bırakılan alanlarda BogaMail varsayılanları kullanılır.',
       child: Form(
         key: _form,
@@ -338,14 +339,14 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
                 ),
                 suffixIcon: _renkK.text.isEmpty || !widget.duzenler
                     ? null
-                    : IconButton(tooltip: 'Varsayılana dön', icon: const Icon(Icons.restart_alt_rounded), onPressed: () => setState(_renkK.clear)),
+                    : IconButton(tooltip: 'Varsayılana dön', icon: const Icon(Simgeler.restartAlt), onPressed: () => setState(_renkK.clear)),
               ),
               validator: (v) => (v ?? '').trim().isNotEmpty && !_renkRe.hasMatch((v ?? '').trim()) ? 'Renk #RRGGBB biçiminde olmalı' : null,
             ),
             if (widget.duzenler)
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   for (final h in _hazirRenkler)
                     InkWell(
@@ -363,9 +364,9 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
                     ),
                 ],
               ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             _renkNotlari(context),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _eposta,
               enabled: widget.duzenler,
@@ -394,14 +395,14 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
               ),
               validator: (v) => RegExp(r'[<>]').hasMatch(v ?? '') ? '< > içermemeli' : null,
             ),
-            if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+            if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
             if (widget.duzenler) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
                 child: FilledButton.icon(
                   onPressed: _mesgul ? null : _kaydet,
-                  icon: _mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined),
+                  icon: _mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Simgeler.save),
                   label: const Text('Kaydet'),
                 ),
               ),
@@ -412,7 +413,7 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
     );
     final logo = BolumKarti(
       baslik: 'Logo',
-      ikon: Icons.image_outlined,
+      ikon: Simgeler.image,
       altBaslik: 'PNG, JPEG veya GIF; sunucu en fazla 640×200 piksele sığdırır. Şeffaf zeminli yatay logo önerilir.',
       child: Izgara(
         enAz: 220,
@@ -428,14 +429,14 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
         Row(
           children: [
             const Expanded(
-              child: Text('Canlı önizleme', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: Text('Canlı önizleme', style: TextStyle(fontWeight: FontWeight.w600)),
             ),
             SegmentedButton<bool>(
               showSelectedIcon: false,
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
               segments: const [
-                ButtonSegment(value: false, icon: Icon(Icons.light_mode_outlined, size: 16), label: Text('Açık')),
-                ButtonSegment(value: true, icon: Icon(Icons.dark_mode_outlined, size: 16), label: Text('Koyu')),
+                ButtonSegment(value: false, icon: Icon(SimgelerKalin.lightMode, size: 16), label: Text('Açık')),
+                ButtonSegment(value: true, icon: Icon(SimgelerKalin.darkMode, size: 16), label: Text('Koyu')),
               ],
               selected: {_koyu},
               onSelectionChanged: (s) => setState(() => _koyu = s.first),
@@ -444,7 +445,7 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
         ),
         const SizedBox(height: 8),
         _onizleme(context),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text('Önizleme kaydedilmemiş değişiklikleri de gösterir.', style: TextStyle(color: r.silik, fontSize: 12)),
       ],
     );
@@ -471,7 +472,7 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(etiket, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Container(
           height: 90,
           padding: const EdgeInsets.all(12),
@@ -482,7 +483,7 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
           ),
           alignment: Alignment.center,
           child: var_ && veri != null
-              ? Image.memory(veri, fit: BoxFit.contain, errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined))
+              ? Image.memory(veri, fit: BoxFit.contain, errorBuilder: (_, _, _) => const Icon(Simgeler.brokenImage))
               : Text(
                   var_ ? 'Yükleniyor…' : (koyu ? 'Yok — koyu temada açık logo kullanılır' : 'Logo yok'),
                   textAlign: TextAlign.center,
@@ -495,13 +496,13 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
             children: [
               TextButton.icon(
                 onPressed: () => _logoSec(v, etiket),
-                icon: const Icon(Icons.upload_rounded, size: 18),
+                icon: const Icon(Simgeler.upload, size: 18),
                 label: Text(var_ ? 'Değiştir' : 'Yükle'),
               ),
               if (var_)
                 TextButton.icon(
                   onPressed: () => _logoSil(v, etiket),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  icon: const Icon(Simgeler.deleteOutline, size: 18),
                   label: const Text('Kaldır'),
                   style: TextButton.styleFrom(foregroundColor: Marka.gul),
                 ),
@@ -546,11 +547,11 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
                         child: Image.memory(logo, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
                       )
                     else
-                      Icon(Icons.mail_rounded, color: ustYazi, size: 24),
+                      Icon(Simgeler.mail, color: ustYazi, size: 24),
                     if (logo == null || _ad.text.trim().isNotEmpty) ...[
                       const SizedBox(width: 8),
                       Flexible(
-                        child: Text(ad, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: ustYazi, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                        child: Text(ad, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: ustYazi, fontWeight: FontWeight.w600, fontSize: 13.5)),
                       ),
                     ],
                     const Spacer(),
@@ -581,7 +582,7 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
                         ),
                         for (final k in ['Gönderilen', 'Taslaklar'])
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+                            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                             child: Text(k, style: TextStyle(color: yazi.withValues(alpha: .6))),
                           ),
                       ],
@@ -597,12 +598,12 @@ class _MarkaDuzenleyiciState extends State<_MarkaDuzenleyici> {
                             widthFactor: .75,
                             child: Container(height: 9, decoration: BoxDecoration(color: yazi.withValues(alpha: .18), borderRadius: BorderRadius.circular(4))),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           FractionallySizedBox(
                             widthFactor: .5,
                             child: Container(height: 9, decoration: BoxDecoration(color: yazi.withValues(alpha: .12), borderRadius: BorderRadius.circular(4))),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(color: vurgu, borderRadius: BorderRadius.circular(6)),
@@ -706,7 +707,7 @@ class _GirisAdresiState extends State<_GirisAdresi> {
     final v = _v;
     return BolumKarti(
       baslik: 'Kendi alan adınızla giriş',
-      ikon: Icons.public_rounded,
+      ikon: Simgeler.public,
       altBaslik:
           'Kullanıcılarınız webmail ve panele kendi adresinizden (ör. posta.firmaniz.com) girer; giriş sayfası logonuz, ürün adınız ve renginizle görünür. '
           'Adres, etkin alan adlarınızdan birinin altında olmalıdır.',
@@ -733,22 +734,22 @@ class _GirisAdresiState extends State<_GirisAdresi> {
                       decoration: InputDecoration(labelText: 'Giriş adresi', hintText: 'posta.firmaniz.com', errorText: _alanHata),
                     ),
                     if (widget.duzenler) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           FilledButton.icon(
                             onPressed: _mesgul || _k.text.trim().isEmpty || _k.text.trim() == ad ? null : () => _kaydet(_k.text.trim()),
-                            icon: const Icon(Icons.save_outlined, size: 18),
+                            icon: const Icon(Simgeler.save, size: 18),
                             label: const Text('Kaydet ve denetle'),
                           ),
                           if (ad.isNotEmpty)
-                            OutlinedButton.icon(onPressed: _mesgul ? null : _denetle, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Yeniden denetle')),
+                            OutlinedButton.icon(onPressed: _mesgul ? null : _denetle, icon: const Icon(Simgeler.refresh, size: 18), label: const Text('Yeniden denetle')),
                           if (ad.isNotEmpty)
                             OutlinedButton.icon(
                               onPressed: _mesgul ? null : () => _kaydet(''),
-                              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                              icon: const Icon(Simgeler.deleteOutline, size: 18),
                               label: const Text('Kaldır'),
                             ),
                         ],
@@ -784,17 +785,17 @@ class _GirisAdresiState extends State<_GirisAdresi> {
                       ),
                     ],
                     const SizedBox(height: 12),
-                    const Text('DNS kaydı', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const Text('DNS kaydı', style: TextStyle(fontWeight: FontWeight.w600)),
                     Text('Alan adınızın DNS yönetiminde aşağıdakilerden birini ekleyin:', style: TextStyle(color: r.soluk, fontSize: 13)),
                     if (metinYa(h['expected_cname']) != null) KopyaKutusu(metin(h['expected_cname']), etiket: 'CNAME'),
                     if (metinYa(h['expected_cname']) != null) Text('$yer → CNAME (önerilen)', style: TextStyle(color: r.silik, fontSize: 12)),
                     if (ipler.isNotEmpty) KopyaKutusu(ipler.join(', '), etiket: 'A/AAAA'),
                     if (ipler.isNotEmpty) Text('$yer → A/AAAA', style: TextStyle(color: r.silik, fontSize: 12)),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Text('DNS her 6 saatte bir yeniden denetlenir; kayıt kaldırılırsa adres devre dışı kalır.', style: TextStyle(color: r.silik, fontSize: 12)),
                     if (!mantik(v['branding_enabled'], true)) ...[
-                      const SizedBox(height: 10),
-                      const Bant('Paket özel marka içermediği için giriş sayfası markalanmaz.', renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
+                      const SizedBox(height: 8),
+                      const Bant('Paket özel marka içermediği için giriş sayfası markalanmaz.', renk: Marka.kehribar, ikon: Simgeler.warningAmber),
                     ],
                   ],
                 );

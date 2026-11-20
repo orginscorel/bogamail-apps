@@ -9,6 +9,7 @@ import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'bekletilenler.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 // Veri Sızıntısı Önleme (web: admin/dlp): platform geneli politikalar, olaylar ve onay bekleyen iletiler.
 // Tüm uç noktalar yalnızca süper yönetici içindir (dlpSuper).
@@ -143,13 +144,13 @@ class _DlpEkraniState extends State<DlpEkrani> {
         baslik: 'Veri Sızıntısı Önleme (DLP)',
         alt: 'Platform geneli politikalar tüm müşterilerin giden iletilerine uygulanır',
         eylemler: [
-          IconButton(tooltip: 'Tarama kapsamı ve sınırlar', onPressed: _meta == null ? null : _kapsamGoster, icon: const Icon(Icons.info_outline_rounded)),
+          IconButton(tooltip: 'Tarama kapsamı ve sınırlar', onPressed: _meta == null ? null : _kapsamGoster, icon: const Icon(Simgeler.infoOutline)),
         ],
         yenile: () {
           _metaYukle();
           setState(() => _nesil++);
         },
-        birincil: _meta == null ? null : BirincilEylem(Icons.add_rounded, 'Yeni politika', () => _politikalarAnahtari.currentState?.duzenle()),
+        birincil: _meta == null ? null : BirincilEylem(Simgeler.add, 'Yeni politika', () => _politikalarAnahtari.currentState?.duzenle()),
         sekmeler: const TabBar(
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -231,7 +232,7 @@ class _PolitikalarState extends State<_Politikalar> {
       const SizedBox(height: 12),
       Builder(
         builder: (c) => EylemSatiri(
-          ikon: Icons.edit_outlined,
+          ikon: Simgeler.edit,
           baslik: 'Düzenle',
           ipucu: 'Dedektör, eylem, istisnalar',
           onTap: () {
@@ -243,7 +244,7 @@ class _PolitikalarState extends State<_Politikalar> {
       const SizedBox(height: 8),
       Builder(
         builder: (c) => EylemSatiri(
-          ikon: Icons.delete_outline_rounded,
+          ikon: Simgeler.deleteOutline,
           baslik: 'Sil',
           ipucu: 'Politika kaldırılır',
           tehlikeli: true,
@@ -257,8 +258,8 @@ class _PolitikalarState extends State<_Politikalar> {
   );
 
   List<SatirEylemi> _eylemler(DlpPolitika p) => [
-    SatirEylemi(Icons.edit_outlined, 'Düzenle', () => duzenle(politika: p)),
-    SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(p), tehlikeli: true),
+    SatirEylemi(Simgeler.edit, 'Düzenle', () => duzenle(politika: p)),
+    SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(p), tehlikeli: true),
   ];
 
   Widget _sablonlar(BuildContext context) {
@@ -269,18 +270,18 @@ class _PolitikalarState extends State<_Politikalar> {
       height: 132,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         children: [
           for (final t in sablonlar)
             Container(
               width: 270,
-              margin: const EdgeInsets.only(right: 10),
+              margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: r.kart, borderRadius: BorderRadius.circular(14), border: Border.all(color: r.kenar)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(metin(t['name']), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                  Text(metin(t['name']), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                   const SizedBox(height: 2),
                   Expanded(
                     child: Text(metin(t['description']), maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 12)),
@@ -288,7 +289,7 @@ class _PolitikalarState extends State<_Politikalar> {
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
                     onPressed: () => duzenle(sablon: metin(t['key'])),
-                    icon: const Icon(Icons.add_rounded, size: 17),
+                    icon: const Icon(Simgeler.add, size: 17),
                     label: const Text('Şablondan ekle'),
                   ),
                 ],
@@ -305,7 +306,7 @@ class _PolitikalarState extends State<_Politikalar> {
   Widget build(BuildContext context) => VeriTablosu<DlpPolitika>(
     yukleyici: _y,
     bosMetin: 'Politika yok. Bir şablonla başlayın: KVKK (T.C. kimlik), PCI (kart) veya Finans (IBAN).',
-    bosIkon: Icons.policy_outlined,
+    bosIkon: Simgeler.policy,
     onTap: _ac,
     eylemler: _eylemler,
     ust: _sablonlar(context),
@@ -419,7 +420,7 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
         : Column(children: [a, const SizedBox(height: 12), b]);
     final sablon = _sablon;
     return AlertDialog(
-      title: Text(_p != null ? 'Politikayı düzenle' : 'Yeni DLP politikası', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(_p != null ? 'Politikayı düzenle' : 'Yeni DLP politikası', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 640,
         child: SingleChildScrollView(
@@ -428,7 +429,7 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Aciklama(sablon != null ? metin(sablon['description']) : 'Dedektörleri, eşiği ve eylemi seçin.'),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               ikili(
                 TextField(controller: _ad, decoration: const InputDecoration(labelText: 'Ad')),
                 DropdownButtonFormField<String>(
@@ -445,7 +446,7 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Dedektörler', style: TextStyle(fontWeight: FontWeight.w700)),
+              const Text('Dedektörler', style: TextStyle(fontWeight: FontWeight.w600)),
               for (final d in dedektorler)
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
@@ -468,13 +469,13 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
                     ),
                   ),
                 ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  const Expanded(child: Text('Özel kurallar', style: TextStyle(fontWeight: FontWeight.w700))),
+                  const Expanded(child: Text('Özel kurallar', style: TextStyle(fontWeight: FontWeight.w600))),
                   OutlinedButton.icon(
                     onPressed: _kurallar.length >= 20 ? null : () => setState(() => _kurallar.add(_Kural('', 'keyword', ''))),
-                    icon: const Icon(Icons.add_rounded, size: 17),
+                    icon: const Icon(Simgeler.add, size: 17),
                     label: const Text('Kural'),
                   ),
                 ],
@@ -482,7 +483,7 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
               for (final (i, k) in _kurallar.indexed)
                 Padding(
                   key: ObjectKey(k),
-                  padding: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -515,12 +516,12 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
                             x.desen.dispose();
                           });
                         }),
-                        icon: const Icon(Icons.delete_outline_rounded),
+                        icon: const Icon(Simgeler.deleteOutline),
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text('Regex en fazla 256 karakter; çok karmaşık veya her şeyi eşleştiren desenler reddedilir.', style: TextStyle(color: r.silik, fontSize: 12)),
               const SizedBox(height: 16),
               ikili(
@@ -608,7 +609,7 @@ class _OlaylarState extends State<_Olaylar> {
         const SizedBox(height: 8),
         for (final e in o.eslesmeler)
           Container(
-            margin: const EdgeInsets.only(bottom: 6),
+            margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(8), border: Border.all(color: r.kenar)),
             child: Text.rich(
@@ -624,7 +625,7 @@ class _OlaylarState extends State<_Olaylar> {
             ),
           ),
         if (o.taranamayan.isNotEmpty) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           const Text('Taranamayan bölümler', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
           for (final u in o.taranamayan) Aciklama('${metin(u['name'])}: ${metin(u['reason'])}'),
         ],
@@ -645,7 +646,7 @@ class _OlaylarState extends State<_Olaylar> {
   Widget build(BuildContext context) => VeriTablosu<DlpOlay>(
     yukleyici: _y,
     bosMetin: 'Olay yok. Politikalarla eşleşen giden ileti bulunmadı.',
-    bosIkon: Icons.file_present_outlined,
+    bosIkon: Simgeler.filePresent,
     onTap: _ac,
     ust: FiltreCubugu(
       arama: AramaAlani(
@@ -658,7 +659,7 @@ class _OlaylarState extends State<_Olaylar> {
       filtreler: [
         FiltreDugmesi<String>(
           etiket: 'Sonuç',
-          ikon: Icons.rule_rounded,
+          ikon: Simgeler.rule,
           secenekler: [('', 'Tüm sonuçlar'), for (final e in dlpSonucEtiketleri.entries) (e.key, e.value)],
           secili: _sonuc,
           secildi: (v) {

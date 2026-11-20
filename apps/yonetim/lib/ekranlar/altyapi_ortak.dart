@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../oturum.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 /// Bütünlük taraması (GET /backup/integrity → last / running).
 class ButunlukTaramasi {
@@ -114,7 +115,7 @@ class ButunlukBandi extends StatelessWidget {
     final r = context.r;
     final s = tarama;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: Marka.gul.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(14),
@@ -123,8 +124,8 @@ class ButunlukBandi extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.gpp_maybe_rounded, color: Marka.gul, size: 22),
-          const SizedBox(width: 10),
+          const Icon(Simgeler.gppMaybe, color: Marka.gul, size: 22),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,7 +133,7 @@ class ButunlukBandi extends StatelessWidget {
                 Text.rich(
                   TextSpan(
                     text: s.durum == 'failed' ? 'Bütünlük taraması başarısız' : 'Bütünlük taraması sorun buldu',
-                    style: const TextStyle(color: Marka.gul, fontWeight: FontWeight.w700),
+                    style: const TextStyle(color: Marka.gul, fontWeight: FontWeight.w600),
                     children: [
                       TextSpan(
                         text: '  (${goreliZaman(s.bitis ?? s.baslangic)})',
@@ -191,7 +192,7 @@ class SayacKutusu extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.r;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: r.kenar),
@@ -202,7 +203,7 @@ class SayacKutusu extends StatelessWidget {
             deger,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: gosterim(18, agirlik: FontWeight.w700, renk: kotu ? Marka.gul : r.metin),
+            style: gosterim(18, agirlik: FontWeight.w600, renk: kotu ? Marka.gul : r.metin),
           ),
           const SizedBox(height: 2),
           Text(

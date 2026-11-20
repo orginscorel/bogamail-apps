@@ -9,6 +9,7 @@ import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'bekletilenler.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 // Kötüye Kullanım Merkezi (web: admin/abuse): özet, olaylar (sinyaller, zaman çizelgesi, yanlış alarm / çözüldü /
 // gönderimi aç), bekletilen iletiler, gönderimi durdurulan kutular ve risk puanı eşikleri.
@@ -105,15 +106,15 @@ class _KotuyeKullanimEkraniState extends State<KotuyeKullanimEkrani> {
     final bildirim = tamsayi(o?['notify']);
     final kartlar = [
       KpiKarti(
-        ikon: Icons.report_outlined,
+        ikon: Simgeler.report,
         etiket: 'Açık olay',
         deger: d('open'),
         renk: Marka.gul,
         alt: bildirim > 0 ? '$bildirim tanesi bildirim eşiğinde' : null,
       ),
-      KpiKarti(ikon: Icons.block_rounded, etiket: 'Gönderimi durdurulan kutu', deger: d('blocked_mailboxes'), renk: Marka.kehribar),
-      KpiKarti(ikon: Icons.pause_circle_outline_rounded, etiket: 'Bekletilen ileti', deger: d('held'), renk: Marka.mavi),
-      KpiKarti(ikon: Icons.lock_person_outlined, etiket: 'DLP onayı bekleyen', deger: d('dlp_held'), renk: Marka.mor),
+      KpiKarti(ikon: Simgeler.block, etiket: 'Gönderimi durdurulan kutu', deger: d('blocked_mailboxes'), renk: Marka.kehribar),
+      KpiKarti(ikon: Simgeler.pauseCircleOutline, etiket: 'Bekletilen ileti', deger: d('held'), renk: Marka.mavi),
+      KpiKarti(ikon: Simgeler.lockPerson, etiket: 'DLP onayı bekleyen', deger: d('dlp_held'), renk: Marka.mor),
     ];
     if (context.genis) {
       return Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Izgara(enAz: 200, children: kartlar));
@@ -122,8 +123,8 @@ class _KotuyeKullanimEkraniState extends State<KotuyeKullanimEkrani> {
       height: 132,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-        children: [for (final k in kartlar) Padding(padding: const EdgeInsets.only(right: 10), child: SizedBox(width: 190, child: k))],
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        children: [for (final k in kartlar) Padding(padding: const EdgeInsets.only(right: 8), child: SizedBox(width: 190, child: k))],
       ),
     );
   }
@@ -196,7 +197,7 @@ class _OlaylarState extends State<_Olaylar> {
       await showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(o.kutu, style: gosterim(18, agirlik: FontWeight.w700), overflow: TextOverflow.ellipsis),
+          title: Text(o.kutu, style: gosterim(18, agirlik: FontWeight.w600), overflow: TextOverflow.ellipsis),
           content: SizedBox(width: 640, child: w),
           actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat'))],
         ),
@@ -223,7 +224,7 @@ class _OlaylarState extends State<_Olaylar> {
   Widget build(BuildContext context) => VeriTablosu<KotuyeOlay>(
     yukleyici: _y,
     bosMetin: 'Olay yok. Şüpheli giden gönderim tespit edilmedi.',
-    bosIkon: Icons.verified_user_outlined,
+    bosIkon: Simgeler.verifiedUser,
     onTap: _ac,
     ust: FiltreCubugu(
       arama: AramaAlani(
@@ -236,7 +237,7 @@ class _OlaylarState extends State<_Olaylar> {
       filtreler: [
         FiltreDugmesi<String>(
           etiket: 'Durum',
-          ikon: Icons.flag_outlined,
+          ikon: Simgeler.flag,
           secenekler: const [('open', 'Açık'), ('false_positive', 'Yanlış alarm'), ('resolved', 'Çözüldü'), ('all', 'Tümü')],
           secili: _durum,
           secildi: (v) {
@@ -327,7 +328,7 @@ class _OlayDetayState extends State<_OlayDetay> {
     }
     final o = KotuyeOlay(harita(v['item']));
     final yonetir = mantik(v['can_manage']);
-    Widget baslik(String s) => Padding(padding: const EdgeInsets.only(top: 14, bottom: 6), child: Text(s, style: const TextStyle(fontWeight: FontWeight.w700)));
+    Widget baslik(String s) => Padding(padding: const EdgeInsets.only(top: 16, bottom: 8), child: Text(s, style: const TextStyle(fontWeight: FontWeight.w600)));
     return SingleChildScrollView(
       padding: MediaQuery.sizeOf(context).width < 600 ? const EdgeInsets.all(16) : EdgeInsets.zero,
       child: Column(
@@ -341,8 +342,8 @@ class _OlayDetayState extends State<_OlayDetay> {
           baslik('Sinyaller'),
           for (final s in o.sinyaller)
             Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(10), border: Border.all(color: r.kenar)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,8 +360,8 @@ class _OlayDetayState extends State<_OlayDetay> {
             ),
           baslik('Uygulanan eylemler'),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               for (final a in o.eylemler) Rozet(kotuyeEylemEtiketleri[a] ?? a, renk: Colors.blueGrey),
               if (o.gonderimKapali) const Rozet('Şu an gönderim kapalı', renk: Marka.gul),
@@ -371,12 +372,12 @@ class _OlayDetayState extends State<_OlayDetay> {
           baslik('Zaman çizelgesi'),
           for (final e in haritalar(v['timeline']))
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(padding: const EdgeInsets.only(top: 5), child: DurumNoktasi(r.vurgu, boyut: 7)),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text.rich(
                       TextSpan(
@@ -399,14 +400,14 @@ class _OlayDetayState extends State<_OlayDetay> {
           if (yonetir) ...[
             if (o.durum == 'open') ...[
               EylemSatiri(
-                ikon: Icons.undo_rounded,
+                ikon: Simgeler.undo,
                 baslik: 'Yanlış alarm',
                 ipucu: 'Olayı kapat, gönderimi aç, bu davranışı kutunun tabanına ekle',
                 onTap: () => _calistir('false-positive', o),
               ),
               const SizedBox(height: 8),
               EylemSatiri(
-                ikon: Icons.check_circle_outline_rounded,
+                ikon: Simgeler.checkCircleOutline,
                 baslik: 'Çözüldü olarak kapat',
                 ipucu: 'Hesap güvenceye alındı (şifre değişti vb.)',
                 onTap: () => _calistir('resolve', o),
@@ -414,18 +415,18 @@ class _OlayDetayState extends State<_OlayDetay> {
               const SizedBox(height: 8),
             ],
             if (o.gonderimKapali)
-              EylemSatiri(ikon: Icons.lock_open_rounded, baslik: 'Gönderimi aç', ipucu: 'Kutunun gönderim engelini kaldır', onTap: () => _calistir('unblock', o)),
+              EylemSatiri(ikon: Simgeler.lockOpen, baslik: 'Gönderimi aç', ipucu: 'Kutunun gönderim engelini kaldır', onTap: () => _calistir('unblock', o)),
           ] else
             Text(
               'Gönderimi açmak ve yanlış alarm bildirmek için platform/bayi yöneticinize başvurun. Bekletilen iletileri "Bekletilen iletiler" sekmesinden silebilirsiniz.',
               style: TextStyle(color: r.silik, fontSize: 12),
             ),
           if (o.sifreSifirlama) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             const Bant(
               'Bu kutunun eski şifresi geçersiz kılındı. Posta Kutuları sayfasından yeni şifre verildiğinde kullanıcı tekrar giriş yapabilir.',
               renk: Marka.kehribar,
-              ikon: Icons.key_rounded,
+              ikon: Simgeler.key,
             ),
           ],
         ],
@@ -475,7 +476,7 @@ class _DurdurulanlarState extends State<_Durdurulanlar> {
   }
 
   List<SatirEylemi> _eylemler(DurdurulanKutu k) => [
-    if (_yonetir && k.gonderimKapali) SatirEylemi(Icons.lock_open_rounded, 'Gönderimi aç', () => _ac(k)),
+    if (_yonetir && k.gonderimKapali) SatirEylemi(Simgeler.lockOpen, 'Gönderimi aç', () => _ac(k)),
   ];
 
   List<Widget> _rozetler(DurdurulanKutu k) => [
@@ -487,7 +488,7 @@ class _DurdurulanlarState extends State<_Durdurulanlar> {
   Widget build(BuildContext context) => VeriTablosu<DurdurulanKutu>(
     yukleyici: _y,
     bosMetin: 'Gönderimi durdurulmuş veya şifre sıfırlaması bekleyen posta kutusu bulunmuyor.',
-    bosIkon: Icons.verified_user_outlined,
+    bosIkon: Simgeler.verifiedUser,
     eylemler: _eylemler,
     sutunlar: [
       Sutun('Posta kutusu', esnek: 4, hucre: (c, k) => IkiSatir(k.adres, alt: k.orgAdi)),
@@ -603,7 +604,7 @@ class _EsiklerState extends State<_Esikler> {
         const SizedBox(height: 12),
         BolumKarti(
           baslik: 'Risk puanı eşikleri',
-          ikon: Icons.tune_rounded,
+          ikon: Simgeler.tune,
           altBaslik: 'Puan 0–100; 0 o eylemi kapatır. Varsayılan: kayıt 20, bildirim ve bekletme 50, gönderimi durdurma 75, şifre sıfırlama kapalı.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -611,7 +612,7 @@ class _EsiklerState extends State<_Esikler> {
               if (Uyg.ortak) ...[
                 Wrap(
                   spacing: 8,
-                  runSpacing: 6,
+                  runSpacing: 8,
                   children: [
                     ChoiceChip(
                       label: Text(Uyg.platformYoneticisi ? 'Platform varsayılanı' : 'Platform varsayılanı (salt okunur)'),
@@ -632,7 +633,7 @@ class _EsiklerState extends State<_Esikler> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
               ],
               if (v == null)
                 Padding(
@@ -642,7 +643,7 @@ class _EsiklerState extends State<_Esikler> {
               else ...[
                 if (metin(v['scope']) == 'organization' && miras)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(bottom: 8),
                     child: Text('Bu müşteri için özel ayar yok; platform varsayılanı gösteriliyor.', style: TextStyle(color: r.silik, fontSize: 12.5)),
                   ),
                 Wrap(
@@ -675,7 +676,7 @@ class _EsiklerState extends State<_Esikler> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: const Icon(Icons.save_outlined, size: 18), label: const Text('Kaydet')),
+                      FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: const Icon(Simgeler.save, size: 18), label: const Text('Kaydet')),
                       if (_orgId != null && !miras)
                         OutlinedButton(onPressed: _mesgul ? null : _sifirla, child: const Text('Platform varsayılanına dön')),
                     ],

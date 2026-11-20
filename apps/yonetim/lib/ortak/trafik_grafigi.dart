@@ -88,7 +88,7 @@ class TrafikGrafigi extends StatelessWidget {
                       final i = v.round();
                       if (i < 0 || i >= dilimler.length || v != i.toDouble()) return const SizedBox.shrink();
                       return Padding(
-                        padding: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.only(top: 8),
                         child: Text(saatB.format(dilimler[i].saat), style: TextStyle(color: r.silik, fontSize: 10.5)),
                       );
                     },
@@ -121,10 +121,10 @@ class TrafikGrafigi extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Wrap(
-          spacing: 14,
-          runSpacing: 6,
+          spacing: 16,
+          runSpacing: 8,
           children: [
             _Lejant(kabulRengi, 'Kabul', dilimler.fold(0, (a, d) => a + d.kabul)),
             _Lejant(teslimRengi, 'Teslim', dilimler.fold(0, (a, d) => a + d.teslim)),
@@ -165,9 +165,9 @@ class _Lejant extends StatelessWidget {
         height: 10,
         decoration: BoxDecoration(color: renk, borderRadius: BorderRadius.circular(3)),
       ),
-      const SizedBox(width: 6),
+      const SizedBox(width: 8),
       Text('$ad ', style: TextStyle(color: context.r.soluk, fontSize: 12.5)),
-      Text(sayiYaz(toplam), style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+      Text(sayiYaz(toplam), style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
     ],
   );
 }

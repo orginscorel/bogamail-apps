@@ -2,6 +2,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import 'ekranlar/kabuk.dart';
+import 'veri/arkaplan.dart';
 
 /// Yönetim uygulamasının tekil durumu.
 class Uyg {
@@ -107,6 +108,7 @@ class Uyg {
   /// Çıkış: push kaydını siler, sunucu oturumunu kapatır, çerezleri temizler.
   static Future<void> cikis() async {
     await Push.sil(api, yol: pushYolu);
+    await Arkaplan.oturumKapandi();
     try {
       await api.post('/api/v1/auth/logout');
     } catch (_) {}
@@ -121,6 +123,7 @@ class Uyg {
     if (ben.value == null) return;
     ben.value = null;
     api.cerezleriTemizle();
+    Arkaplan.oturumKapandi();
     kokGezgin.currentState?.pushAndRemoveUntil(HizliRota(builder: (_) => girisEkrani()), (_) => false);
     bildir('Oturum kapandı', mesaj: 'Yeniden giriş yapın.', tur: MesajTur.uyari);
   }

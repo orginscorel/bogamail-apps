@@ -367,8 +367,8 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     final v = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        icon: Icon(d.engel ? Icons.block_rounded : Icons.privacy_tip_outlined, color: d.engel ? Marka.gul : Marka.kehribar, size: 32),
-        title: Text(d.engel ? 'İleti gönderilemez' : 'Hassas bilgi uyarısı', style: gosterim(19, agirlik: FontWeight.w700)),
+        icon: Icon(d.engel ? Simge.engelle : Simge.gizlilik, color: d.engel ? Marka.gul : Marka.kehribar, size: 32),
+        title: Text(d.engel ? 'İleti gönderilemez' : 'Hassas bilgi uyarısı', style: gosterim(19, agirlik: FontWeight.w600)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -514,7 +514,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text('Şablon ekle', style: gosterim(17, agirlik: FontWeight.w700)),
+                child: Text('Şablon ekle', style: gosterim(17, agirlik: FontWeight.w600)),
               ),
               if (l.isEmpty)
                 const Padding(
@@ -527,7 +527,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                   children: [
                     for (final m in l)
                       ListTile(
-                        leading: const Icon(Icons.description_outlined),
+                        leading: const Icon(Simge.belge),
                         title: Text(m.konu.trim().isEmpty ? '(konu yok)' : m.konu),
                         subtitle: Text(m.onizleme, maxLines: 2, overflow: TextOverflow.ellipsis),
                         onTap: () => Navigator.pop(c, m),
@@ -577,7 +577,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-              child: Text('Yanıt gelmezse hatırlat', style: gosterim(17, agirlik: FontWeight.w700)),
+              child: Text('Yanıt gelmezse hatırlat', style: gosterim(17, agirlik: FontWeight.w600)),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -588,10 +588,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
             ),
             for (final s in secenekler)
               ListTile(
-                leading: Icon(
-                  s.$1 == _takipGun ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                  color: s.$1 == _takipGun ? c.r.vurgu : null,
-                ),
+                leading: Icon(s.$1 == _takipGun ? Simge.secimDolu : Simge.secimBos, color: s.$1 == _takipGun ? c.r.vurgu : null),
                 title: Text(s.$2),
                 onTap: () => Navigator.pop(c, s.$1),
               ),
@@ -633,15 +630,15 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('Kaydedilmemiş değişiklikler var', style: gosterim(17, agirlik: FontWeight.w700)),
+              child: Text('Kaydedilmemiş değişiklikler var', style: gosterim(17, agirlik: FontWeight.w600)),
             ),
-            ListTile(leading: const Icon(Icons.save_outlined), title: const Text('Taslak olarak kaydet'), onTap: () => Navigator.pop(c, 1)),
+            ListTile(leading: const Icon(Simge.kaydet), title: const Text('Taslak olarak kaydet'), onTap: () => Navigator.pop(c, 1)),
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: Marka.gul),
+              leading: const Icon(Simge.sil, color: Marka.gul),
               title: Text(_acilanTaslak ? 'Değişiklikleri at' : 'İletiyi sil', style: const TextStyle(color: Marka.gul)),
               onTap: () => Navigator.pop(c, 2),
             ),
-            ListTile(leading: const Icon(Icons.edit_outlined), title: const Text('Yazmaya devam et'), onTap: () => Navigator.pop(c, 0)),
+            ListTile(leading: const Icon(Simge.duzenle), title: const Text('Yazmaya devam et'), onTap: () => Navigator.pop(c, 0)),
             const SizedBox(height: 8),
           ],
         ),
@@ -673,10 +670,10 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(leading: const Icon(Icons.attach_file_rounded), title: const Text('Dosya seç'), onTap: () => Navigator.pop(c, 'dosya')),
-            ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Fotoğraf/Video galerisi'), onTap: () => Navigator.pop(c, 'galeri')),
-            ListTile(leading: const Icon(Icons.photo_camera_outlined), title: const Text('Kamerayla fotoğraf çek'), onTap: () => Navigator.pop(c, 'foto')),
-            ListTile(leading: const Icon(Icons.videocam_outlined), title: const Text('Kamerayla video çek'), onTap: () => Navigator.pop(c, 'video')),
+            ListTile(leading: const Icon(Simge.ek), title: const Text('Dosya seç'), onTap: () => Navigator.pop(c, 'dosya')),
+            ListTile(leading: const Icon(Simge.galeri), title: const Text('Fotoğraf/Video galerisi'), onTap: () => Navigator.pop(c, 'galeri')),
+            ListTile(leading: const Icon(Simge.kamera), title: const Text('Kamerayla fotoğraf çek'), onTap: () => Navigator.pop(c, 'foto')),
+            ListTile(leading: const Icon(Simge.video), title: const Text('Kamerayla video çek'), onTap: () => Navigator.pop(c, 'video')),
             const SizedBox(height: 8),
           ],
         ),
@@ -779,7 +776,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
           backgroundColor: r.kart,
           appBar: AppBar(
             backgroundColor: r.kart,
-            leading: IconButton(icon: const Icon(Icons.close_rounded), tooltip: 'Kapat', onPressed: _kapat),
+            leading: IconButton(icon: const Icon(Simge.kapat), tooltip: 'Kapat', onPressed: _kapat),
             title: Text(b.baslik),
             actions: [
               PopupMenuButton<String>(
@@ -821,24 +818,24 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                 itemBuilder: (_) => [
                   const PopupMenuItem(
                     value: 'kaydet',
-                    child: ListTile(leading: Icon(Icons.save_outlined), title: Text('Taslağı kaydet')),
+                    child: ListTile(leading: Icon(Simge.kaydet), title: Text('Taslağı kaydet')),
                   ),
                   const PopupMenuItem(
                     value: 'planla',
-                    child: ListTile(leading: Icon(Icons.schedule_send_outlined), title: Text('Daha sonra gönder…')),
+                    child: ListTile(leading: Icon(Simge.planliGonder), title: Text('Daha sonra gönder…')),
                   ),
                   const PopupMenuItem(
                     value: 'sablonEkle',
-                    child: ListTile(leading: Icon(Icons.description_outlined), title: Text('Şablon ekle…')),
+                    child: ListTile(leading: Icon(Simge.belge), title: Text('Şablon ekle…')),
                   ),
                   const PopupMenuItem(
                     value: 'sablonKaydet',
-                    child: ListTile(leading: Icon(Icons.save_as_outlined), title: Text('Şablon olarak kaydet')),
+                    child: ListTile(leading: Icon(Simge.farkliKaydet), title: Text('Şablon olarak kaydet')),
                   ),
                   PopupMenuItem(
                     value: 'takip',
                     child: ListTile(
-                      leading: const Icon(Icons.notifications_active_outlined),
+                      leading: const Icon(Simge.hatirlatma),
                       title: Text(_takipGun > 0 ? 'Yanıt gelmezse hatırlat: $_takipGun gün' : 'Yanıt gelmezse hatırlat…'),
                     ),
                   ),
@@ -848,7 +845,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     key: const ValueKey('kip-degistir'),
                     value: 'kip',
                     child: ListTile(
-                      leading: Icon(_bicimli ? Icons.text_fields_rounded : Icons.format_paint_outlined),
+                      leading: Icon(_bicimli ? Simge.duzMetin : Simge.bicim),
                       title: Text(_bicimli ? 'Düz metne geç (biçimlendirme kaldırılır)' : 'Biçimli metne geç'),
                     ),
                   ),
@@ -857,7 +854,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     const PopupMenuItem(
                       value: 'sil',
                       child: ListTile(
-                        leading: Icon(Icons.delete_outline_rounded, color: Marka.gul),
+                        leading: Icon(Simge.sil, color: Marka.gul),
                         title: Text('Taslağı sil'),
                       ),
                     ),
@@ -878,7 +875,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(left: Radius.circular(20))),
                       ),
                       onPressed: _mesgul ? null : _gonder,
-                      icon: const Icon(Icons.send_rounded, size: 18),
+                      icon: const Icon(Simge.gonder, size: 18),
                       label: const Text('Gönder'),
                     ),
                     const SizedBox(width: 2),
@@ -894,7 +891,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(right: Radius.circular(20))),
                         ),
                         onPressed: _mesgul ? null : _planla,
-                        child: const Icon(Icons.schedule_send_rounded, size: 18),
+                        child: const Icon(Simge.planliGonder, size: 18),
                       ),
                     ),
                   ],
@@ -921,12 +918,12 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     decoration: BoxDecoration(color: Marka.gul.withValues(alpha: .1), borderRadius: BorderRadius.circular(12)),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: Marka.gul, size: 20),
+                        const Icon(Simge.hata, color: Marka.gul, size: 20),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13.5)),
                         ),
-                        IconButton(icon: const Icon(Icons.close_rounded, size: 18), tooltip: 'Kapat', onPressed: () => setState(() => _hata = null)),
+                        IconButton(icon: const Icon(Simge.kapat, size: 18), tooltip: 'Kapat', onPressed: () => setState(() => _hata = null)),
                       ],
                     ),
                   ),
@@ -983,7 +980,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     controller: _konu,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.next,
-                    style: gosterim(18, agirlik: FontWeight.w700),
+                    style: gosterim(18, agirlik: FontWeight.w600),
                     decoration: const InputDecoration(
                       hintText: 'Konu',
                       filled: false,
@@ -1000,8 +997,8 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     child: Wrap(
                       spacing: 6,
                       children: [
-                        if (_oncelik == 'high') const Rozet('Yüksek önem', renk: Marka.gul, ikon: Icons.priority_high_rounded),
-                        if (_okunduBilgisi) const Rozet('Okundu bilgisi istenecek', ikon: Icons.mark_email_read_outlined),
+                        if (_oncelik == 'high') const Rozet('Yüksek önem', renk: Marka.gul, ikon: Simge.onem),
+                        if (_okunduBilgisi) const Rozet('Okundu bilgisi istenecek', ikon: Simge.okunduYap),
                       ],
                     ),
                   ),
@@ -1078,18 +1075,18 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                arac(Icons.attach_file_rounded, 'Ek ekle', _ekSec, key: const ValueKey('ek-ekle')),
-                if (mobil) arac(Icons.photo_camera_outlined, 'Kamerayla çek', () => _medyaSec('foto')),
-                if (mobil) arac(Icons.photo_library_outlined, 'Galeriden ekle', () => _medyaSec('galeri')),
-                arac(Icons.description_outlined, 'Şablon ekle', _sablonEkle),
+                arac(Simge.ek, 'Ek ekle', _ekSec, key: const ValueKey('ek-ekle')),
+                if (mobil) arac(Simge.kamera, 'Kamerayla çek', () => _medyaSec('foto')),
+                if (mobil) arac(Simge.galeri, 'Galeriden ekle', () => _medyaSec('galeri')),
+                arac(Simge.belge, 'Şablon ekle', _sablonEkle),
                 arac(
-                  Icons.notifications_active_outlined,
+                  Simge.hatirlatma,
                   _takipGun > 0 ? 'Yanıt gelmezse $_takipGun gün sonra hatırlat' : 'Yanıt gelmezse hatırlat',
                   _takipSec,
                   etkin: _takipGun > 0,
                 ),
                 arac(
-                  Icons.priority_high_rounded,
+                  Simge.onem,
                   'Yüksek önem',
                   key: const ValueKey('yuksek-onem'),
                   () => setState(() {
@@ -1099,7 +1096,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                   etkin: _oncelik == 'high',
                 ),
                 arac(
-                  Icons.mark_email_read_outlined,
+                  Simge.okunduYap,
                   'Okundu bilgisi iste',
                   () => setState(() {
                     _okunduBilgisi = !_okunduBilgisi;
@@ -1107,7 +1104,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                   }),
                   etkin: _okunduBilgisi,
                 ),
-                arac(Icons.save_outlined, 'Taslağı kaydet', _taslakKaydet),
+                arac(Simge.kaydet, 'Taslağı kaydet', _taslakKaydet),
               ],
             ),
           ),
@@ -1142,7 +1139,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
             padding: const EdgeInsets.only(left: 4, bottom: 6, right: 4),
             child: Row(
               children: [
-                Icon(Icons.attach_file_rounded, size: 16, color: r.silik),
+                Icon(Simge.ek, size: 16, color: r.silik),
                 const SizedBox(width: 4),
                 Text(
                   '${kartlar.length} ek · ${boyutYaz(_ekToplam)}${_azamiEk > 0 ? ' / ${boyutYaz(_azamiEk)}' : ''}',
@@ -1215,7 +1212,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
           ),
           IconButton(
             tooltip: 'Eki kaldır',
-            icon: Icon(Icons.close_rounded, size: 18, color: r.silik),
+            icon: Icon(Simge.kapat, size: 18, color: r.silik),
             onPressed: kaldir,
           ),
         ],
@@ -1235,7 +1232,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
         children: [
           Row(
             children: [
-              Icon(Icons.draw_outlined, size: 17, color: r.silik),
+              Icon(Simge.imza, size: 17, color: r.silik),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(

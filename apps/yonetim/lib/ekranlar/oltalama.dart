@@ -13,6 +13,7 @@ import '../veri/modeller.dart';
 import 'tehdit_oltalama_diger.dart';
 import 'tehdit_oltalama_model.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Oltalama Simülasyonu (web: admin/phishing): kampanyalar, raporlar, şablonlar ve bildirilen iletiler.
 /// Müşteri yöneticisi kendi müşterisini görür; ortak yöneticiler müşteri seçer. Yetki: phishing.manage.
@@ -78,7 +79,7 @@ class _OltalamaEkraniState extends State<OltalamaEkrani> {
             Padding(
               padding: const EdgeInsets.only(right: 4),
               child: ActionChip(
-                avatar: const Icon(Icons.business_rounded, size: 17),
+                avatar: const Icon(Simgeler.business, size: 17),
                 label: Text(_orgAdi ?? 'Müşteri seçin', overflow: TextOverflow.ellipsis),
                 onPressed: _musteriSec,
               ),
@@ -92,8 +93,8 @@ class _OltalamaEkraniState extends State<OltalamaEkrani> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Kapali('Tatbikat düzenlemek ya da raporları görmek için bir müşteri seçin.', ikon: Icons.phishing_rounded),
-              FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Icons.business_rounded), label: const Text('Müşteri seçin')),
+              const Kapali('Tatbikat düzenlemek ya da raporları görmek için bir müşteri seçin.', ikon: Simgeler.phishing),
+              FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Simgeler.business), label: const Text('Müşteri seçin')),
             ],
           ),
         ),
@@ -119,7 +120,7 @@ class _OltalamaEkraniState extends State<OltalamaEkrani> {
           _ozetYukle();
           setState(() => _nesil++);
         },
-        birincil: acik ? BirincilEylem(Icons.add_rounded, 'Yeni kampanya', () => _kampanyaAnahtari.currentState?.olustur()) : null,
+        birincil: acik ? BirincilEylem(Simgeler.add, 'Yeni kampanya', () => _kampanyaAnahtari.currentState?.olustur()) : null,
         sekmeler: TabBar(
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -132,7 +133,7 @@ class _OltalamaEkraniState extends State<OltalamaEkrani> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text('Bildirilen iletiler'),
-                  if (yeni > 0) ...[const SizedBox(width: 6), Badge(label: Text('$yeni'))],
+                  if (yeni > 0) ...[const SizedBox(width: 8), Badge(label: Text('$yeni'))],
                 ],
               ),
             ),
@@ -143,11 +144,11 @@ class _OltalamaEkraniState extends State<OltalamaEkrani> {
           children: [
             if (!acik)
               const Padding(
-                padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Bant(
                   'Oltalama simülasyonu bu müşterinin paketinde bulunmuyor. Geçmiş raporlar ve çalışanların bildirdiği iletiler yine de görüntülenebilir.',
                   renk: Marka.kehribar,
-                  ikon: Icons.lock_outline_rounded,
+                  ikon: Simgeler.lockOutline,
                 ),
               ),
             Expanded(
@@ -234,7 +235,7 @@ class _KampanyalarState extends State<_Kampanyalar> {
       showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(k.ad, style: gosterim(18, agirlik: FontWeight.w700), overflow: TextOverflow.ellipsis),
+          title: Text(k.ad, style: gosterim(18, agirlik: FontWeight.w600), overflow: TextOverflow.ellipsis),
           content: SizedBox(width: 760, child: w),
           actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat'))],
         ),
@@ -243,9 +244,9 @@ class _KampanyalarState extends State<_Kampanyalar> {
   }
 
   List<SatirEylemi> _eylemler(OltaKampanya k) => [
-    SatirEylemi(Icons.insights_rounded, 'Sonuçlar', () => _ac(k)),
-    SatirEylemi(Icons.table_view_outlined, 'Sonuçları CSV olarak indir', () => _csv(k)),
-    if (k.etkin) SatirEylemi(Icons.block_rounded, 'Kampanyayı iptal et', () => _iptal(k), tehlikeli: true),
+    SatirEylemi(Simgeler.insights, 'Sonuçlar', () => _ac(k)),
+    SatirEylemi(Simgeler.tableView, 'Sonuçları CSV olarak indir', () => _csv(k)),
+    if (k.etkin) SatirEylemi(Simgeler.block, 'Kampanyayı iptal et', () => _iptal(k), tehlikeli: true),
   ];
 
   String _alt(OltaKampanya k) => '${k.sablonAdi} · ${k.huni.hedef} alıcı · ${k.acilis == 'login' ? 'sahte giriş formu' : 'yalnızca tıklama'}';
@@ -254,11 +255,11 @@ class _KampanyalarState extends State<_Kampanyalar> {
   Widget build(BuildContext context) => VeriTablosu<OltaKampanya>(
     yukleyici: _y,
     bosMetin: 'Henüz kampanya yok. İlk tatbikatı başlatmak için hazır bir senaryo seçin.',
-    bosIkon: Icons.phishing_rounded,
+    bosIkon: Simgeler.phishing,
     onTap: _ac,
     eylemler: _eylemler,
     ust: const Padding(
-      padding: EdgeInsets.fromLTRB(16, 10, 16, 8),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Aciklama('Her alıcıya özel bağlantı gönderilir; tıklama, form gönderimi ve bildirim kişi bazında izlenir.'),
     ),
     sutunlar: [
@@ -328,7 +329,7 @@ class _KampanyaDetayState extends State<_KampanyaDetay> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(e, style: TextStyle(color: r.silik, fontSize: 11.5)),
-          Text(d, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(d, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -342,7 +343,7 @@ class _KampanyaDetayState extends State<_KampanyaDetay> {
             '${metin(harita(v['template'])['name'])} · ${k.acilis == 'login' ? 'sahte giriş formu → eğitim' : 'tıklama → eğitim'} · ${tamZaman(k.baslangic)}',
             style: TextStyle(color: r.silik, fontSize: 12.5),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -371,9 +372,9 @@ class _KampanyaDetayState extends State<_KampanyaDetay> {
                 style: TextStyle(color: r.silik, fontSize: 12),
               ),
             ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           AramaAlani(ipucu: 'Alıcı ara', degisti: (q) => setState(() => _q = q)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           for (final t in hedefler.take(300))
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -525,7 +526,7 @@ class _KampanyaDialogState extends State<_KampanyaDialog> {
     final secili = sablonlar?.where((s) => s.anahtar == _sablon).firstOrNull;
     const bilinen = ['name', 'template_key', 'target_mode', 'mailbox_ids', 'domain_ids', 'start_at', 'spread_hours'];
     return AlertDialog(
-      title: Text('Yeni oltalama kampanyası', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Yeni oltalama kampanyası', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 620,
         child: sablonlar == null
@@ -541,7 +542,7 @@ class _KampanyaDialogState extends State<_KampanyaDialog> {
                     const Aciklama(
                       'İletiler yalnızca bu müşterinin posta kutularına, doğrudan Gelen Kutusu\'na bırakılır. Hiçbir şifre veya form içeriği kaydedilmez.',
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _ad,
                       maxLength: 120,
@@ -566,7 +567,7 @@ class _KampanyaDialogState extends State<_KampanyaDialog> {
                     ),
                     if (secili != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.only(top: 8),
                         child: Text('${secili.gonderen} — ${secili.konu}', style: TextStyle(color: r.silik, fontSize: 12)),
                       ),
                     const SizedBox(height: 12),
@@ -600,18 +601,18 @@ class _KampanyaDialogState extends State<_KampanyaDialog> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
                             for (final e in _kutular.entries) InputChip(label: Text(e.value), onDeleted: () => setState(() => _kutular.remove(e.key))),
-                            ActionChip(avatar: const Icon(Icons.add_rounded, size: 17), label: const Text('Kutu ekle'), onPressed: _kutuSec),
+                            ActionChip(avatar: const Icon(Simgeler.add, size: 17), label: const Text('Kutu ekle'), onPressed: _kutuSec),
                             Text('${_kutular.length} kutu seçildi', style: TextStyle(color: r.silik, fontSize: 12)),
                           ],
                         ),
                       ),
                     if (_hedef == 'domains')
                       Padding(
-                        padding: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.only(top: 8),
                         child: _alanlar.isEmpty
                             ? Text('Alan adı yok', style: TextStyle(color: r.silik))
                             : Column(
@@ -636,7 +637,7 @@ class _KampanyaDialogState extends State<_KampanyaDialog> {
                       onChanged: (v) => setState(() => _hemen = v),
                       title: const Text('Hemen başlat'),
                       subtitle: _hemen ? null : Text('Başlangıç: ${tamZaman(_baslangic)}'),
-                      secondary: _hemen ? null : IconButton(tooltip: 'Tarih seç', onPressed: _tarihSec, icon: const Icon(Icons.event_rounded)),
+                      secondary: _hemen ? null : IconButton(tooltip: 'Tarih seç', onPressed: _tarihSec, icon: const Icon(Simgeler.event)),
                     ),
                     if (_alanHatasi(['start_at']) != null) Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 12)),
                     const SizedBox(height: 8),

@@ -97,7 +97,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
         child: Stack(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(13, 11, 12, 11),
+              padding: EdgeInsets.fromLTRB(14, context.genis ? 5 : 7, 12, context.genis ? 5 : 7),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -111,18 +111,18 @@ class _IletiSatiriState extends State<IletiSatiri> {
                         child: widget.secili || widget.secimModu
                             ? Container(
                                 key: const ValueKey('s'),
-                                width: 40,
-                                height: 40,
+                                width: 32,
+                                height: 32,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: widget.secili ? r.vurgu : r.kart,
                                   border: widget.secili ? null : Border.all(color: r.kenar, width: 2),
                                 ),
-                                child: widget.secili ? const Icon(Icons.check_rounded, color: Colors.white, size: 22) : null,
+                                child: widget.secili ? const Icon(Simge.onay, color: Colors.white, size: 18) : null,
                               )
                             : Opacity(
                                 opacity: okunmamis ? 1 : .85,
-                                child: Avatar(gorunenAd(karsi), boyut: 40, tohum: tohum.isEmpty ? karsi : tohum),
+                                child: Avatar(gorunenAd(karsi), boyut: 32, tohum: tohum.isEmpty ? karsi : tohum),
                               ),
                       ),
                     ),
@@ -137,8 +137,8 @@ class _IletiSatiriState extends State<IletiSatiri> {
                             if (okunmamis)
                               Container(
                                 key: const ValueKey('okunmamis-nokta'),
-                                width: 9,
-                                height: 9,
+                                width: 7,
+                                height: 7,
                                 margin: const EdgeInsets.only(right: 7),
                                 decoration: BoxDecoration(color: r.vurgu, shape: BoxShape.circle),
                               ),
@@ -147,7 +147,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                 taslak ? 'Taslak' : ad,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 14.5, fontWeight: okunmamis ? FontWeight.w800 : FontWeight.w400, color: adRengi),
+                                style: TextStyle(fontSize: 14, height: 1.25, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400, color: adRengi),
                               ),
                             ),
                             if (widget.hesapRengi != null)
@@ -172,28 +172,28 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                           widget.hesapEtiketi!,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: widget.hesapRengi),
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: widget.hesapRengi),
                                         ),
                                       ),
                                     ],
                                   ],
                                 ),
                               ),
-                            if (m.onemli) simge(Icons.label_important_rounded, 'Önemli', renk: Marka.kehribar, boyut: 16),
-                            if (m.ekVar) simge(Icons.attach_file_rounded, 'Ekli'),
-                            if (m.yanitlandi) simge(Icons.reply_rounded, 'Yanıtlandı'),
-                            if (m.iletildi) simge(Icons.forward_rounded, 'İletildi'),
+                            if (m.onemli) simge(Simge.onemliDolu, 'Önemli', renk: Marka.kehribar, boyut: 16),
+                            if (m.ekVar) simge(Simge.ek, 'Ekli'),
+                            if (m.yanitlandi) simge(Simge.yanitla, 'Yanıtlandı'),
+                            if (m.iletildi) simge(Simge.ilet, 'İletildi'),
                             const SizedBox(width: 6),
                             if (_uzerinde && !widget.secimModu)
                               ..._fareEylemleri(r)
                             else
                               Text(
                                 kisaZaman(m.tarih),
-                                style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w800 : FontWeight.w500),
+                                style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400),
                               ),
                           ],
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 1),
                         Row(
                           children: [
                             Expanded(
@@ -203,7 +203,8 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 13.5,
-                                  fontWeight: okunmamis ? FontWeight.w700 : FontWeight.w400,
+                                  height: 1.25,
+                                  fontWeight: okunmamis ? FontWeight.w500 : FontWeight.w400,
                                   color: okunmamis ? r.metin : r.soluk,
                                 ),
                               ),
@@ -217,8 +218,8 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                 child: Padding(
                                   padding: const EdgeInsets.only(left: 6),
                                   child: Icon(
-                                    m.yildizli ? Icons.star_rounded : Icons.star_border_rounded,
-                                    size: 21,
+                                    m.yildizli ? Simge.yildizDolu : Simge.yildiz,
+                                    size: 18,
                                     color: m.yildizli ? yildizRengi : r.silik.withValues(alpha: .6),
                                   ),
                                 ),
@@ -231,9 +232,9 @@ class _IletiSatiriState extends State<IletiSatiri> {
                             padding: const EdgeInsets.only(top: 1),
                             child: Text(
                               m.onizleme.trim(),
-                              maxLines: 2,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12.5, color: r.silik, height: 1.35),
+                              style: TextStyle(fontSize: 13, color: r.soluk, height: 1.25),
                             ),
                           ),
                         if (etiketler.isNotEmpty || m.ertelemeBitis != null || m.takip)
@@ -243,9 +244,9 @@ class _IletiSatiriState extends State<IletiSatiri> {
                               spacing: 6,
                               runSpacing: 4,
                               children: [
-                                if (m.takip) const Rozet('Takip', renk: Marka.mavi, ikon: Icons.notifications_active_outlined),
-                                if (m.ertelemeBitis != null) Rozet(kisaZaman(m.ertelemeBitis), renk: Marka.kehribar, ikon: Icons.snooze_rounded),
-                                for (final e in etiketler) Rozet(e.ad, renk: etiketRengi(e.renk), ikon: Icons.label_rounded),
+                                if (m.takip) const Rozet('Takip', renk: Marka.mavi, ikon: Simge.hatirlatma),
+                                if (m.ertelemeBitis != null) Rozet(kisaZaman(m.ertelemeBitis), renk: Marka.kehribar, ikon: Simge.ertele),
+                                for (final e in etiketler) Rozet(e.ad, renk: etiketRengi(e.renk), ikon: Simge.etiket),
                               ],
                             ),
                           ),
@@ -307,7 +308,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
             onPressed: (_) => _titret(widget.okundu),
             backgroundColor: Marka.mavi,
             foregroundColor: Colors.white,
-            icon: okunmamis ? Icons.mark_email_read_outlined : Icons.mark_email_unread_outlined,
+            icon: okunmamis ? Simge.okunduYap : Simge.okunmadiYap,
             label: okunmamis ? 'Okundu' : 'Okunmadı',
           ),
         ],
@@ -322,16 +323,10 @@ class _IletiSatiriState extends State<IletiSatiri> {
               onPressed: (_) => _titret(widget.arsivle),
               backgroundColor: Marka.zumrut,
               foregroundColor: Colors.white,
-              icon: Icons.archive_outlined,
+              icon: Simge.arsiv,
               label: 'Arşivle',
             ),
-          SlidableAction(
-            onPressed: (_) => _titret(widget.sil),
-            backgroundColor: Marka.gul,
-            foregroundColor: Colors.white,
-            icon: Icons.delete_outline_rounded,
-            label: 'Sil',
-          ),
+          SlidableAction(onPressed: (_) => _titret(widget.sil), backgroundColor: Marka.gul, foregroundColor: Colors.white, icon: Simge.sil, label: 'Sil'),
         ],
       ),
       child: satir,
@@ -353,9 +348,9 @@ class _IletiSatiriState extends State<IletiSatiri> {
     );
     final m = widget.ileti;
     return [
-      d(m.okundu ? Icons.mark_email_unread_outlined : Icons.mark_email_read_outlined, m.okundu ? 'Okunmadı yap' : 'Okundu yap', widget.okundu),
-      if (!widget.arsivde) d(Icons.archive_outlined, 'Arşivle', widget.arsivle),
-      d(Icons.delete_outline_rounded, widget.copte ? 'Kalıcı sil' : 'Sil', widget.sil),
+      d(m.okundu ? Simge.okunmadiYap : Simge.okunduYap, m.okundu ? 'Okunmadı yap' : 'Okundu yap', widget.okundu),
+      if (!widget.arsivde) d(Simge.arsiv, 'Arşivle', widget.arsivle),
+      d(Simge.sil, widget.copte ? 'Kalıcı sil' : 'Sil', widget.sil),
     ];
   }
 }
@@ -377,7 +372,7 @@ class _SuruklemeGorseli extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.drive_file_move_outlined, size: 18, color: r.vurgu),
+          Icon(Simge.tasi, size: 18, color: r.vurgu),
           const SizedBox(width: 8),
           Flexible(
             child: Text(

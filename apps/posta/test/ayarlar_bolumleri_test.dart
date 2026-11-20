@@ -403,7 +403,7 @@ void main() {
 
   testWidgets('geniş Ayarlar: eklenen her bölüm sağ bölmede taşmadan açılır', (t) async {
     ekYollar();
-    t.view.physicalSize = const Size(1440, 1000);
+    t.view.physicalSize = const Size(1440, 1400);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     await t.pumpWidget(MaterialApp(theme: temaKur(Brightness.light), scaffoldMessengerKey: kokMesaj, home: const AyarlarEkrani()));

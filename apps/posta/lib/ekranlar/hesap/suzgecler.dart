@@ -80,10 +80,10 @@ class SuzgeclerEkrani extends StatelessWidget {
     altBaslik: 'Gelen iletiler sırayla bu kurallardan geçer; koşulları sağlayanlara eylemler uygulanır.',
     yukle: Hesap.suzgecler,
     fab: (context, yenile) =>
-        FloatingActionButton.extended(onPressed: () => _duzenle(context, null, yenile), icon: const Icon(Icons.add_rounded), label: const Text('Süzgeç ekle')),
+        FloatingActionButton.extended(onPressed: () => _duzenle(context, null, yenile), icon: const Icon(Simge.ekle), label: const Text('Süzgeç ekle')),
     govde: (context, l, yenile) {
       if (l.isEmpty) {
-        return [const BosKart('Henüz süzgeç yok. Örneğin belirli bir göndericinin iletilerini bir klasöre taşıyabilirsiniz.', ikon: Icons.filter_alt_outlined)];
+        return [const BosKart('Henüz süzgeç yok. Örneğin belirli bir göndericinin iletilerini bir klasöre taşıyabilirsiniz.', ikon: Simge.suzgec)];
       }
       final r = context.r;
       return [
@@ -126,21 +126,21 @@ class SuzgeclerEkrani extends StatelessWidget {
                     PopupMenuItem(
                       value: 'yukari',
                       enabled: i > 0,
-                      child: const ListTile(leading: Icon(Icons.arrow_upward_rounded), title: Text('Yukarı taşı')),
+                      child: const ListTile(leading: Icon(Simge.okYukariDuz), title: Text('Yukarı taşı')),
                     ),
                     PopupMenuItem(
                       value: 'asagi',
                       enabled: i < l.length - 1,
-                      child: const ListTile(leading: Icon(Icons.arrow_downward_rounded), title: Text('Aşağı taşı')),
+                      child: const ListTile(leading: Icon(Simge.okAsagiDuz), title: Text('Aşağı taşı')),
                     ),
                     const PopupMenuItem(
                       value: 'calistir',
-                      child: ListTile(leading: Icon(Icons.play_arrow_rounded), title: Text('Gelen Kutusu\'na şimdi uygula')),
+                      child: ListTile(leading: Icon(Simge.oynat), title: Text('Gelen Kutusu\'na şimdi uygula')),
                     ),
                     const PopupMenuItem(
                       value: 'sil',
                       child: ListTile(
-                        leading: Icon(Icons.delete_outline_rounded, color: Marka.gul),
+                        leading: Icon(Simge.sil, color: Marka.gul),
                         title: Text('Sil'),
                       ),
                     ),
@@ -242,7 +242,7 @@ class _SuzgecDuzenleyiciState extends State<SuzgecDuzenleyici> {
                 'Koşullar',
                 sag: TextButton.icon(
                   onPressed: () => setState(() => _s.kosullar.add(SuzgecKosulu())),
-                  icon: const Icon(Icons.add_rounded, size: 18),
+                  icon: const Icon(Simge.ekle, size: 18),
                   label: const Text('Koşul ekle'),
                 ),
               ),
@@ -303,7 +303,7 @@ class _SuzgecDuzenleyiciState extends State<SuzgecDuzenleyici> {
                         ),
                         IconButton(
                           tooltip: 'Koşulu kaldır',
-                          icon: Icon(Icons.close_rounded, color: r.silik),
+                          icon: Icon(Simge.kapat, color: r.silik),
                           onPressed: () => setState(() => _s.kosullar.remove(k)),
                         ),
                       ],
@@ -314,7 +314,7 @@ class _SuzgecDuzenleyiciState extends State<SuzgecDuzenleyici> {
                 'Eylemler',
                 sag: TextButton.icon(
                   onPressed: () => setState(() => _s.eylemler.add(SuzgecEylemi(tur: 'mark_read'))),
-                  icon: const Icon(Icons.add_rounded, size: 18),
+                  icon: const Icon(Simge.ekle, size: 18),
                   label: const Text('Eylem ekle'),
                 ),
               ),
@@ -341,7 +341,7 @@ class _SuzgecDuzenleyiciState extends State<SuzgecDuzenleyici> {
                         ],
                         IconButton(
                           tooltip: 'Eylemi kaldır',
-                          icon: Icon(Icons.close_rounded, color: r.silik),
+                          icon: Icon(Simge.kapat, color: r.silik),
                           onPressed: () => setState(() => _s.eylemler.remove(e)),
                         ),
                       ],

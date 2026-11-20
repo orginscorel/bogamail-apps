@@ -10,6 +10,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'ekip_kampanya_ortak.dart';
+import '../ortak/simgeler.dart';
 
 const _canli = {'pending_approval', 'scheduled', 'sending'};
 
@@ -107,14 +108,14 @@ class _KampanyalarSekmesiState extends State<KampanyalarSekmesi> {
   List<SatirEylemi> _eylemler(Map<String, dynamic> c) {
     final d = metin(c['status']);
     return [
-      if (d != 'draft') SatirEylemi(Icons.bar_chart_rounded, 'Rapor', () => _rapor(c)),
-      if (d == 'draft') SatirEylemi(Icons.edit_outlined, 'Düzenle', () => _sihirbaz(c)),
-      if (d == 'sending' || d == 'scheduled') SatirEylemi(Icons.pause_rounded, 'Duraklat', () => _eylem(c, 'pause')),
+      if (d != 'draft') SatirEylemi(Simgeler.barChart, 'Rapor', () => _rapor(c)),
+      if (d == 'draft') SatirEylemi(Simgeler.edit, 'Düzenle', () => _sihirbaz(c)),
+      if (d == 'sending' || d == 'scheduled') SatirEylemi(Simgeler.pause, 'Duraklat', () => _eylem(c, 'pause')),
       if (d == 'paused')
-        SatirEylemi(Icons.play_arrow_rounded, mantik(c['paused_by_admin']) ? 'Devam ettir (yönetici duraklattı)' : 'Devam ettir', () => _eylem(c, 'resume')),
+        SatirEylemi(Simgeler.playArrow, mantik(c['paused_by_admin']) ? 'Devam ettir (yönetici duraklattı)' : 'Devam ettir', () => _eylem(c, 'resume')),
       if (const {'pending_approval', 'scheduled', 'sending', 'paused'}.contains(d))
-        SatirEylemi(Icons.block_rounded, 'İptal et', () => _eylem(c, 'cancel'), tehlikeli: true),
-      if (d == 'draft' || d == 'rejected') SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _eylem(c, 'delete'), tehlikeli: true),
+        SatirEylemi(Simgeler.block, 'İptal et', () => _eylem(c, 'cancel'), tehlikeli: true),
+      if (d == 'draft' || d == 'rejected') SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _eylem(c, 'delete'), tehlikeli: true),
     ];
   }
 
@@ -157,11 +158,11 @@ class _KampanyalarSekmesiState extends State<KampanyalarSekmesi> {
     return VeriTablosu<Map<String, dynamic>>(
       yukleyici: _y,
       bosMetin: 'Henüz kampanya yok. Önce bir kişi listesi ve bir şablon oluşturun, ardından ilk kampanyanızı hazırlayın.',
-      bosIkon: Icons.campaign_outlined,
+      bosIkon: Simgeler.campaign,
       onTap: (c) => metin(c['status']) == 'draft' ? _sihirbaz(c) : _rapor(c),
       eylemler: _eylemler,
       ust: Padding(
-        padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 8),
+        padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 8),
         child: Wrap(
           spacing: 12,
           runSpacing: 8,
@@ -175,7 +176,7 @@ class _KampanyalarSekmesiState extends State<KampanyalarSekmesi> {
                 style: TextStyle(color: r.soluk, fontSize: 12.5),
               ),
             ),
-            FilledButton.icon(onPressed: b.acik ? () => _sihirbaz(null) : null, icon: const Icon(Icons.add_rounded), label: const Text('Yeni kampanya')),
+            FilledButton.icon(onPressed: b.acik ? () => _sihirbaz(null) : null, icon: const Icon(Simgeler.add), label: const Text('Yeni kampanya')),
           ],
         ),
       ),
@@ -407,7 +408,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
   Widget _secimKutusu({required bool secili, required VoidCallback onTap, required Widget child}) {
     final r = context.r;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: secili ? r.vurguYumusak : r.kart,
         shape: RoundedRectangleBorder(
@@ -417,7 +418,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: child),
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: child),
         ),
       ),
     );
@@ -448,7 +449,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               'Kişi listeleri',
               style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             if (l == null)
               const LinearProgressIndicator()
             else if (l.isEmpty)
@@ -506,7 +507,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               'Gönderen posta kutusu',
               style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             if (g.isEmpty) Text('Bu müşterinin gönderime uygun posta kutusu yok.', style: TextStyle(color: r.soluk)),
             for (final s in g)
               _secimKutusu(
@@ -519,7 +520,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(metin(s['address']), style: const TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 4,
                       runSpacing: 4,
@@ -556,7 +557,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               maxLength: 250,
               decoration: const InputDecoration(labelText: 'Konu', hintText: 'Merhaba {{ad}}, kasım fırsatları', counterText: ''),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             TextField(
               controller: _onMetin,
               maxLength: 250,
@@ -573,7 +574,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               'İleti türü',
               style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             for (final (v, e, i) in const [
               ('informational', 'Bilgilendirme', 'Hizmet, sipariş, duyuru vb. (ticari amaç taşımayan)'),
               ('commercial', 'Ticari ileti', 'Kampanya, indirim, tanıtım'),
@@ -600,7 +601,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               'Şablon',
               style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             if (l == null)
               const LinearProgressIndicator()
             else if (l.isEmpty)
@@ -623,7 +624,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
                     ],
                   ),
                 ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text('Şablon gönderim anında kopyalanır; sonradan şablonu değiştirmek gönderilmiş kampanyayı etkilemez.', style: soluk),
           ],
         );
@@ -646,10 +647,10 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               ),
             if (_ileri)
               Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.only(top: 8),
                 child: OutlinedButton.icon(
                   onPressed: _zamanSec,
-                  icon: const Icon(Icons.event_rounded),
+                  icon: const Icon(Simgeler.event),
                   label: Text(_zaman == null ? 'Gönderim zamanı seçin (TSİ)' : '${_tsiMetni(_zaman!)} TSİ'),
                 ),
               ),
@@ -663,7 +664,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
                 decoration: const InputDecoration(labelText: 'Saatlik gönderim hızı', hintText: 'Boş = otomatik'),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Boş bırakılırsa gönderen posta kutusunun saatlik sınırına göre otomatik ayarlanır'
               '${ust != null ? '; bu müşteri için üst sınır saatte ${sayiYaz(ust)}' : ''}. Yavaş gönderim teslim oranını artırır.',
@@ -685,18 +686,18 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
           children: [
             for (final it in haritalar(k['items']))
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Kutu(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       switch (metin(it['status'])) {
-                        'ok' => const Icon(Icons.check_circle_rounded, color: Marka.zumrut, size: 20),
-                        'warn' => const Icon(Icons.warning_amber_rounded, color: Marka.kehribar, size: 20),
-                        _ => const Icon(Icons.cancel_rounded, color: Marka.gul, size: 20),
+                        'ok' => const Icon(Simgeler.checkCircle, color: Marka.zumrut, size: 20),
+                        'warn' => const Icon(Simgeler.warningAmber, color: Marka.kehribar, size: 20),
+                        _ => const Icon(Simgeler.cancel, color: Marka.gul, size: 20),
                       },
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -710,7 +711,7 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
                   ),
                 ),
               ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Bant(
               '${sayiYaz(alici)} alıcı · saatte ${sayiYaz(hiz)} ileti'
               '${alici > 0 && hiz > 0 ? ' (~${(alici / hiz).ceil().clamp(1, 1 << 30)} saat)' : ''}'
@@ -739,8 +740,8 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               Text('Adım ${_adim + 1}/${_adimlar.length}: ${_adimlar[_adim]}. Her adımda taslak kaydedilir.', style: TextStyle(color: r.soluk)),
               const SizedBox(height: 8),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   for (var i = 0; i < _adimlar.length; i++)
                     ChoiceChip(
@@ -758,13 +759,13 @@ class _KampanyaSihirbaziState extends State<KampanyaSihirbazi> {
               ),
               const SizedBox(height: 16),
               _icerik(),
-              if (_hata != null) ...[const SizedBox(height: 12), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+              if (_hata != null) ...[const SizedBox(height: 12), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
             ],
           ),
         ),
         const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: Row(
             children: [
               if (_adim > 0)

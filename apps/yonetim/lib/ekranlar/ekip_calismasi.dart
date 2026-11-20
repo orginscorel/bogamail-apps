@@ -11,6 +11,7 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import 'ekip_imza.dart';
 import 'ekip_kural_formu.dart';
+import '../ortak/simgeler.dart';
 
 const _imzaModlari = {'off': 'Kapalı', 'default': 'Varsayılan', 'locked': 'Zorunlu'};
 const _gorevDurumlari = {'todo': 'Yapılacak', 'doing': 'Devam ediyor', 'done': 'Bitti'};
@@ -96,24 +97,24 @@ class _EkipCalismasiEkraniState extends State<EkipCalismasiEkrani> {
           Icon(i, size: 17, color: r.birincil),
           const SizedBox(width: 8),
           Text(e, style: TextStyle(color: r.soluk, fontSize: 12.5)),
-          const SizedBox(width: 6),
-          Text(v, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          const SizedBox(width: 8),
+          Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         ],
       ),
     );
     return Padding(
-      padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 10, context.genis ? 16 : 12, 4),
+      padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 8, context.genis ? 16 : 12, 4),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            hap(Icons.task_alt_rounded, 'Açık görev', mantik(f['tasks']) ? sayiYaz(tamsayi(c['open_tasks'])) : '—'),
+            hap(Simgeler.taskAlt, 'Açık görev', mantik(f['tasks']) ? sayiYaz(tamsayi(c['open_tasks'])) : '—'),
             const SizedBox(width: 8),
-            hap(Icons.account_tree_outlined, 'Kurum kuralı', sayiYaz(tamsayi(c['org_rules']))),
+            hap(Simgeler.accountTree, 'Kurum kuralı', sayiYaz(tamsayi(c['org_rules']))),
             const SizedBox(width: 8),
-            hap(Icons.badge_outlined, 'Profili dolu kutu', '${sayiYaz(tamsayi(c['profiles_filled']))} / ${sayiYaz(tamsayi(c['mailboxes']))}'),
+            hap(Simgeler.badge, 'Profili dolu kutu', '${sayiYaz(tamsayi(c['profiles_filled']))} / ${sayiYaz(tamsayi(c['mailboxes']))}'),
             const SizedBox(width: 8),
-            hap(Icons.draw_outlined, 'İmza şablonu', _imzaModlari[metin(ov['signature_mode'])] ?? '—'),
+            hap(Simgeler.draw, 'İmza şablonu', _imzaModlari[metin(ov['signature_mode'])] ?? '—'),
           ],
         ),
       ),
@@ -129,8 +130,8 @@ class _EkipCalismasiEkraniState extends State<EkipCalismasiEkrani> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Kapali('Bir müşterinin ekip çalışması ayarlarını görmek için müşteri seçin.', ikon: Icons.groups_outlined),
-            FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded), label: const Text('Müşteri seçin')),
+            const Kapali('Bir müşterinin ekip çalışması ayarlarını görmek için müşteri seçin.', ikon: Simgeler.groups),
+            FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Simgeler.apartment), label: const Text('Müşteri seçin')),
           ],
         ),
       );
@@ -162,7 +163,7 @@ class _EkipCalismasiEkraniState extends State<EkipCalismasiEkrani> {
         baslik: 'Ekip Çalışması',
         alt: _ortak ? (_orgAdi ?? 'Müşteri seçilmedi') : 'İmza şablonu, profiller, otomatik yanıt kuralları ve görevler',
         yenile: _ortak && _orgId == null ? null : _hepsiniYenile,
-        eylemler: [if (_ortak) IconButton(tooltip: 'Müşteri seç', onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded))],
+        eylemler: [if (_ortak) IconButton(tooltip: 'Müşteri seç', onPressed: _musteriSec, icon: const Icon(Simgeler.apartment))],
         sekmeler: ov == null
             ? null
             : const TabBar(
@@ -287,7 +288,7 @@ class _ImzaSekmesiState extends State<_ImzaSekmesi> {
         const SizedBox(height: 8),
         BolumKarti(
           baslik: 'Kurum imza şablonu',
-          ikon: Icons.draw_outlined,
+          ikon: Simgeler.draw,
           altBaslik:
               '"Zorunlu" modda tüm kullanıcılar bu imzayı kullanır ve kendi imzalarını değiştiremez; "Varsayılan" modda imzası boş olanlara uygulanır. '
               'Değişkenler her kullanıcının profil bilgileriyle doldurulur.',
@@ -351,8 +352,8 @@ class _ImzaSekmesiState extends State<_ImzaSekmesi> {
               ),
               const SizedBox(height: 4),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 8,
+                runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text('Hazır düzen:', style: TextStyle(color: r.soluk, fontSize: 12.5)),
@@ -368,7 +369,7 @@ class _ImzaSekmesiState extends State<_ImzaSekmesi> {
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
                 decoration: const InputDecoration(labelText: 'Şablon (HTML)', alignLabelWithHint: true),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 4,
                 runSpacing: 4,
@@ -406,7 +407,7 @@ class _ImzaSekmesiState extends State<_ImzaSekmesi> {
                 'Önizleme (örnek değerlerle, düz metin)',
                 style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -493,7 +494,7 @@ class _ProfilSekmesiState extends State<_ProfilSekmesi> {
     return VeriTablosu<Map<String, dynamic>>(
       yukleyici: _y,
       bosMetin: 'Aramanıza uyan posta kutusu bulunamadı.',
-      bosIkon: Icons.badge_outlined,
+      bosIkon: Simgeler.badge,
       onTap: _duzenle,
       siralama: _sira,
       artan: _artan,
@@ -504,7 +505,7 @@ class _ProfilSekmesiState extends State<_ProfilSekmesi> {
         });
         _y.yenile();
       },
-      eylemler: (x) => [SatirEylemi(Icons.edit_outlined, widget.yonetir ? 'İmza bilgilerini düzenle' : 'Görüntüle', () => _duzenle(x))],
+      eylemler: (x) => [SatirEylemi(Simgeler.edit, widget.yonetir ? 'İmza bilgilerini düzenle' : 'Görüntüle', () => _duzenle(x))],
       ust: FiltreCubugu(
         arama: AramaAlani(
           ipucu: 'Adres, ad, unvan ara',
@@ -517,7 +518,7 @@ class _ProfilSekmesiState extends State<_ProfilSekmesi> {
           if (widget.departmanlar.isNotEmpty)
             FiltreDugmesi<String>(
               etiket: 'Departman',
-              ikon: Icons.workspaces_outline,
+              ikon: Simgeler.workspaces,
               secenekler: [('', 'Tüm departmanlar'), for (final d in widget.departmanlar) (d, d)],
               secili: _departman,
               secildi: (v) {
@@ -633,10 +634,10 @@ class _ProfilDialogState extends State<_ProfilDialog> {
                 style: TextStyle(color: context.r.silik, fontSize: 12),
               ),
               if (!y) ...[const SizedBox(height: 8), const Bant('Bu işlem için posta kutusu yönetme yetkisi gerekir.', renk: Marka.kehribar)],
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 12,
-                runSpacing: 10,
+                runSpacing: 8,
                 children: [
                   alan('title', 'Unvan', 'ör. Satış Müdürü'),
                   alan('department', 'Departman', 'ör. Satış'),
@@ -727,9 +728,9 @@ class _KuralSekmesiState extends State<_KuralSekmesi> {
   List<SatirEylemi> _eylemler(Map<String, dynamic> k) => !widget.yonetir
       ? const []
       : [
-          SatirEylemi(Icons.edit_outlined, 'Düzenle', () => _duzenle(k)),
-          SatirEylemi(Icons.power_settings_new_rounded, mantik(k['enabled']) ? 'Kapat' : 'Etkinleştir', () => _degistir(k)),
-          SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), tehlikeli: true),
+          SatirEylemi(Simgeler.edit, 'Düzenle', () => _duzenle(k)),
+          SatirEylemi(Simgeler.powerSettingsNew, mantik(k['enabled']) ? 'Kapat' : 'Etkinleştir', () => _degistir(k)),
+          SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(k), tehlikeli: true),
         ];
 
   Widget _durum(Map<String, dynamic> k) => mantik(k['enabled']) ? const Rozet('Etkin', renk: Marka.zumrut) : Rozet('Kapalı', renk: context.r.soluk);
@@ -741,11 +742,11 @@ class _KuralSekmesiState extends State<_KuralSekmesi> {
     return VeriTablosu<Map<String, dynamic>>(
       yukleyici: _y,
       bosMetin: 'Henüz kurum geneli otomatik yanıt kuralı tanımlanmadı.',
-      bosIkon: Icons.account_tree_outlined,
+      bosIkon: Simgeler.accountTree,
       onTap: widget.yonetir ? _duzenle : null,
       eylemler: widget.yonetir ? _eylemler : null,
       ust: Padding(
-        padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 8),
+        padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -762,11 +763,11 @@ class _KuralSekmesiState extends State<_KuralSekmesi> {
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
-                child: FilledButton.tonalIcon(onPressed: () => _duzenle(ekipYeniKural()), icon: const Icon(Icons.add_rounded), label: const Text('Kural ekle')),
+                child: FilledButton.tonalIcon(onPressed: () => _duzenle(ekipYeniKural()), icon: const Icon(Simgeler.add), label: const Text('Kural ekle')),
               ),
             ],
             if (!widget.yonetir) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text('Kuralları değiştirmek için posta kutusu yönetme yetkisi gerekir.', style: TextStyle(color: r.silik, fontSize: 12)),
             ],
           ],
@@ -841,14 +842,14 @@ class _GorevSekmesiState extends State<_GorevSekmesi> {
     if (!widget.acik) {
       return const Kapali(
         'Görevler paketinizde yok. Görevler modülü Kurumsal Mail 2, 3, 4, İş ve Kurumsal paketlerinde bulunur.',
-        ikon: Icons.task_alt_rounded,
+        ikon: Simgeler.taskAlt,
       );
     }
     const durumlar = [('open', 'Açık'), ('todo', 'Yapılacak'), ('doing', 'Devam ediyor'), ('done', 'Bitti'), ('all', 'Tümü')];
     return VeriTablosu<Map<String, dynamic>>(
       yukleyici: _y,
       bosMetin: 'Bu filtreye uyan görev bulunamadı.',
-      bosIkon: Icons.task_alt_rounded,
+      bosIkon: Simgeler.taskAlt,
       siralama: _sira,
       artan: _artan,
       siralamaDegisti: (a, b) {
@@ -872,7 +873,7 @@ class _GorevSekmesiState extends State<_GorevSekmesi> {
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Durum',
-                ikon: Icons.filter_list_rounded,
+                ikon: Simgeler.filterList,
                 secenekler: durumlar,
                 secili: _durum,
                 secildi: (v) {
@@ -906,7 +907,7 @@ class _GorevSekmesiState extends State<_GorevSekmesi> {
           hucre: (c, t) => Row(
             children: [
               Flexible(child: IkiSatir(metin(t['title']), alt: tamsayi(t['comments']) > 0 ? '${tamsayi(t['comments'])} yorum' : null)),
-              if (t['priority'] == 'high') ...[const SizedBox(width: 6), const Rozet('Yüksek öncelik', renk: Marka.gul)],
+              if (t['priority'] == 'high') ...[const SizedBox(width: 8), const Rozet('Yüksek öncelik', renk: Marka.gul)],
             ],
           ),
         ),

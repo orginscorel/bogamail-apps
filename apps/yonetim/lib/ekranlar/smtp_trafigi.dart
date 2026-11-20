@@ -10,6 +10,7 @@ import '../oturum.dart';
 import '../ortak/bilesenler.dart';
 import '../ortak/iskelet.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 const _dinleyiciEtiketi = {'mx': 'MX (25)', 'submission': 'Gönderim (587)', 'submissions': 'Gönderim TLS (465)'};
 
@@ -81,22 +82,22 @@ class _SmtpTrafigiEkraniState extends State<SmtpTrafigiEkrani> {
         Izgara(
           enAz: 220,
           children: [
-            KpiKarti(ikon: Icons.cable_rounded, etiket: 'Bağlantı', deger: sayiYaz(baglanti), alt: 'dakikada en çok $tepe'),
+            KpiKarti(ikon: Simgeler.cable, etiket: 'Bağlantı', deger: sayiYaz(baglanti), alt: 'dakikada en çok $tepe'),
             KpiKarti(
-              ikon: Icons.lock_outline_rounded,
+              ikon: Simgeler.lockOutline,
               etiket: 'TLS oranı (bağlantı)',
               deger: _oran(tls, baglanti),
               alt: 'gelen iletilerde ${_oran(tamsayi(d['inbound_tls_messages']), gelen)}',
               renk: Marka.zumrut,
             ),
             KpiKarti(
-              ikon: Icons.key_off_outlined,
+              ikon: Simgeler.keyOff,
               etiket: 'AUTH hatası',
               deger: sayiYaz(authHata),
               alt: 'başarılı ${sayiYaz(authOk)}',
               renk: authHata > 0 ? Marka.kehribar : null,
             ),
-            KpiKarti(ikon: Icons.move_to_inbox_rounded, etiket: 'Gelen ileti', deger: sayiYaz(gelen), alt: 'MX üzerinden işlenen', renk: Marka.mavi),
+            KpiKarti(ikon: Simgeler.moveToInbox, etiket: 'Gelen ileti', deger: sayiYaz(gelen), alt: 'MX üzerinden işlenen', renk: Marka.mavi),
           ],
         ),
         const SizedBox(height: 16),
@@ -104,7 +105,7 @@ class _SmtpTrafigiEkraniState extends State<SmtpTrafigiEkrani> {
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'Dinleyiciler',
-          ikon: Icons.settings_input_antenna_rounded,
+          ikon: Simgeler.settingsInputAntenna,
           child: dinleyiciler.isEmpty
               ? Text('Bu aralıkta bağlantı kaydı yok (sayaçlar 30 saniyede bir yazılır).', style: TextStyle(color: r.soluk))
               : Column(
@@ -127,9 +128,9 @@ class _SmtpTrafigiEkraniState extends State<SmtpTrafigiEkrani> {
           enAz: 320,
           bosluk: 16,
           children: [
-            SiraliListeKarti(baslik: 'En çok görülen HELO', ikon: Icons.waving_hand_outlined, satirlar: haritalar(d['top_helo']), mono: true),
-            SiraliListeKarti(baslik: 'En çok bağlanan IP\'ler', ikon: Icons.lan_outlined, satirlar: haritalar(d['top_ip']), mono: true),
-            SiraliListeKarti(baslik: 'En çok bağlanan ağlar (ASN)', ikon: Icons.hub_outlined, satirlar: haritalar(d['top_asn']), onEk: 'AS'),
+            SiraliListeKarti(baslik: 'En çok görülen HELO', ikon: Simgeler.wavingHand, satirlar: haritalar(d['top_helo']), mono: true),
+            SiraliListeKarti(baslik: 'En çok bağlanan IP\'ler', ikon: Simgeler.lan, satirlar: haritalar(d['top_ip']), mono: true),
+            SiraliListeKarti(baslik: 'En çok bağlanan ağlar (ASN)', ikon: Simgeler.hub, satirlar: haritalar(d['top_asn']), onEk: 'AS'),
           ],
         ),
         const SizedBox(height: 16),
@@ -139,13 +140,13 @@ class _SmtpTrafigiEkraniState extends State<SmtpTrafigiEkrani> {
           children: [
             BolumKarti(
               baslik: 'Verdiğimiz yanıtlar (gelen)',
-              ikon: Icons.call_received_rounded,
+              ikon: Simgeler.callReceived,
               altBaslik: sinif.isEmpty ? 'Veri yok' : sinif,
               child: KodListesi(satirlar: haritalar(d['our_codes'])),
             ),
             BolumKarti(
               baslik: 'Karşı sunucu yanıtları (giden)',
-              ikon: Icons.call_made_rounded,
+              ikon: Simgeler.callMade,
               altBaslik: uzakSunucular.isEmpty ? 'Veri yok' : uzakSunucular,
               child: KodListesi(satirlar: haritalar(d['remote_codes'])),
             ),
@@ -182,7 +183,7 @@ class _SmtpTrafigiEkraniState extends State<SmtpTrafigiEkrani> {
     );
     return BolumKarti(
       baslik: 'Dakikadaki bağlantı',
-      ikon: Icons.show_chart_rounded,
+      ikon: Simgeler.showChart,
       altBaslik:
           'Her nokta $kova dakikanın ortalaması; en yüksek ${enCok.toStringAsFixed(1).replaceAll('.', ',')}/dk.'
           '${noktalar.isNotEmpty ? ' ${tamZaman(noktalar.first.$1)} – ${tamZaman(noktalar.last.$1)}' : ''}',
@@ -252,14 +253,14 @@ class _SmtpTrafigiEkraniState extends State<SmtpTrafigiEkrani> {
                 ),
                 const SizedBox(height: 8),
                 Wrap(
-                  spacing: 14,
+                  spacing: 16,
                   children: [
                     for (final (renk, ad) in const [(Marka.gok, 'Toplam'), (Marka.lavanta, 'Gönderim (587/465)'), (Marka.gul, 'AUTH hatası')])
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(width: 14, height: 3, color: renk),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 8),
                           Text(ad, style: TextStyle(color: r.soluk, fontSize: 12)),
                         ],
                       ),
@@ -355,7 +356,7 @@ class KodListesi extends StatelessWidget {
       children: [
         for (final (i, k) in satirlar.indexed)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               border: i == 0 ? null : Border(top: BorderSide(color: r.kenar)),
             ),
@@ -371,7 +372,7 @@ class KodListesi extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: metin(k['key']).startsWith('5') ? Marka.gul : (metin(k['key']).startsWith('4') ? Marka.kehribar : Marka.zumrut),
                         ),
                       ),

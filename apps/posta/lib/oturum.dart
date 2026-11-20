@@ -6,11 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ekranlar/hesaplar.dart';
 import 'ekranlar/kabuk.dart';
+import 'veri/arkaplan.dart';
 import 'veri/bildirim.dart';
 import 'veri/birlesik.dart';
 import 'veri/canli.dart';
 import 'veri/durum.dart';
 import 'veri/onbellek.dart';
+import 'veri/posta_servisi.dart';
+import 'veri/push_kaydi.dart';
 import 'veri/sohbet_servisi.dart';
 
 /// Bu cihazda kayıtlı posta hesabı (GET /api/v1/mail/auth/accounts).
@@ -118,24 +121,65 @@ class Uyg {
     kokGezgin.currentState?.pushAndRemoveUntil(HizliRota(builder: (_) => const Kabuk()), (_) => false);
   }
 
-  /// Şifresiz hesap değiştirme. [adres] verilirse (bildirimden) kimlik listeden bulunur.
-  static Future<bool> hesabaGec({String? id, String? adres}) async {
+  /// Şifresiz hesap değiştirme. [adres] verilirse (bildirimden) kimlik listeden bulunur. [hesap] biliniyorsa
+  /// (hesap menüsünden) geçiş beklemesizdir: kabuk hedef hesabın önbelleğiyle hemen açılır, açık klasör rolü /
+  /// görünüm korunur, sunucu doğrulaması, canlı akış ve push kaydı arka planda yapılır.
+  static Future<bool> hesabaGec({String? id, String? adres, KayitliHesap? hesap}) async {
     try {
-      var hedef = id;
-      if (hedef == null && adres != null) {
-        final l = await hesaplar();
-        hedef = l.where((h) => h.adres.toLowerCase() == adres.toLowerCase()).firstOrNull?.id;
+      var hedef = hesap?.id ?? id;
+      var h = hesap;
+      if (h == null) {
+        // Hesap bilgisi (ad, adres) önbellekle hemen açılış için gerekir.
+        final l = await hesaplar().catchError((_) => <KayitliHesap>[]);
+        h = l.where((x) => adres != null ? x.adres.toLowerCase() == adres.toLowerCase() : x.id == hedef).firstOrNull;
+        hedef ??= h?.id;
       }
       if (hedef == null || hedef.isEmpty) return false;
+      // Açık yer korunur: klasör rolü (Gelen → Gelen), görünüm ya da birleşik.
+      final d = PostaDurum.ben;
+      final k = d.konum;
+      final rol = k?.tur == KonumTur.klasor ? d.klasor(k!.id)?.rol : null;
+      final korunan = k != null && (k.tur == KonumTur.gorunum || k.tur == KonumTur.birlesik) ? k : null;
       await api.post('$_k/switch', {'mailbox_id': hedef});
       _durumuTemizle();
-      await kabugaGec();
+      d
+        ..gecisRolu = rol
+        ..gecisKonumu = korunan;
+      if (h != null) {
+        kutu.value = {'mailbox_id': h.id, 'address': h.adres, 'display_name': h.ad, 'avatar_url': ?h.avatarUrl};
+        await Onbellek.ben.hesapAc(h.id);
+        // Hedef hesabın klasörleri ve açılacak liste diskten belleğe alınır: yeni kabuk ilk karede dolu çizilir.
+        await _onbellegiIsit(rol, korunan).timeout(const Duration(milliseconds: 400), onTimeout: () {});
+        kokGezgin.currentState?.pushAndRemoveUntil(_GecisRotasi(builder: (_) => const Kabuk()), (_) => false);
+        // Yeni kabuk (ve iskelesi) çizildikten sonra gösterilir.
+        final ileti = '${h.adres} hesabına geçildi';
+        WidgetsBinding.instance.addPostFrameCallback((_) => bildir(ileti));
+        // Sunucudaki kutu bilgisi (ad, avatar, izinler) arka planda tazelenir.
+        unawaited(yukle().catchError((_) => false));
+      } else {
+        await kabugaGec();
+      }
       return true;
     } catch (e) {
       bekleyenBildirim = null;
       bildir('Hesaba geçilemedi', mesaj: hataMetni(e), tur: MesajTur.hata);
       return false;
     }
+  }
+
+  static Future<void> _onbellegiIsit(String? rol, Konum? korunan) async {
+    try {
+      final o = await Posta.klasorlerOnbellek();
+      if (o == null) return;
+      final f = o.$1.where((x) => x.rol == (rol ?? 'inbox')).firstOrNull ?? o.$1.where((x) => x.rol == 'inbox').firstOrNull;
+      final k = korunan ?? (f != null ? Konum.klasor(f.id) : null);
+      final a = switch (k?.tur) {
+        KonumTur.klasor => Posta.listeAnahtari(klasorId: k!.id),
+        KonumTur.gorunum => Posta.listeAnahtari(gorunum: k!.id),
+        _ => null,
+      };
+      if (a != null) await Onbellek.ben.oku(a);
+    } catch (_) {}
   }
 
   /// Hesabı bu cihazdan kaldırır (etkin hesap değilse).
@@ -160,7 +204,10 @@ class Uyg {
     if (unut) await Onbellek.ben.hesabiSil(eski);
     await Bildirim.temizle();
     await Push.rozet(0);
+    PushKaydi.sifirla();
     if (sonraki != null && await hesabaGec(id: sonraki)) return;
+    // Hesap kalmadı: arka plan hizmeti (Android) durur.
+    await Arkaplan.oturumKapandi();
     kokGezgin.currentState?.pushAndRemoveUntil(HizliRota(builder: (_) => girisEkrani()), (_) => false);
   }
 
@@ -171,4 +218,18 @@ class Uyg {
     _durumuTemizle();
     kokGezgin.currentState?.pushAndRemoveUntil(HizliRota(builder: (_) => girisEkrani(bilgi: 'Oturum kapandı. Hesabınızı seçin.')), (_) => false);
   }
+}
+
+/// Hesap geçişi: kabuk yerinde kalıyormuş gibi kısa bir çapraz geçiş (açılış ekranı / bekleme yok).
+class _GecisRotasi<T> extends PageRouteBuilder<T> {
+  _GecisRotasi({required WidgetBuilder builder})
+    : super(
+        transitionDuration: const Duration(milliseconds: 200),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (c, _, _) => builder(c),
+        transitionsBuilder: (_, a, _, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: a, curve: Curves.easeOut),
+          child: child,
+        ),
+      );
 }

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import '../oturum.dart';
+import '../veri/push_kaydi.dart';
 
 /// Oturum yokken açılış: bu cihazda kayıtlı hesap varsa "Kayıtlı postalarınız" listesi, yoksa giriş formu.
 class GirisKapisi extends StatefulWidget {
@@ -87,7 +90,7 @@ class _GirisKapisiState extends State<GirisKapisi> {
                 Text(
                   'Kayıtlı postalarınız',
                   textAlign: TextAlign.center,
-                  style: gosterim(24, agirlik: FontWeight.w700),
+                  style: gosterim(24, agirlik: FontWeight.w600),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -115,7 +118,7 @@ class _GirisKapisiState extends State<GirisKapisi> {
                 OutlinedButton.icon(
                   key: const ValueKey('baska-hesap'),
                   onPressed: () => setState(() => _form = true),
-                  icon: const Icon(Icons.person_add_alt_rounded),
+                  icon: const Icon(Simge.kisiEkle),
                   label: const Text('Başka hesapla giriş'),
                 ),
               ],
@@ -146,7 +149,7 @@ class HesapSatiri extends StatelessWidget {
         h.gorunen,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w700),
+        style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(h.cikisYapti ? '${h.adres} · çıkış yapıldı' : h.adres, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Row(
@@ -159,13 +162,13 @@ class HesapSatiri extends StatelessWidget {
               decoration: BoxDecoration(color: r.vurgu, borderRadius: BorderRadius.circular(20)),
               child: Text(
                 h.okunmamis > 999 ? '999+' : '${h.okunmamis}',
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           if (h.etkin)
             Padding(
               padding: const EdgeInsets.only(left: 8),
-              child: Icon(Icons.check_circle_rounded, color: r.vurgu),
+              child: Icon(Simge.basari, color: r.vurgu),
             ),
           if (kaldir != null && !h.etkin)
             PopupMenuButton<String>(
@@ -174,7 +177,7 @@ class HesapSatiri extends StatelessWidget {
               itemBuilder: (_) => const [
                 PopupMenuItem(
                   value: 'kaldir',
-                  child: ListTile(leading: Icon(Icons.person_remove_outlined), title: Text('Bu cihazdan kaldır')),
+                  child: ListTile(leading: Icon(Simge.kisiCikar), title: Text('Bu cihazdan kaldır')),
                 ),
               ],
             ),
@@ -283,7 +286,7 @@ class _HesapSeciciState extends State<HesapSecici> {
         if (!widget.gomulu)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Hesaplar', style: gosterim(18, agirlik: FontWeight.w700)),
+            child: Text('Hesaplar', style: gosterim(18, agirlik: FontWeight.w600)),
           ),
         if (_l == null)
           const Padding(
@@ -301,7 +304,7 @@ class _HesapSeciciState extends State<HesapSecici> {
         if (_kayitsiz)
           ListTile(
             key: const ValueKey('hesap-kaydet'),
-            leading: const Icon(Icons.warning_amber_rounded, color: Marka.kehribar),
+            leading: const Icon(Simge.uyari, color: Marka.kehribar),
             title: const Text('Bu hesap bu cihazda kayıtlı değil'),
             subtitle: const Text('Başka hesaba geçtikten sonra şifresiz dönebilmek için kaydedin.'),
             trailing: TextButton(
@@ -316,7 +319,7 @@ class _HesapSeciciState extends State<HesapSecici> {
         const Divider(),
         ListTile(
           key: const ValueKey('hesap-ekle'),
-          leading: Icon(Icons.person_add_alt_rounded, color: r.vurgu),
+          leading: Icon(Simge.kisiEkle, color: r.vurgu),
           title: const Text('Hesap ekle'),
           onTap: () {
             final nav = Navigator.of(context);
@@ -325,13 +328,13 @@ class _HesapSeciciState extends State<HesapSecici> {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.logout_rounded),
+          leading: const Icon(Simge.cikis),
           title: const Text('Çıkış yap'),
           subtitle: const Text('Hesap bu cihazda kayıtlı kalır'),
           onTap: () => _cikis(unut: false),
         ),
         ListTile(
-          leading: const Icon(Icons.person_remove_outlined, color: Marka.gul),
+          leading: const Icon(Simge.kisiCikar, color: Marka.gul),
           title: const Text('Bu cihazdan kaldır', style: TextStyle(color: Marka.gul)),
           subtitle: const Text('Çıkış yapar ve hesabı kayıtlı listeden siler'),
           onTap: () => _cikis(unut: true),
@@ -390,6 +393,8 @@ Future<void> mevcutHesabiKaydet(NavigatorState nav, {bool sonraEkle = false}) as
         sonra: () async {
           if (!c.mounted) return;
           bildir('Hesap bu cihaza kaydedildi', tur: MesajTur.basari);
+          // Cihaz ilişkisi değişti: bildirim kaydı bu cihazın hesap listesine yeniden dağıtılsın.
+          unawaited(PushKaydi.kaydet(zorla: true));
           final n = Navigator.of(c);
           if (sonraEkle) {
             n.pushReplacement(
@@ -441,7 +446,7 @@ class _KayitliOzetState extends State<KayitliOzet> {
       children: [
         Text(
           'Kayıtlı postalarınız',
-          style: TextStyle(color: r.soluk, fontWeight: FontWeight.w700, fontSize: 13),
+          style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
         ),
         const SizedBox(height: 8),
         Kutu(

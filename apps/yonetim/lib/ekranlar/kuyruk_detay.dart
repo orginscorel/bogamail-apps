@@ -8,6 +8,7 @@ import '../veri/json.dart';
 import '../veri/operasyon.dart';
 import 'bolumler.dart';
 import 'kuyruk.dart';
+import '../ortak/simgeler.dart';
 
 /// Kuyruktaki iletinin ayrıntısı, başlıkları (GET /queue/{id}/headers) ve işlemleri (POST /queue/bulk).
 class KuyrukDetay extends StatefulWidget {
@@ -97,14 +98,14 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
               children: [
                 Row(
                   children: [
-                    Icon(o.giden ? Icons.north_east_rounded : Icons.south_west_rounded, color: o.giden ? Marka.mavi : Marka.zumrut),
+                    Icon(o.giden ? Simgeler.northEast : Simgeler.southWest, color: o.giden ? Marka.mavi : Marka.zumrut),
                     const SizedBox(width: 8),
-                    Text(o.giden ? 'Giden ileti' : 'Gelen ileti', style: gosterim(16, agirlik: FontWeight.w700)),
+                    Text(o.giden ? 'Giden ileti' : 'Gelen ileti', style: gosterim(16, agirlik: FontWeight.w600)),
                     const Spacer(),
                     KuyrukDurumu(o),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 BilgiSatiri('Kuyruk kimliği', o.kimlik, mono: true, kopyalanabilir: true),
                 BilgiSatiri('Gönderen', o.gonderen.isEmpty ? '<> (boş zarf)' : o.gonderen, kopyalanabilir: o.gonderen.isNotEmpty),
                 BilgiSatiri('Alıcılar', o.alicilar.isEmpty ? '—' : o.alicilar.join('\n')),
@@ -119,7 +120,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
           ),
           if (o.frenNedeni.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Bant('Güvenlik freni: ${o.frenNedeni}', renk: Marka.gul, ikon: Icons.front_hand_rounded),
+            Bant('Güvenlik freni: ${o.frenNedeni}', renk: Marka.gul, ikon: Simgeler.frontHand),
           ],
           if (o.sonHata.isNotEmpty) ...[
             const Baslik('Son hata'),
@@ -129,7 +130,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
                 children: [
                   if (o.hataSinifi.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Rozet(widget.hataEtiketleri[o.hataSinifi] ?? o.hataSinifi, renk: Marka.kehribar),
                     ),
                   SelectableText(o.sonHata, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5)),
@@ -140,7 +141,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
           const Baslik('İşlemler'),
           if (Bolum.takip.gorunur) ...[
             EylemSatiri(
-              ikon: Icons.manage_search_rounded,
+              ikon: Simgeler.manageSearch,
               baslik: 'Mesaj takibinde aç',
               ipucu: 'Bu iletinin teslim yolculuğunu (aşamalar, alıcı sonuçları, ham kayıtlar) gösterir',
               onTap: () {
@@ -152,7 +153,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
           ],
           if (Uyg.taklit == null)
             EylemSatiri(
-              ikon: Icons.replay_rounded,
+              ikon: Simgeler.replay,
               baslik: 'Şimdi yeniden dene',
               ipucu: 'Bekleme süresini atla, teslimi hemen dene',
               onTap: () => _toplu('retry', tamam: 'Yeniden deneme sıraya alındı'),
@@ -161,13 +162,13 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
             const SizedBox(height: 8),
             o.durum == 'held'
                 ? EylemSatiri(
-                    ikon: Icons.play_arrow_rounded,
+                    ikon: Simgeler.playArrow,
                     baslik: 'Serbest bırak',
                     ipucu: 'Teslim denemelerine devam etsin',
                     onTap: () => _toplu('release', tamam: 'İleti serbest bırakıldı'),
                   )
                 : EylemSatiri(
-                    ikon: Icons.pause_rounded,
+                    ikon: Simgeler.pause,
                     baslik: 'Beklet',
                     ipucu: 'Serbest bırakılana kadar teslim edilmesin',
                     onTap: () => _toplu('hold', tamam: 'İleti bekletmeye alındı'),
@@ -175,7 +176,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
           ],
           if (ortak) ...[
             const SizedBox(height: 8),
-            EylemSatiri(ikon: Icons.delete_outline_rounded, baslik: 'Kuyruktan sil', ipucu: 'Geri alınamaz', tehlikeli: true, onTap: _sil),
+            EylemSatiri(ikon: Simgeler.deleteOutline, baslik: 'Kuyruktan sil', ipucu: 'Geri alınamaz', tehlikeli: true, onTap: _sil),
           ],
           Baslik(
             'Başlıklar',
@@ -198,7 +199,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                           tooltip: 'Kopyala',
-                          icon: const Icon(Icons.copy_rounded, size: 18),
+                          icon: const Icon(Simgeler.copy, size: 18),
                           onPressed: () => kopyala(_basliklar!.map((h) => '${h.$1}: ${h.$2}').join('\n'), mesaj: 'Başlıklar kopyalandı'),
                         ),
                       ),
@@ -260,7 +261,7 @@ class _KuyrukSilDialogState extends State<KuyrukSilDialog> {
   Widget build(BuildContext context) {
     final tamam = {'SİL', 'SIL'}.contains(_onay.text.trim().toUpperCase());
     return AlertDialog(
-      title: Text(widget.adet == 1 ? 'İleti kuyruktan silinsin mi?' : '${widget.adet} ileti kuyruktan silinsin mi?', style: gosterim(18, agirlik: FontWeight.w700)),
+      title: Text(widget.adet == 1 ? 'İleti kuyruktan silinsin mi?' : '${widget.adet} ileti kuyruktan silinsin mi?', style: gosterim(18, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 440,
         child: SingleChildScrollView(
@@ -272,7 +273,7 @@ class _KuyrukSilDialogState extends State<KuyrukSilDialog> {
                 'İletiler alıcılara teslim edilmeyecek. İşlem geri alınamaz ve denetim kaydına yazılır.',
                 style: TextStyle(color: context.r.silik, fontSize: 13),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               RadioGroup<String>(
                 groupValue: _mod,
                 onChanged: (v) => setState(() => _mod = v ?? _mod),
@@ -298,26 +299,26 @@ class _KuyrukSilDialogState extends State<KuyrukSilDialog> {
                   ],
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               TextField(
                 controller: _neden,
                 maxLength: 300,
                 decoration: InputDecoration(labelText: 'Gerekçe (denetim kaydı${_mod == 'bounce' ? ' ve bildirim' : ''})'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text.rich(
                 TextSpan(
                   children: [
                     const TextSpan(text: 'Onaylamak için '),
                     const TextSpan(
                       text: 'SİL',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontFamily: 'monospace'),
+                      style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'monospace'),
                     ),
                     const TextSpan(text: ' yazın'),
                   ],
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               TextField(
                 controller: _onay,
                 autocorrect: false,

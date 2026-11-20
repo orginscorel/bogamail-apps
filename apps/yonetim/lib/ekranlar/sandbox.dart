@@ -13,6 +13,7 @@ import '../ortak/secimler.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'koruma_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Test sandbox gelen kutusu (GET /api/v1/sandboxes → items).
 class SandboxKutusu {
@@ -77,7 +78,7 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
     context: context,
     barrierDismissible: false,
     builder: (c) => AlertDialog(
-      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -89,7 +90,7 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
                 'Bu bilgiler yalnızca şimdi gösterilir; sunucuda yalnızca özetleri saklanır. Kaybederseniz yenileyin.',
                 style: TextStyle(color: c.r.soluk, fontSize: 13),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _GizliSatir('SMTP sunucusu', _smtpOzet),
               if (metinYa(s['smtp_username']) != null) _GizliSatir('SMTP kullanıcı adı', metin(s['smtp_username'])),
               if (metinYa(s['smtp_password']) != null) _GizliSatir('SMTP parolası', metin(s['smtp_password'])),
@@ -145,7 +146,7 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
     showDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('CI / otomatik test API\'si', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('CI / otomatik test API\'si', style: gosterim(19, agirlik: FontWeight.w600)),
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
@@ -172,12 +173,12 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
   }
 
   List<SatirEylemi> _eylemler(SandboxKutusu s) => [
-    SatirEylemi(Icons.inbox_rounded, 'İletileri aç', () => _ac(s)),
+    SatirEylemi(Simgeler.inbox, 'İletileri aç', () => _ac(s)),
     if (_yonetir) ...[
-      SatirEylemi(Icons.tune_rounded, 'Ayarları düzenle', () => _duzenle(s)),
-      SatirEylemi(Icons.key_rounded, 'SMTP parolasını yenile', () => _yenileGizli(s, 'password')),
-      SatirEylemi(Icons.autorenew_rounded, 'CI API anahtarını yenile', () => _yenileGizli(s, 'token')),
-      SatirEylemi(Icons.delete_outline_rounded, 'Sandbox\'ı sil', () => _sil(s), tehlikeli: true),
+      SatirEylemi(Simgeler.tune, 'Ayarları düzenle', () => _duzenle(s)),
+      SatirEylemi(Simgeler.key, 'SMTP parolasını yenile', () => _yenileGizli(s, 'password')),
+      SatirEylemi(Simgeler.autorenew, 'CI API anahtarını yenile', () => _yenileGizli(s, 'token')),
+      SatirEylemi(Simgeler.deleteOutline, 'Sandbox\'ı sil', () => _sil(s), tehlikeli: true),
     ],
   ];
 
@@ -194,14 +195,14 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
               child: Bant(
                 'E-posta test sandbox\'ı paketinizde yok. Kurumsal Mail 3/4, Business ve Enterprise paketlerinde bulunur; Paketim bölümünden yükseltme isteyebilirsiniz.',
                 renk: Marka.kehribar,
-                ikon: Icons.lock_outline_rounded,
+                ikon: Simgeler.lockOutline,
               ),
             ),
-          Bant('SMTP sunucusu $_smtpOzet · kimlik doğrulama PLAIN/LOGIN.', ikon: Icons.dns_outlined),
+          Bant('SMTP sunucusu $_smtpOzet · kimlik doğrulama PLAIN/LOGIN.', ikon: Simgeler.dns),
           if (_bilgi['submission_enabled'] == false)
             const Padding(
               padding: EdgeInsets.only(top: 8),
-              child: Bant('Gönderim (587) dinleyicisi bu düğümde kapalı: yakalama yapılamaz.', renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
+              child: Bant('Gönderim (587) dinleyicisi bu düğümde kapalı: yakalama yapılamaz.', renk: Marka.kehribar, ikon: Simgeler.warningAmber),
             ),
         ],
       ),
@@ -214,13 +215,13 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
       baslik: 'Test Sandbox',
       alt: 'Yakalanan iletiler alıcılara asla teslim edilmez',
       yenile: _y.yenile,
-      eylemler: [IconButton(tooltip: 'CI API\'si', onPressed: _ciYardim, icon: const Icon(Icons.terminal_rounded))],
-      birincil: _yonetir && !_ozellikKapali ? BirincilEylem(Icons.add_rounded, 'Yeni sandbox', _yeni) : null,
+      eylemler: [IconButton(tooltip: 'CI API\'si', onPressed: _ciYardim, icon: const Icon(Simgeler.terminal))],
+      birincil: _yonetir && !_ozellikKapali ? BirincilEylem(Simgeler.add, 'Yeni sandbox', _yeni) : null,
       govde: VeriTablosu<SandboxKutusu>(
         yukleyici: _y,
         ust: _ust(),
         bosMetin: 'Henüz sandbox yok. Bir sandbox oluşturun; SMTP kullanıcı adı, parola ve CI API anahtarı bir kez gösterilir.',
-        bosIkon: Icons.science_outlined,
+        bosIkon: Simgeler.science,
         onTap: _ac,
         eylemler: _eylemler,
         sutunlar: [
@@ -232,7 +233,7 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
               hucre: (c, s) => Row(
                 children: [
                   Flexible(child: Text(s.orgAdi, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  if (!s.ozellik) ...[const SizedBox(width: 6), const Rozet('özellik kapalı', renk: Marka.kehribar)],
+                  if (!s.ozellik) ...[const SizedBox(width: 8), const Rozet('özellik kapalı', renk: Marka.kehribar)],
                 ],
               ),
             ),
@@ -251,7 +252,7 @@ class _SandboxEkraniState extends State<SandboxEkrani> {
         kart: (c, s) => VeriKarti(
           baslik: s.ad,
           alt: s.kullanici,
-          sol: const Icon(Icons.science_outlined),
+          sol: const Icon(Simgeler.science),
           rozetler: [if (!s.ozellik) const Rozet('özellik kapalı', renk: Marka.kehribar)],
           alanlar: [
             if (!Uyg.musteri) ('Müşteri', s.orgAdi),
@@ -367,7 +368,7 @@ class _SandboxFormuState extends State<_SandboxFormu> {
     final orgGerek = _yeni && !Uyg.musteri;
     final hazir = !_mesgul && _ad.text.trim().isNotEmpty && (!orgGerek || _orgId != null);
     return AlertDialog(
-      title: Text(_yeni ? 'Yeni test sandbox\'ı' : widget.mevcut!.ad, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(_yeni ? 'Yeni test sandbox\'ı' : widget.mevcut!.ad, style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -381,7 +382,7 @@ class _SandboxFormuState extends State<_SandboxFormu> {
                     : '${widget.mevcut!.kullanici} · API anahtarı ${widget.mevcut!.anahtarOnEki}… · oluşturma ${tamZaman(widget.mevcut!.olusturma)}',
                 style: TextStyle(color: context.r.soluk, fontSize: 13),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               if (orgGerek) ...[
                 SecimAlani(
                   etiket: 'Müşteri',
@@ -416,7 +417,7 @@ class _SandboxFormuState extends State<_SandboxFormu> {
               ),
               if (_hata != null && !{'name', 'retention_days', 'max_messages', 'quota_mb', 'organization_id'}.contains(_alan)) ...[
                 const SizedBox(height: 12),
-                Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ],
           ),
@@ -537,7 +538,7 @@ class _SandboxIletileriState extends State<SandboxIletileri> {
       yukleyici: _y,
       tabloEnAz: 100000,
       bosMetin: 'Yakalanan ileti yok. Uygulamanızı sandbox SMTP bilgileriyle yapılandırıp bir test iletisi gönderin.',
-      bosIkon: Icons.inbox_outlined,
+      bosIkon: Simgeler.inbox,
       onTap: _ac,
       secili: (m) => m.id == _secili?.id,
       ust: Padding(
@@ -582,8 +583,8 @@ class _SandboxIletileriState extends State<SandboxIletileri> {
           ],
         ),
         actions: [
-          IconButton(tooltip: 'Yenile', onPressed: _y.yenile, icon: const Icon(Icons.refresh_rounded)),
-          if (yonetir) IconButton(tooltip: 'Tümünü sil', onPressed: _tumunuSil, icon: const Icon(Icons.delete_sweep_outlined)),
+          IconButton(tooltip: 'Yenile', onPressed: _y.yenile, icon: const Icon(Simgeler.refresh)),
+          if (yonetir) IconButton(tooltip: 'Tümünü sil', onPressed: _tumunuSil, icon: const Icon(Simgeler.deleteSweep)),
           const SizedBox(width: 8),
         ],
       ),
@@ -651,9 +652,9 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
                   : 'HTML bölümünün metin görünümü (bu platformda gömülü tarayıcı yok; uzak içerik ve betikler yüklenmez).',
               style: TextStyle(color: r.silik, fontSize: 12),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             HtmlOnizleme(html: html, yukseklik: 560),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
               title: const Text('HTML kaynağı', style: TextStyle(fontSize: 14)),
@@ -669,7 +670,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
             if (t.trim().isEmpty) bos('Düz metin bölümü yok; bazı istemciler ve erişilebilirlik araçları metin bölümü bekler.') else KodBlogu(t),
             if (mantik(gorunum['truncated']))
               Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.only(top: 8),
                 child: Text('İçerik kısaltıldı.', style: TextStyle(color: r.silik, fontSize: 12)),
               ),
           ],
@@ -714,7 +715,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
         return FutureBuilder<String>(
           future: _ham,
           builder: (c, s) {
-            if (s.hasError) return Bant(hataMetni(s.error!), renk: Marka.gul, ikon: Icons.error_outline_rounded);
+            if (s.hasError) return Bant(hataMetni(s.error!), renk: Marka.gul, ikon: Simgeler.errorOutline);
             if (!s.hasData) {
               return const Padding(
                 padding: EdgeInsets.all(24),
@@ -729,8 +730,8 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
                   child: Wrap(
                     spacing: 4,
                     children: [
-                      TextButton.icon(onPressed: () => kopyala(s.data!), icon: const Icon(Icons.copy_rounded, size: 17), label: const Text('Kopyala')),
-                      TextButton.icon(onPressed: _emlIndir, icon: const Icon(Icons.download_rounded, size: 17), label: const Text('.eml indir')),
+                      TextButton.icon(onPressed: () => kopyala(s.data!), icon: const Icon(Simgeler.copy, size: 17), label: const Text('Kopyala')),
+                      TextButton.icon(onPressed: _emlIndir, icon: const Icon(Simgeler.download, size: 17), label: const Text('.eml indir')),
                     ],
                   ),
                 ),
@@ -748,7 +749,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
                 contentPadding: EdgeInsets.zero,
                 trailing: IconButton(
                   tooltip: 'İndir',
-                  icon: const Icon(Icons.download_rounded),
+                  icon: const Icon(Simgeler.download),
                   onPressed: () => dosyaIndir(
                     '$_yol/attachments/${f['index'] ?? i}',
                     metinYa(f['filename']) ?? 'ek-${f['index'] ?? i}',
@@ -756,7 +757,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
                     tur: metinYa(f['content_type']),
                   ),
                 ),
-                leading: const Icon(Icons.attach_file_rounded),
+                leading: const Icon(Simgeler.attachFile),
                 title: Text(metinYa(f['filename']) ?? '(adsız)', maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(
                   '${metin(f['content_type'])} · ${boyutYaz(tamsayi(f['size']))}${mantik(f['inline']) ? ' · satır içi' : ''}',
@@ -777,7 +778,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
             for (final f in bulgular)
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   border: Border.all(color: r.kenar),
                   borderRadius: BorderRadius.circular(12),
@@ -828,10 +829,10 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
                 Expanded(
                   child: SelectableText(
                     m.konu,
-                    style: gosterim(19, agirlik: FontWeight.w700, renk: r.metin),
+                    style: gosterim(19, agirlik: FontWeight.w600, renk: r.metin),
                   ),
                 ),
-                if (Uyg.yetki('mailboxes.manage')) IconButton(tooltip: 'Sil', onPressed: _sil, icon: const Icon(Icons.delete_outline_rounded)),
+                if (Uyg.yetki('mailboxes.manage')) IconButton(tooltip: 'Sil', onPressed: _sil, icon: const Icon(Simgeler.deleteOutline)),
               ],
             ),
             const SizedBox(height: 4),
@@ -839,7 +840,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
               'MAIL FROM ${m.zarfGonderen} → ${m.alicilar.join(', ')} · ${tamZaman(m.zaman)} · ${m.tls ? 'TLS' : 'TLS yok'}${m.ip != null ? ' · ${m.ip}' : ''}',
               style: TextStyle(color: r.soluk, fontSize: 13),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Izgara(
               enAz: 180,
               bosluk: 10,
@@ -867,7 +868,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
               const SizedBox(height: 12),
               for (final i in m.sorunlar)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -882,7 +883,7 @@ class _SandboxIletiDetayState extends State<SandboxIletiDetay> {
                   ),
                 ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             SecimCipleri<String>(
               secenekler: [
                 ('onizleme', 'Önizleme'),

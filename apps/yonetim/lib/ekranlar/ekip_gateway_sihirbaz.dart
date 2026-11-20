@@ -7,6 +7,7 @@ import '../ortak/bilesenler.dart';
 import '../veri/json.dart';
 import 'bolumler.dart';
 import 'ekip_gateway_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Yeni gateway müşterisi sihirbazı: platform → alan adı → platform ayarları → DNS → bağlantı testi → tamam.
 Future<void> gatewaySihirbaziAc(BuildContext context, List<GwAlan> alanlar, VoidCallback bitti) {
@@ -23,7 +24,7 @@ Future<void> gatewaySihirbaziAc(BuildContext context, List<GwAlan> alanlar, Void
           appBar: AppBar(
             automaticallyImplyLeading: false,
             title: const Text('Yeni gateway müşterisi'),
-            actions: [IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Icons.close_rounded))],
+            actions: [IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Simgeler.close))],
           ),
           body: govde,
         ),
@@ -191,8 +192,8 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
     switch (_adim) {
       case 1:
         return Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             for (final p in _platformlar)
               SizedBox(
@@ -206,11 +207,11 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
                     });
                     _git(2);
                   },
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(p.ad, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(p.ad, style: const TextStyle(fontWeight: FontWeight.w600)),
                       Text(p.ipucu, style: TextStyle(color: r.soluk, fontSize: 12.5)),
                     ],
                   ),
@@ -246,7 +247,7 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
                   _ob = null;
                 }),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 'Listede yoksa Alan Adları\'ndan MX Gateway modunda ekleyin. Paket türü "Mail Gateway" olmalı.',
                 style: TextStyle(color: r.silik, fontSize: 12),
@@ -278,7 +279,7 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
                 return [
                   for (var i = 0; i < l.length; i++)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -287,10 +288,10 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
                             backgroundColor: r.vurguYumusak,
                             child: Text(
                               '${i + 1}',
-                              style: TextStyle(fontSize: 12, color: r.vurgu, fontWeight: FontWeight.w700),
+                              style: TextStyle(fontSize: 12, color: r.vurgu, fontWeight: FontWeight.w600),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Expanded(child: SelectableText(l[i], style: const TextStyle(fontSize: 13.5))),
                         ],
                       ),
@@ -310,16 +311,16 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
               'MX\'i en son değiştirin; eski MX kaydını değişiklik yayılana kadar (TTL) silmeyin.',
               renk: Marka.kehribar,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             for (final k in haritalar(ob['records']))
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Kutu(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('${metin(k['type'])} · ${metin(k['name'])}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                      Text('${metin(k['type'])} · ${metin(k['name'])}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                       const SizedBox(height: 4),
                       KopyaKutusu(metin(k['value'])),
                       const SizedBox(height: 4),
@@ -362,7 +363,7 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: _tls,
               isExpanded: true,
@@ -377,16 +378,16 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
               children: [
                 OutlinedButton.icon(
                   onPressed: _sunucu.text.trim().isEmpty || _mesgul ? null : _test,
-                  icon: const Icon(Icons.wifi_rounded, size: 18),
+                  icon: const Icon(Simgeler.wifi, size: 18),
                   label: const Text('Bağlantıyı test et'),
                 ),
                 FilledButton(onPressed: _sunucu.text.trim().isEmpty || _mesgul ? null : _kaydet, child: const Text('Hedefi kaydet')),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text('Test yalnızca bağlanır, EHLO ve STARTTLS dener; ileti göndermez.', style: TextStyle(color: r.silik, fontSize: 12)),
-            if (_sonda != null) ...[const SizedBox(height: 10), SondaSonucu(_sonda!)],
-            if (_hata != null) ...[const SizedBox(height: 10), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+            if (_sonda != null) ...[const SizedBox(height: 8), SondaSonucu(_sonda!)],
+            if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
             _gezinti(devamEtiket: ''),
           ],
         );
@@ -396,9 +397,9 @@ class _GatewaySihirbaziState extends State<GatewaySihirbazi> {
           children: [
             const Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: Marka.zumrut),
+                Icon(Simgeler.checkCircle, color: Marka.zumrut),
                 SizedBox(width: 8),
-                Text('Teslim hedefi kaydedildi.', style: TextStyle(fontWeight: FontWeight.w700)),
+                Text('Teslim hedefi kaydedildi.', style: TextStyle(fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 8),

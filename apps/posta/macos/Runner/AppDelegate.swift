@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import ServiceManagement
 import UserNotifications
 
 @main
@@ -9,7 +10,19 @@ class AppDelegate: FlutterAppDelegate {
     super.applicationWillFinishLaunching(notification)
   }
 
+  // Pencere kapatılınca uygulama çalışmayı sürdürür (bildirimler gelmeye devam eder); Dock simgesine tıklayınca
+  // pencere yeniden açılır. Tamamen çıkmak için Cmd+Q / menüden Çık.
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    return false
+  }
+
+  override func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    if !flag {
+      for w in sender.windows where w is MainFlutterWindow {
+        w.makeKeyAndOrderFront(self)
+      }
+      sender.activate(ignoringOtherApps: true)
+    }
     return true
   }
 
@@ -52,6 +65,17 @@ final class BogaPush: NSObject, UNUserNotificationCenterDelegate {
           DispatchQueue.main.asyncAfter(deadline: .now() + 20) { self.bitir(nil) }
         }
       }
+    case "izin":
+      // Bildirim izin durumu: verildi | reddedildi | sorulmadi (Dart: lib/veri/bildirim_izni.dart).
+      UNUserNotificationCenter.current().getNotificationSettings { s in
+        let v: String
+        switch s.authorizationStatus {
+        case .authorized, .provisional: v = "verildi"
+        case .denied: v = "reddedildi"
+        default: v = "sorulmadi"
+        }
+        DispatchQueue.main.async { result(v) }
+      }
     case "baslangic":
       result(acilis)
       acilis = nil
@@ -86,10 +110,26 @@ final class BogaPush: NSObject, UNUserNotificationCenterDelegate {
     return o
   }
 
+  /// Öndeyken: Dart'a o oda/ileti açık mı diye sorulur (300 ms içinde yanıt yoksa gösterilir). Açıksa yalnız
+  /// bildirim merkezine düşer, banner/ses yok.
   func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-    channel?.invokeMethod("geldi", arguments: temiz(notification.request.content.userInfo))
-    completionHandler([.banner, .list, .sound, .badge])
+    let bilgi = temiz(notification.request.content.userInfo)
+    channel?.invokeMethod("geldi", arguments: bilgi)
+    guard let ch = channel else {
+      completionHandler([.banner, .list, .sound, .badge])
+      return
+    }
+    var bitti = false
+    let bitir: (Bool) -> Void = { goster in
+      if bitti { return }
+      bitti = true
+      completionHandler(goster ? [.banner, .list, .sound, .badge] : [.list, .badge])
+    }
+    ch.invokeMethod("gosterilsinMi", arguments: bilgi) { r in
+      DispatchQueue.main.async { bitir((r as? Bool) ?? true) }
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { bitir(true) }
   }
 
   func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
@@ -99,5 +139,33 @@ final class BogaPush: NSObject, UNUserNotificationCenterDelegate {
     channel?.invokeMethod("acildi", arguments: v)
     NSApplication.shared.activate(ignoringOtherApps: true)
     completionHandler()
+  }
+}
+
+/// Oturum açıldığında başlat (macOS 13+: SMAppService). Dart: lib/veri/arkaplan.dart ("boga/arkaplan").
+final class BogaArkaplan {
+  static func bagla(_ messenger: FlutterBinaryMessenger) {
+    let ch = FlutterMethodChannel(name: "boga/arkaplan", binaryMessenger: messenger)
+    ch.setMethodCallHandler { call, result in
+      guard #available(macOS 13.0, *) else { result(false); return }
+      switch call.method {
+      case "giristeBaslat":
+        result(SMAppService.mainApp.status == .enabled)
+      case "giristeBaslatAyarla":
+        let ac = (call.arguments as? Bool) ?? false
+        do {
+          if ac {
+            if SMAppService.mainApp.status != .enabled { try SMAppService.mainApp.register() }
+          } else if SMAppService.mainApp.status == .enabled {
+            try SMAppService.mainApp.unregister()
+          }
+          result(SMAppService.mainApp.status == .enabled)
+        } catch {
+          result(FlutterError(code: "giris", message: error.localizedDescription, details: nil))
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }

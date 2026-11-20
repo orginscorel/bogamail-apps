@@ -4,6 +4,8 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yonetim/oturum.dart';
+import 'package:yonetim/veri/arkaplan.dart';
+import 'package:yonetim/veri/bildirim.dart';
 
 /// Ağa çıkmayan sahte API: yanıtlar "YÖNTEM /yol" anahtarıyla verilir (sorgu parametresi yok sayılır).
 /// Yanıt bir fonksiyonsa (gövde, sorgu) ile çağrılır; ApiHata ise fırlatılır. Bilinmeyen yol → 404.
@@ -63,6 +65,89 @@ void kullaniciAyarla({String rol = 'super_admin', List<String>? izinler, Map<Str
     'impersonation': ?taklit,
   };
   Uyg.baglam = baglam ?? {};
+  Bildirim.platform = SahteBildirimPlatformu();
+  Arkaplan.platform = SahteArkaplanPlatformu();
+  Bildirim.durum.value = null;
+  Bildirim.pilMuaf.value = true;
+}
+
+/// Sahte bildirim platformu: izin durumu ve çağrılar test tarafından ayarlanır / okunur.
+class SahteBildirimPlatformu extends BildirimPlatformu {
+  SahteBildirimPlatformu({this.izin = IzinDurumu.gerekmiyor, this.muaf = true, this.yerelMi = false, this.verilecek = IzinDurumu.verildi});
+  IzinDurumu izin;
+  bool muaf;
+  bool yerelMi;
+  IzinDurumu verilecek;
+  int izinIstendi = 0, ayarlarAcildi = 0, pilIstendi = 0;
+  final gosterilen = <(int, String, String, String)>[];
+
+  @override
+  bool get yerel => yerelMi;
+  @override
+  Future<void> hazirla() async {}
+  @override
+  Future<String?> baslangic() async => null;
+  @override
+  Future<IzinDurumu> izinDurumu() async => izin;
+  @override
+  Future<bool> izinIste() async {
+    izinIstendi++;
+    izin = verilecek;
+    return izin == IzinDurumu.verildi;
+  }
+
+  @override
+  Future<void> ayarlariAc() async => ayarlarAcildi++;
+  @override
+  Future<bool> pilMuaf() async => muaf;
+  @override
+  Future<bool> pilMuafiyetiIste() async {
+    pilIstendi++;
+    muaf = true;
+    return true;
+  }
+
+  @override
+  Future<void> goster({required int id, required String baslik, required String metin, required String yuk}) async => gosterilen.add((id, baslik, metin, yuk));
+}
+
+/// Sahte arka plan platformu (Android hizmeti, girişte başlat, tepsi).
+class SahteArkaplanPlatformu extends ArkaplanPlatformu {
+  SahteArkaplanPlatformu({this.androidMi = false, this.windowsMi = false});
+  bool androidMi, windowsMi;
+  bool hizmet = false, girisAcik = false;
+  int hizmetBaslatildi = 0, hizmetDurdu = 0;
+
+  @override
+  bool get android => androidMi;
+  @override
+  bool get windows => windowsMi;
+  @override
+  bool get macos => false;
+  @override
+  Future<bool> hizmetCalisiyor() async => hizmet;
+  @override
+  Future<void> hizmetiBaslat() async {
+    hizmetBaslatildi++;
+    hizmet = true;
+  }
+
+  @override
+  Future<void> hizmetiDurdur() async {
+    hizmetDurdu++;
+    hizmet = false;
+  }
+
+  @override
+  Future<bool> giristeBaslatAcik() async => girisAcik;
+  @override
+  Future<void> giristeBaslatAyarla(bool acik) async => girisAcik = acik;
+  @override
+  Future<void> tepsiyiKur({required bool gizliBasla}) async {}
+  @override
+  void pencereyiGoster() {}
+  @override
+  void tepsiMetni(String m) {}
 }
 
 /// Testlerde kullanılan uygulama sarmalayıcısı (Türkçe yerel ayar, tema, kök gezgin).

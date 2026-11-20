@@ -28,7 +28,7 @@ class KullanimSayaci extends StatelessWidget {
     final oran = s == null || s <= 0 ? null : (kullanilan / s).clamp(0.0, 1.0);
     final renk = oran == null ? r.birincil : (oran >= .9 ? Marka.gul : (oran >= .75 ? Marka.kehribar : r.birincil));
     return Kutu(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -41,11 +41,11 @@ class KullanimSayaci extends StatelessWidget {
               Text(s == null ? 'Sınırsız' : 'Kalan ${yaz((s - kullanilan).clamp(0, s))}', style: TextStyle(color: r.silik, fontSize: 11.5)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text.rich(
             TextSpan(
               children: [
-                TextSpan(text: yaz(kullanilan), style: gosterim(22, renk: r.metin)),
+                TextSpan(text: yaz(kullanilan), style: gosterim(22, agirlik: FontWeight.w600, renk: r.metin)),
                 TextSpan(
                   text: ' / ${s == null ? '∞' : yaz(s)}',
                   style: TextStyle(color: r.silik, fontSize: 14),

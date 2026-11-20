@@ -13,6 +13,7 @@ dependencies:
     sdk: flutter
   dio: ^5.11.1
   dio_cookie_manager: ^3.5.0
+  dio_http2_adapter: ^2.9.0
   cookie_jar: ^4.0.9
   path_provider: ^2.1.6
   shared_preferences: ^2.5.6
@@ -44,3 +45,9 @@ flutter:
     - family: Jakarta
       fonts:
         - asset: assets/fonts/PlusJakartaSans.ttf
+    - family: PhosphorLight
+      fonts:
+        - asset: assets/fonts/PhosphorLight.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/PhosphorFill.ttf

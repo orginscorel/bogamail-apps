@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../oturum.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
+import 'simgeler.dart';
 
 /// Aranabilir seçim alt sayfası: arama metniyle sunucudan yükler.
 Future<T?> araVeSec<T>(
@@ -65,13 +66,13 @@ class _AraSecState<T> extends State<_AraSec<T>> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: Text(widget.baslik, style: gosterim(17, agirlik: FontWeight.w700)),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(widget.baslik, style: gosterim(17, agirlik: FontWeight.w600)),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
-                  decoration: InputDecoration(hintText: widget.ipucu, prefixIcon: const Icon(Icons.search_rounded), isDense: true),
+                  decoration: InputDecoration(hintText: widget.ipucu, prefixIcon: const Icon(Simgeler.search), isDense: true),
                   onChanged: _ara,
                 ),
               ),
@@ -138,7 +139,7 @@ class SecimAlani extends StatelessWidget {
     borderRadius: BorderRadius.circular(14),
     onTap: onTap,
     child: InputDecorator(
-      decoration: InputDecoration(labelText: etiket, errorText: hata, suffixIcon: const Icon(Icons.unfold_more_rounded)),
+      decoration: InputDecoration(labelText: etiket, errorText: hata, suffixIcon: const Icon(Simgeler.unfoldMore)),
       isEmpty: deger == null,
       child: Text(deger ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
     ),

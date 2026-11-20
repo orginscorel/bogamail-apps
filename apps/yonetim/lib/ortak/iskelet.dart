@@ -1,6 +1,8 @@
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
+import 'simgeler.dart';
+
 /// Birincil sayfa eylemi (geniş ekranda başlıkta dolu düğme, telefonda FAB).
 class BirincilEylem {
   const BirincilEylem(this.ikon, this.etiket, this.calistir);
@@ -37,14 +39,14 @@ class Iskelet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(baslik, maxLines: 1, overflow: TextOverflow.ellipsis, style: gosterim(genis ? 22 : 19, agirlik: FontWeight.w700, renk: r.metin)),
+            Text(baslik, maxLines: 1, overflow: TextOverflow.ellipsis, style: gosterim(genis ? 22 : 19, agirlik: FontWeight.w600, renk: r.metin)),
             if (alt != null && alt!.isNotEmpty)
               Text(alt!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 12.5, fontWeight: FontWeight.w500)),
           ],
         ),
         actions: [
           ...eylemler,
-          if (yenile != null) IconButton(tooltip: 'Yenile', onPressed: yenile, icon: const Icon(Icons.refresh_rounded)),
+          if (yenile != null) IconButton(tooltip: 'Yenile', onPressed: yenile, icon: const Icon(Simgeler.refresh)),
           if (genis && birincil != null)
             Padding(
               padding: const EdgeInsets.only(left: 8),
@@ -197,7 +199,7 @@ class KpiKarti extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -210,18 +212,18 @@ class KpiKarti extends StatelessWidget {
                     decoration: BoxDecoration(color: ton.withValues(alpha: r.koyu ? .2 : .12), borderRadius: BorderRadius.circular(11)),
                     child: Icon(ikon, size: 19, color: ton),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(etiket, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600)),
                   ),
-                  if (onTap != null) Icon(Icons.arrow_forward_rounded, size: 16, color: r.silik),
+                  if (onTap != null) Icon(SimgelerKalin.arrowForward, size: 16, color: r.silik),
                 ],
               ),
               const SizedBox(height: 12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Flexible(child: Text(deger, maxLines: 1, overflow: TextOverflow.ellipsis, style: gosterim(26, renk: r.metin))),
+                  Flexible(child: Text(deger, maxLines: 1, overflow: TextOverflow.ellipsis, style: gosterim(26, agirlik: FontWeight.w600, renk: r.metin))),
                   if (degisim != null) ...[const SizedBox(width: 8), Padding(padding: const EdgeInsets.only(bottom: 4), child: DegisimHapi(degisim!, iyi: degisimIyi))],
                 ],
               ),
@@ -249,17 +251,17 @@ class DegisimHapi extends StatelessWidget {
     final sabit = yuzde.abs() < .5;
     final olumlu = (yuzde > 0) == iyi;
     final renk = sabit ? context.r.silik : (olumlu ? Marka.zumrut : Marka.gul);
-    final ikon = sabit ? Icons.trending_flat_rounded : (yuzde > 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded);
+    final ikon = sabit ? Simgeler.trendingFlat : (yuzde > 0 ? Simgeler.trendingUp : Simgeler.trendingDown);
     final metin = sabit ? '%0' : '%${yuzde.abs() >= 100 ? yuzde.abs().toStringAsFixed(0) : yuzde.abs().toStringAsFixed(1).replaceAll('.', ',')}';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(color: renk.withValues(alpha: .12), borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(ikon, size: 14, color: renk),
           const SizedBox(width: 3),
-          Text(metin, style: TextStyle(color: renk, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          Text(metin, style: TextStyle(color: renk, fontSize: 11.5, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -288,7 +290,7 @@ class DurumNoktasi extends StatelessWidget {
 
 /// Yetkisiz / pakette olmayan bölüm uyarısı.
 class Kapali extends StatelessWidget {
-  const Kapali(this.metin, {super.key, this.ikon = Icons.lock_outline_rounded});
+  const Kapali(this.metin, {super.key, this.ikon = Simgeler.lockOutline});
   final String metin;
   final IconData ikon;
   @override

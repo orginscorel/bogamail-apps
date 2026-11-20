@@ -106,7 +106,7 @@ class _EsitlemeDurumuState extends State<EsitlemeDurumu> {
           padding: const EdgeInsets.fromLTRB(14, 4, 4, 4),
           child: Row(
             children: [
-              Icon(d.tur == CanliTur.yok ? Icons.cloud_off_rounded : Icons.sync_rounded, size: 16, color: renk),
+              Icon(d.tur == CanliTur.yok ? Simge.cevrimdisi : Simge.esitle, size: 16, color: renk),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -142,7 +142,7 @@ class _EsitlemeDurumuState extends State<EsitlemeDurumu> {
                 Text(
                   metin,
                   maxLines: 2,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: d.tur == CanliTur.bagli ? Marka.zumrut : r.metin),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: d.tur == CanliTur.bagli ? Marka.zumrut : r.metin),
                 ),
                 Text(sonEsitlemeMetni(Canli.ben.sonOlay.value, simdi), style: TextStyle(fontSize: 11, color: r.silik)),
               ],
@@ -152,7 +152,7 @@ class _EsitlemeDurumuState extends State<EsitlemeDurumu> {
             key: const ValueKey('simdi-esitle'),
             tooltip: 'Şimdi eşitle',
             visualDensity: VisualDensity.compact,
-            icon: Icon(Icons.sync_rounded, size: 19, color: r.soluk),
+            icon: Icon(Simge.esitle, size: 19, color: r.soluk),
             onPressed: simdiEsitle,
           ),
         ],

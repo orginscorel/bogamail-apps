@@ -11,6 +11,7 @@ import '../veri/tehdit_modeller.dart';
 import 'tehdit_ayarlar.dart';
 import 'tehdit_listeler.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Tehdit Koruması (web: admin/threats): tespitler, ek analizi, tıklama koruması, korunan kişiler (VIP),
 /// bağlantı listesi, IP/ASN itibarı ve platform ayarları (son ikisi yalnızca süper yönetici).
@@ -65,15 +66,15 @@ Color tespitSonucRengi(String a) => switch (a) {
 };
 
 IconData tespitIkonu(String k) => switch (k) {
-  'dmarc' => Icons.verified_user_outlined,
-  'spoof' => Icons.person_off_outlined,
-  'impersonation' => Icons.theater_comedy_outlined,
-  'lookalike' => Icons.compare_arrows_rounded,
-  'link' => Icons.link_off_rounded,
-  'reputation' => Icons.public_off_rounded,
-  'qr' => Icons.qr_code_2_rounded,
-  'sandbox' => Icons.science_outlined,
-  _ => Icons.shield_outlined,
+  'dmarc' => Simgeler.verifiedUser,
+  'spoof' => Simgeler.personOff,
+  'impersonation' => Simgeler.theaterComedy,
+  'lookalike' => Simgeler.compareArrows,
+  'link' => Simgeler.linkOff,
+  'reputation' => Simgeler.publicOff,
+  'qr' => Simgeler.qrCode2,
+  'sandbox' => Simgeler.science,
+  _ => Simgeler.shield,
 };
 
 /// Tespitler sekmesi: tür özetleri (7 gün / bugün) ve sayfalı tespit listesi.
@@ -177,14 +178,14 @@ class _TehditTespitleriState extends State<TehditTespitleri> {
                         Row(
                           children: [
                             Icon(tespitIkonu(k), size: 15, color: r.soluk),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(tespitTuru(k), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.soluk, fontSize: 12)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text(_ozet == null ? '–' : sayiYaz(tamsayi(hafta[k])), style: gosterim(20, renk: r.metin)),
+                        Text(_ozet == null ? '–' : sayiYaz(tamsayi(hafta[k])), style: gosterim(20, agirlik: FontWeight.w600, renk: r.metin)),
                         Text('7 gün · bugün ${tamsayi(bugun[k])}', style: TextStyle(color: r.silik, fontSize: 11)),
                       ],
                     ),
@@ -203,7 +204,7 @@ class _TehditTespitleriState extends State<TehditTespitleri> {
     return VeriTablosu<Tespit>(
       yukleyici: _y,
       bosMetin: 'Tespit yok. Sahte gönderen, kimlik taklidi, DMARC hatası veya zararlı bağlantı içeren iletiler burada listelenir.',
-      bosIkon: Icons.verified_user_outlined,
+      bosIkon: Simgeler.verifiedUser,
       siralama: _sira,
       artan: _artan,
       siralamaDegisti: (a, b) {
@@ -229,14 +230,14 @@ class _TehditTespitleriState extends State<TehditTespitleri> {
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Tür',
-                ikon: Icons.category_outlined,
+                ikon: Simgeler.category,
                 secenekler: [('', 'Tüm türler'), for (final e in tespitTurleri.entries) (e.key, e.value)],
                 secili: _tur,
                 secildi: _turSec,
               ),
               FiltreDugmesi<String>(
                 etiket: 'Sonuç',
-                ikon: Icons.rule_rounded,
+                ikon: Simgeler.rule,
                 secenekler: [('', 'Tüm sonuçlar'), for (final e in tespitSonuclari.entries) (e.key, e.value)],
                 secili: _sonuc,
                 secildi: (v) {
@@ -290,7 +291,7 @@ class _TehditTespitleriState extends State<TehditTespitleri> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Flexible(child: Rozet(tespitSonucu(t.sonuc), renk: tespitSonucRengi(t.sonuc))),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text('+${puanYaz(t.puan)}', style: TextStyle(color: c.r.silik, fontSize: 12)),
             ],
           ),
@@ -342,14 +343,14 @@ void ekRaporuGoster(BuildContext context, EkRaporu e) => ayrintiGoster(
     ),
     EtiketDeger('SHA-256', e.sha256, mono: true),
     EtiketDeger('Analiz', 'Statik derin analiz (çalıştırma yok)${e.orgAdi != null ? ' · ${e.orgAdi}' : ''}'),
-    const SizedBox(height: 10),
+    const SizedBox(height: 8),
     if (e.bulgular.isEmpty)
       Text('Bulgu yok.', style: TextStyle(color: context.r.soluk))
     else
       for (final (kural, puan, ayrinti) in e.bulgular)
         Container(
           margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: context.r.kenar)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,7 +420,7 @@ class _TehditEkRaporlariState extends State<TehditEkRaporlari> {
     return VeriTablosu<EkRaporu>(
       yukleyici: _y,
       bosMetin: 'Seçilen filtreyle eşleşen ek analizi yok.',
-      bosIkon: Icons.find_in_page_outlined,
+      bosIkon: Simgeler.findInPage,
       siralama: _sira,
       artan: _artan,
       siralamaDegisti: (a, b) {
@@ -434,7 +435,7 @@ class _TehditEkRaporlariState extends State<TehditEkRaporlari> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 10, 16, 6),
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Aciklama(
               'Gelişmiş tehdit koruması olan müşterilerin gelen postasındaki her ek statik olarak incelenir: makrolar, DDE, dış şablon, '
               'gömülü nesneler, PDF eylemleri, arşivler, uzantı/içerik uyumsuzluğu, HTML smuggling ve QR kodlar. Hiçbir ek çalıştırılmaz.',
@@ -451,7 +452,7 @@ class _TehditEkRaporlariState extends State<TehditEkRaporlari> {
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Sonuç',
-                ikon: Icons.rule_rounded,
+                ikon: Simgeler.rule,
                 secenekler: _kararlar,
                 secili: _karar,
                 secildi: (v) {
@@ -482,7 +483,7 @@ class _TehditEkRaporlariState extends State<TehditEkRaporlari> {
           hucre: (c, e) => IkiSatir(
             e.dosya.isEmpty ? '(adsız)' : e.dosya,
             alt: ilkBulgu(e),
-            sol: e.qrAdresleri.isEmpty ? null : Icon(Icons.qr_code_2_rounded, size: 18, color: c.r.soluk),
+            sol: e.qrAdresleri.isEmpty ? null : Icon(Simgeler.qrCode2, size: 18, color: c.r.soluk),
           ),
         ),
         Sutun(
@@ -513,7 +514,7 @@ class _TehditEkRaporlariState extends State<TehditEkRaporlari> {
         rozetler: [
           Rozet(ekKarari(e.karar), renk: ekKararRengi(e.karar)),
           Rozet(ekSonucu(e.sonuc), renk: Colors.blueGrey),
-          if (e.qrAdresleri.isNotEmpty) const Rozet('QR', ikon: Icons.qr_code_2_rounded),
+          if (e.qrAdresleri.isNotEmpty) const Rozet('QR', ikon: Simgeler.qrCode2),
         ],
         alanlar: [
           ('Zaman', kisaZaman(e.zaman)),
@@ -576,13 +577,13 @@ class _TehditTiklamaKorumasiState extends State<TehditTiklamaKorumasi> {
   Widget build(BuildContext context) {
     final orgGoster = !Uyg.musteri;
     final secici = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Align(
         alignment: Alignment.centerLeft,
         child: SegmentedButton<int>(
           segments: const [
-            ButtonSegment(value: 0, icon: Icon(Icons.ads_click_rounded, size: 18), label: Text('Tıklama kaydı')),
-            ButtonSegment(value: 1, icon: Icon(Icons.block_rounded, size: 18), label: Text('Engel listesi')),
+            ButtonSegment(value: 0, icon: Icon(Simgeler.adsClick, size: 18), label: Text('Tıklama kaydı')),
+            ButtonSegment(value: 1, icon: Icon(Simgeler.block, size: 18), label: Text('Engel listesi')),
           ],
           selected: {_gorunum},
           onSelectionChanged: (s) => setState(() => _gorunum = s.first),
@@ -598,13 +599,13 @@ class _TehditTiklamaKorumasiState extends State<TehditTiklamaKorumasi> {
     return VeriTablosu<Tiklama>(
       yukleyici: _y,
       bosMetin: 'Tıklama kaydı yok. Webmail\'de korunan bir bağlantıya tıklandığında burada görünür.',
-      bosIkon: Icons.ads_click_rounded,
+      bosIkon: Simgeler.adsClick,
       ust: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           secici,
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 6, 16, 6),
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Aciklama(
               'Webmail\'de açılan iletilerdeki bağlantılar imzalı bir yönlendirme adresinden geçer ve tıklandığı anda yeniden denetlenir. '
               'Şüpheli bağlantıda uyarı sayfası gösterilir, engelli bağlantı açılmaz. Kayıtlarda adresin yalnızca maskeli hali tutulur. '
@@ -622,7 +623,7 @@ class _TehditTiklamaKorumasiState extends State<TehditTiklamaKorumasi> {
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Sonuç',
-                ikon: Icons.rule_rounded,
+                ikon: Simgeler.rule,
                 secenekler: const [('', 'Tüm tıklamalar'), ('blocked', 'Engellendi'), ('suspicious', 'Şüpheli'), ('clean', 'Temiz')],
                 secili: _karar,
                 secildi: (v) {

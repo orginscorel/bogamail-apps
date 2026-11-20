@@ -17,7 +17,7 @@ class OtomatikYanitAyari extends StatelessWidget {
     olustur: (context, a, kaydet) => [
       _TatilFormu(key: ValueKey('tatil-${a.tatilAcik}|${a.tatilKonu}|${a.tatilMetin.hashCode}|${a.tatilBaslangic}|${a.tatilBitis}'), a: a, kaydet: kaydet),
       AyarKarti(
-        ikon: Icons.auto_mode_rounded,
+        ikon: Simge.otomatik,
         baslik: 'Otomatik yanıt kuralları',
         aciklama: 'Mesai dışı, belirli günler, iç/dış gönderen veya konuya göre ayrı yanıtlar.',
         sag: a.ozellik('autoresponder') ? null : const DurumRozeti('Paketinizde kapalı', acik: false),
@@ -28,7 +28,7 @@ class OtomatikYanitAyari extends StatelessWidget {
             onPressed: a.ozellik('autoresponder')
                 ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const OtomatikYanitKurallariEkrani()))
                 : null,
-            icon: const Icon(Icons.rule_rounded, size: 18),
+            icon: const Icon(Simge.kural, size: 18),
             label: const Text('Kuralları yönet'),
           ),
         ),
@@ -121,14 +121,14 @@ class _TatilFormuState extends State<_TatilFormu> {
               key: ValueKey(baslangic ? 'tatil-bas' : 'tatil-bit'),
               style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
               onPressed: () => _tarihSec(baslangic),
-              icon: Icon(baslangic ? Icons.event_outlined : Icons.event_available_outlined, size: 18),
+              icon: Icon(baslangic ? Simge.etkinlik : Simge.etkinlikOnay, size: 18),
               label: Text(t == null ? 'Seçilmedi' : DateFormat('d MMMM y', 'tr_TR').format(t), overflow: TextOverflow.ellipsis),
             ),
           ),
           if (v.isNotEmpty)
             IconButton(
               tooltip: baslangic ? 'Başlangıç tarihini temizle' : 'Bitiş tarihini temizle',
-              icon: Icon(Icons.close_rounded, color: r.silik),
+              icon: Icon(Simge.kapat, color: r.silik),
               onPressed: () => setState(() => baslangic ? _bas = '' : _bit = ''),
             ),
         ],
@@ -140,7 +140,7 @@ class _TatilFormuState extends State<_TatilFormu> {
   Widget build(BuildContext context) {
     if (!a.ozellik('autoresponder')) {
       return AyarKarti(
-        ikon: Icons.beach_access_outlined,
+        ikon: Simge.tatil,
         baslik: 'Otomatik yanıt',
         aciklama: 'İzindeyken size yazanlara otomatik bir cevap gönderilir.',
         sag: const DurumRozeti('Paketinizde kapalı', acik: false),
@@ -165,7 +165,7 @@ class _TatilFormuState extends State<_TatilFormu> {
     }
     final hata = _aralikHatasi ?? _metinHatasi;
     return AyarKarti(
-      ikon: Icons.beach_access_outlined,
+      ikon: Simge.tatil,
       baslik: 'Otomatik yanıt',
       aciklama: 'İzindeyken veya ofis dışındayken size yazanlara otomatik bir cevap gönderilir.',
       sag: DurumRozeti(a.tatilAcik ? 'Açık' : 'Kapalı', acik: a.tatilAcik),

@@ -41,9 +41,9 @@ class _DavetKartiState extends State<DavetKarti> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(leading: const Icon(Icons.send_rounded), title: const Text('Yanıtı düzenleyene gönder'), onTap: () => Navigator.pop(c, false)),
+              ListTile(leading: const Icon(Simge.gonder), title: const Text('Yanıtı düzenleyene gönder'), onTap: () => Navigator.pop(c, false)),
               ListTile(
-                leading: const Icon(Icons.event_available_outlined),
+                leading: const Icon(Simge.etkinlikOnay),
                 title: const Text('Yalnızca takvimime işle'),
                 subtitle: const Text('Düzenleyene e-posta gitmez'),
                 onTap: () => Navigator.pop(c, true),
@@ -126,17 +126,17 @@ class _DavetKartiState extends State<DavetKarti> {
         children: [
           Row(
             children: [
-              Icon(iptal ? Icons.event_busy_rounded : Icons.event_rounded, color: iptal ? Marka.gul : r.vurgu),
+              Icon(iptal ? Simge.etkinlikIptal : Simge.etkinlik, color: iptal ? Marka.gul : r.vurgu),
               const SizedBox(width: 8),
               Text(
                 iptal ? 'Toplantı iptal edildi' : (yanit ? 'Davet yanıtı' : 'Toplantı daveti'),
-                style: TextStyle(fontWeight: FontWeight.w800, color: iptal ? Marka.gul : r.vurgu),
+                style: TextStyle(fontWeight: FontWeight.w600, color: iptal ? Marka.gul : r.vurgu),
               ),
               if (d.eskimis) ...[const SizedBox(width: 8), const Rozet('Güncel değil', renk: Marka.kehribar)],
             ],
           ),
           const SizedBox(height: 8),
-          Text(d.baslik.isEmpty ? '(başlıksız)' : d.baslik, style: gosterim(17, agirlik: FontWeight.w700)),
+          Text(d.baslik.isEmpty ? '(başlıksız)' : d.baslik, style: gosterim(17, agirlik: FontWeight.w600)),
           if (tarih.isNotEmpty) Text(tarih + (d.tekrarli ? ' · tekrarlanır' : ''), style: TextStyle(color: r.soluk)),
           if (d.yer.isNotEmpty) Text(d.yer, style: TextStyle(color: r.soluk)),
           if (d.duzenleyen.isNotEmpty)
@@ -172,19 +172,13 @@ class _DavetKartiState extends State<DavetKarti> {
                 : FilledButton.icon(
                     style: FilledButton.styleFrom(backgroundColor: Marka.gul),
                     onPressed: _mesgul != null ? null : _iptal,
-                    icon: const Icon(Icons.event_busy_rounded),
+                    icon: const Icon(Simge.etkinlikIptal),
                     label: const Text('Takvimimden kaldır'),
                   )
           else if (d.duzenleyenBenim)
             Text('Bu toplantıyı siz düzenlediniz.', style: TextStyle(color: r.soluk))
           else if (!d.eskimis)
-            Row(
-              children: [
-                dugme('ACCEPTED', 'Katıl', Icons.check_rounded),
-                dugme('TENTATIVE', 'Belki', Icons.help_outline_rounded),
-                dugme('DECLINED', 'Katılma', Icons.close_rounded),
-              ],
-            ),
+            Row(children: [dugme('ACCEPTED', 'Katıl', Simge.onay), dugme('TENTATIVE', 'Belki', Simge.yardim), dugme('DECLINED', 'Katılma', Simge.kapat)]),
         ],
       ),
     );

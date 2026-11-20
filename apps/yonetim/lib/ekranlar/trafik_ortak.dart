@@ -4,6 +4,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 /// Sunucunun olay açıklaması (explain.go Explanation): kısa etiket, ton, özet ve öneri.
 class Aciklama {
@@ -88,8 +89,8 @@ class AciklamaMetni extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.lightbulb_outline_rounded, size: 15, color: Marka.kehribar),
-                const SizedBox(width: 6),
+                const Icon(SimgelerKalin.lightbulbOutline, size: 15, color: Marka.kehribar),
+                const SizedBox(width: 8),
                 Expanded(child: Text(a.oneri, style: TextStyle(color: r.soluk, fontSize: 12.5, height: 1.35))),
               ],
             ),
@@ -181,11 +182,11 @@ class AltBaslik extends StatelessWidget {
   final String? alt;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(2, 18, 2, 8),
+    padding: const EdgeInsets.fromLTRB(2, 16, 2, 8),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(metin, style: gosterim(17, agirlik: FontWeight.w700)),
+        Text(metin, style: gosterim(17, agirlik: FontWeight.w600)),
         if (alt != null) Text(alt!, style: TextStyle(color: context.r.silik, fontSize: 12.5)),
       ],
     ),

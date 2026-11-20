@@ -30,7 +30,7 @@ class GorunumAyari extends StatelessWidget {
   Widget build(BuildContext context) => AyarListesi(
     children: [
       AyarKarti(
-        ikon: Icons.palette_outlined,
+        ikon: Simge.palet,
         baslik: 'Tema',
         aciklama: '"Sistem" seçilirse cihazınızın açık/koyu ayarına uyulur. Seçim webmail\'e de uygulanır.',
         child: Align(
@@ -39,9 +39,9 @@ class GorunumAyari extends StatelessWidget {
             valueListenable: temaKipi,
             builder: (_, k, _) => SegmentedButton<ThemeMode>(
               segments: const [
-                ButtonSegment(value: ThemeMode.system, label: Text('Sistem'), icon: Icon(Icons.brightness_auto_outlined)),
-                ButtonSegment(value: ThemeMode.light, label: Text('Açık'), icon: Icon(Icons.light_mode_outlined)),
-                ButtonSegment(value: ThemeMode.dark, label: Text('Koyu'), icon: Icon(Icons.dark_mode_outlined)),
+                ButtonSegment(value: ThemeMode.system, label: Text('Sistem'), icon: Icon(Simge.sistemTema)),
+                ButtonSegment(value: ThemeMode.light, label: Text('Açık'), icon: Icon(Simge.acikTema)),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Koyu'), icon: Icon(Simge.koyuTema)),
               ],
               selected: {k},
               onSelectionChanged: (s) => temaSec(s.first),
@@ -50,7 +50,7 @@ class GorunumAyari extends StatelessWidget {
         ),
       ),
       AyarKarti(
-        ikon: Icons.image_outlined,
+        ikon: Simge.gorsel,
         baslik: 'Uzak görseller',
         aciklama: 'İletilerdeki internetten yüklenen görseller.',
         child: ValueListenableBuilder<bool>(

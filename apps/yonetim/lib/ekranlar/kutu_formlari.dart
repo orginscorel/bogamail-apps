@@ -7,6 +7,7 @@ import '../ortak/secimler.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
+import '../ortak/simgeler.dart';
 
 /// Kota seçici: hazır değerler (1–50 GB, Sınırsız) ve özel GB alanı.
 class KotaSecici extends StatefulWidget {
@@ -43,11 +44,11 @@ class _KotaSeciciState extends State<KotaSecici> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
-          spacing: 6,
-          runSpacing: 6,
+          spacing: 8,
+          runSpacing: 8,
           children: [for (final (e, b) in kotaOnAyarlari) ChoiceChip(label: Text(e), selected: _deger == b, showCheckmark: false, onSelected: (_) => _sec(b))],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         TextField(
           controller: _k,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -98,12 +99,12 @@ class _SifreAlaniState extends State<SifreAlani> {
         children: [
           IconButton(
             tooltip: _goster ? 'Gizle' : 'Göster',
-            icon: Icon(_goster ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
+            icon: Icon(_goster ? Simgeler.visibilityOff : Simgeler.visibility, size: 20),
             onPressed: () => setState(() => _goster = !_goster),
           ),
           IconButton(
             tooltip: 'Yeni şifre üret',
-            icon: const Icon(Icons.casino_rounded, size: 20),
+            icon: const Icon(Simgeler.casino, size: 20),
             onPressed: () => setState(() {
               widget.denetleyici.text = sifreUret();
               _goster = true;
@@ -111,7 +112,7 @@ class _SifreAlaniState extends State<SifreAlani> {
           ),
           IconButton(
             tooltip: 'Kopyala',
-            icon: const Icon(Icons.copy_rounded, size: 19),
+            icon: const Icon(Simgeler.copy, size: 19),
             onPressed: () => kopyala(widget.denetleyici.text, mesaj: 'Şifre kopyalandı'),
           ),
         ],
@@ -190,7 +191,7 @@ class _KutuOlusturDialogState extends State<KutuOlusturDialog> {
   Widget build(BuildContext context) {
     final hazir = _alanId != null && _yerel.text.trim().isNotEmpty && _sifre.text.length >= 10 && _kota != null && !_mesgul;
     return AlertDialog(
-      title: Text('Yeni posta kutusu', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Yeni posta kutusu', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -238,16 +239,16 @@ class _KutuOlusturDialogState extends State<KutuOlusturDialog> {
               ),
               const SizedBox(height: 12),
               SifreAlani(denetleyici: _sifre, hata: _alan == 'password' ? _hata : null),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 'Kota',
                 style: TextStyle(color: context.r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               KotaSecici(deger: _kota ?? 5 * gib, degisti: (v) => setState(() => _kota = v), hata: _alan == 'quota_bytes' ? _hata : null),
               if (_hata != null && !{'domain_id', 'local_part', 'password', 'quota_bytes'}.contains(_alan)) ...[
                 const SizedBox(height: 12),
-                Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ],
           ),
@@ -321,7 +322,7 @@ class _KutuDuzenleDialogState extends State<KutuDuzenleDialog> {
     return AlertDialog(
       title: Text(
         widget.kutu.adres,
-        style: gosterim(18, agirlik: FontWeight.w700),
+        style: gosterim(18, agirlik: FontWeight.w600),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -336,16 +337,16 @@ class _KutuDuzenleDialogState extends State<KutuDuzenleDialog> {
                 controller: _ad,
                 decoration: InputDecoration(labelText: 'Görünen ad', errorText: _alan == 'display_name' ? _hata : null),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 'Kota · kullanılan ${boyutYaz(widget.kutu.kullanilan)}',
                 style: TextStyle(color: context.r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               KotaSecici(deger: widget.kutu.kota, degisti: (v) => setState(() => _kota = v), hata: _alan == 'quota_bytes' ? _hata : null),
               const SizedBox(height: 4),
               Text('Kota artışları müşterinin paket kotasına göre denetlenir.', style: TextStyle(color: context.r.silik, fontSize: 12)),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               TextField(
                 controller: _sinir,
                 keyboardType: TextInputType.number,
@@ -358,7 +359,7 @@ class _KutuDuzenleDialogState extends State<KutuDuzenleDialog> {
               ),
               if (_hata != null && !{'display_name', 'quota_bytes', 'send_limit_per_hour'}.contains(_alan)) ...[
                 const SizedBox(height: 12),
-                Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ],
             ],
           ),
@@ -379,13 +380,13 @@ Future<void> sifreSifirla(BuildContext context, PostaKutusu k) async {
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, yenile) => AlertDialog(
-        title: Text('Şifreyi sıfırla', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('Şifreyi sıfırla', style: gosterim(19, agirlik: FontWeight.w600)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${k.adres} için güçlü bir şifre üretilecek ve yalnızca bir kez gösterilecek.'),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: kapat,
@@ -425,7 +426,7 @@ Future<Yonlendirme?> yonlendirmeDuzenle(BuildContext context, PostaKutusu k, Yon
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, yenile) => AlertDialog(
-        title: Text('Yönlendirme', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('Yönlendirme', style: gosterim(19, agirlik: FontWeight.w600)),
         content: SizedBox(
           width: 440,
           child: Column(

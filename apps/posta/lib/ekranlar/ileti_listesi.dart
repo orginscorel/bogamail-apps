@@ -13,7 +13,6 @@ import '../ortak/liste_filtresi.dart';
 import '../ortak/secimler.dart';
 import '../ortak/surukle.dart';
 import '../veri/bildirim.dart';
-import '../veri/birlesik.dart';
 import '../veri/durum.dart';
 import '../veri/hesap_servisi.dart';
 import '../veri/modeller.dart';
@@ -614,7 +613,7 @@ class IletiListesiState extends State<IletiListesi> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                child: Text('Arama işleçleri', style: gosterim(17, agirlik: FontWeight.w700)),
+                child: Text('Arama işleçleri', style: gosterim(17, agirlik: FontWeight.w600)),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -669,12 +668,12 @@ class IletiListesiState extends State<IletiListesi> {
     final hepsi = secilen.length == _ogeler.length;
     return AppBar(
       backgroundColor: context.r.vurguYumusak,
-      leading: IconButton(icon: const Icon(Icons.close_rounded), tooltip: 'Seçimi kaldır', onPressed: () => setState(_secim.clear)),
-      title: Text('${_secim.length} ileti seçildi', style: gosterim(18, agirlik: FontWeight.w700)),
+      leading: IconButton(icon: const Icon(Simge.kapat), tooltip: 'Seçimi kaldır', onPressed: () => setState(_secim.clear)),
+      title: Text('${_secim.length} ileti seçildi', style: gosterim(18, agirlik: FontWeight.w600)),
       actions: [
         TextButton.icon(
           onPressed: _hepsiniSecDegistir,
-          icon: Icon(hepsi ? Icons.deselect_rounded : Icons.select_all_rounded, size: 20),
+          icon: Icon(hepsi ? Simge.secimiKaldir : Simge.tumunuSec, size: 20),
           label: Text(hepsi ? 'Hiçbiri' : 'Tümünü seç'),
         ),
         const SizedBox(width: 6),
@@ -727,13 +726,13 @@ class IletiListesiState extends State<IletiListesi> {
             child: Row(
               children: [
                 dugme(
-                  hepsiOkundu ? Icons.mark_email_unread_outlined : Icons.mark_email_read_outlined,
+                  hepsiOkundu ? Simge.okunmadiYap : Simge.okunduYap,
                   hepsiOkundu ? 'Okunmadı' : 'Okundu',
                   () => _toplu(idler, hepsiOkundu ? 'unread' : 'read', hepsiOkundu ? 'Okunmadı işaretlendi' : 'Okundu işaretlendi', kaldir: false),
                 ),
-                if (rol != 'archive') dugme(Icons.archive_outlined, 'Arşivle', () => _toplu(idler, 'archive', 'Arşivlendi')),
-                dugme(Icons.drive_file_move_outline, 'Taşı', () => _tasi(idler)),
-                dugme(Icons.delete_outline_rounded, _copte ? 'Kalıcı sil' : 'Sil', () => _sil(idler), renk: Marka.gul),
+                if (rol != 'archive') dugme(Simge.arsiv, 'Arşivle', () => _toplu(idler, 'archive', 'Arşivlendi')),
+                dugme(Simge.tasi, 'Taşı', () => _tasi(idler)),
+                dugme(Simge.sil, _copte ? 'Kalıcı sil' : 'Sil', () => _sil(idler), renk: Marka.gul),
                 Expanded(
                   child: PopupMenuButton<String>(
                     tooltip: 'Diğer işlemler',
@@ -754,30 +753,27 @@ class IletiListesiState extends State<IletiListesi> {
                       PopupMenuItem(
                         value: 'yildiz',
                         child: ListTile(
-                          leading: Icon(hepsiYildizli ? Icons.star_rounded : Icons.star_border_rounded),
+                          leading: Icon(hepsiYildizli ? Simge.yildizDolu : Simge.yildiz),
                           title: Text(hepsiYildizli ? 'Yıldızı kaldır' : 'Yıldızla'),
                         ),
                       ),
                       PopupMenuItem(
                         value: 'onemli',
-                        child: ListTile(
-                          leading: const Icon(Icons.label_important_outline_rounded),
-                          title: Text(hepsiOnemli ? 'Önemli değil' : 'Önemli olarak işaretle'),
-                        ),
+                        child: ListTile(leading: const Icon(Simge.onemli), title: Text(hepsiOnemli ? 'Önemli değil' : 'Önemli olarak işaretle')),
                       ),
                       const PopupMenuItem(
                         value: 'etiket',
-                        child: ListTile(leading: Icon(Icons.label_outline_rounded), title: Text('Etiket ekle…')),
+                        child: ListTile(leading: Icon(Simge.etiket), title: Text('Etiket ekle…')),
                       ),
                       if (rol == 'junk')
                         const PopupMenuItem(
                           value: 'spamDegil',
-                          child: ListTile(leading: Icon(Icons.thumb_up_alt_outlined), title: Text('Gereksiz değil')),
+                          child: ListTile(leading: Icon(Simge.begen), title: Text('Gereksiz değil')),
                         )
                       else
                         const PopupMenuItem(
                           value: 'spam',
-                          child: ListTile(leading: Icon(Icons.report_outlined), title: Text('Gereksiz (spam)')),
+                          child: ListTile(leading: Icon(Simge.bildir), title: Text('Gereksiz (spam)')),
                         ),
                     ],
                     child: Padding(
@@ -785,7 +781,7 @@ class IletiListesiState extends State<IletiListesi> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.more_horiz_rounded, size: 22, color: r.metin),
+                          Icon(Simge.dahaFazla, size: 22, color: r.metin),
                           const SizedBox(height: 3),
                           Text(
                             'Diğer',
@@ -807,7 +803,7 @@ class IletiListesiState extends State<IletiListesi> {
   PreferredSizeWidget _aramaCubugu() {
     return AppBar(
       automaticallyImplyLeading: false,
-      leading: widget.aramaSabit ? null : IconButton(icon: const Icon(Icons.arrow_back_rounded), tooltip: 'Aramayı kapat', onPressed: _aramaKapat),
+      leading: widget.aramaSabit ? null : IconButton(icon: const Icon(Simge.geri), tooltip: 'Aramayı kapat', onPressed: _aramaKapat),
       titleSpacing: widget.aramaSabit ? 16 : 0,
       title: TextField(
         controller: _aramaMetni,
@@ -817,18 +813,18 @@ class IletiListesiState extends State<IletiListesi> {
         decoration: InputDecoration(
           hintText: 'Postalarda ara (ad, adres, konu, metin)',
           isDense: true,
-          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+          prefixIcon: const Icon(Simge.ara, size: 20),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           suffixIcon: _aramaMetni.text.isEmpty && _arama.isEmpty
               ? null
-              : IconButton(icon: const Icon(Icons.clear_rounded, size: 20), tooltip: 'Aramayı temizle', onPressed: _aramaKapat),
+              : IconButton(icon: const Icon(Simge.temizleX, size: 20), tooltip: 'Aramayı temizle', onPressed: _aramaKapat),
         ),
         onChanged: (_) => setState(() {}),
       ),
       actions: [
         if (_arama.isNotEmpty && _alan == AramaAlani.hepsi)
-          IconButton(icon: const Icon(Icons.bookmark_add_outlined), tooltip: 'Aramayı kaydet', onPressed: _aramayiKaydet),
-        IconButton(icon: const Icon(Icons.manage_search_rounded), tooltip: 'Arama işleçleri', onPressed: _islecYardimi),
+          IconButton(icon: const Icon(Simge.aramaKaydet), tooltip: 'Aramayı kaydet', onPressed: _aramayiKaydet),
+        IconButton(icon: const Icon(Simge.aramaIslecleri), tooltip: 'Arama işleçleri', onPressed: _islecYardimi),
         const SizedBox(width: 4),
       ],
     );
@@ -853,7 +849,7 @@ class IletiListesiState extends State<IletiListesi> {
                 backgroundColor: r.vurgu,
                 textColor: Colors.white,
                 label: Text(widget.klasorRozeti > 999 ? '999+' : '${widget.klasorRozeti}'),
-                child: const Icon(Icons.menu_rounded),
+                child: const Icon(Simge.menu),
               ),
             ),
       titleSpacing: Navigator.of(context).canPop() || widget.klasorler != null ? 0 : 16,
@@ -867,53 +863,31 @@ class IletiListesiState extends State<IletiListesi> {
                 Icon(durum.gorsel(widget.konum).$1, size: 20, color: durum.gorsel(widget.konum).$2 ?? r.soluk),
                 const SizedBox(width: 8),
               ],
-              Flexible(child: Text(durum.baslik(widget.konum), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              if (okunmamis > 0) ...[
-                const SizedBox(width: 8),
-                Container(
-                  key: const ValueKey('baslik-okunmamis'),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: r.vurgu, borderRadius: BorderRadius.circular(20)),
-                  child: Text(
-                    okunmamis > 9999 ? '9999+' : '$okunmamis',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
-                  ),
+              Flexible(
+                child: Text(
+                  durum.baslik(widget.konum),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: r.metin),
                 ),
-              ],
+              ),
             ],
           ),
           if (!_yukleniyor)
             Text(
+              key: okunmamis > 0 ? const ValueKey('baslik-okunmamis') : null,
               okunmamis > 0 ? '${sayiYaz(okunmamis)} okunmamış · ${sayiYaz(_toplam)} ileti' : '${sayiYaz(_toplam)} ileti',
-              style: TextStyle(fontSize: 12, color: r.silik, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 12, color: r.soluk, fontWeight: FontWeight.w400),
             ),
         ],
       ),
       actions: [
-        // Birden çok hesap varsa: "Tüm hesaplar" birleşik gelen kutusuna geçiş (toplam okunmamış rozetiyle).
-        if (!widget.aramaSabit)
-          ListenableBuilder(
-            listenable: BirlesikDurum.ben,
-            builder: (_, _) {
-              final b = BirlesikDurum.ben;
-              if (!b.kullanilabilir) return const SizedBox.shrink();
-              return IconButton(
-                key: const ValueKey('tum-hesaplar'),
-                tooltip: 'Tüm hesaplar',
-                onPressed: () => PostaDurum.ben.git(const Konum.birlesik()),
-                icon: Badge(
-                  isLabelVisible: b.toplamOkunmamis > 0,
-                  label: Text(b.toplamOkunmamis > 999 ? '999+' : '${b.toplamOkunmamis}'),
-                  child: const Icon(Icons.layers_outlined),
-                ),
-              );
-            },
-          ),
-        IconButton(icon: const Icon(Icons.search_rounded), tooltip: 'Bu klasörde ara', onPressed: _aramaAc),
+        // "Tüm hesaplar" kenar menüsünden / hesap menüsünden açılır (başlıkta ayrı simge yok).
+        IconButton(icon: const Icon(Simge.ara), tooltip: 'Bu klasörde ara', onPressed: _aramaAc),
         PopupMenuButton<Siralama>(
           key: const ValueKey('sirala'),
           tooltip: 'Sırala',
-          icon: Icon(Icons.swap_vert_rounded, color: _siralama == Siralama.yeni ? null : r.vurgu),
+          icon: Icon(Simge.sirala, color: _siralama == Siralama.yeni ? null : r.vurgu),
           onSelected: (v) {
             if (v == _siralama) return;
             setState(() => _siralama = _sonSiralama = v);
@@ -937,26 +911,26 @@ class IletiListesiState extends State<IletiListesi> {
           itemBuilder: (_) => [
             const PopupMenuItem(
               value: 'yenile',
-              child: ListTile(leading: Icon(Icons.refresh_rounded), title: Text('Yenile')),
+              child: ListTile(leading: Icon(Simge.yenile), title: Text('Yenile')),
             ),
             if (_ogeler.isNotEmpty)
               const PopupMenuItem(
                 value: 'sec',
-                child: ListTile(leading: Icon(Icons.checklist_rounded), title: Text('İleti seç')),
+                child: ListTile(leading: Icon(Simge.kontrolListesi), title: Text('İleti seç')),
               ),
             const PopupMenuItem(
               value: 'okundu',
-              child: ListTile(leading: Icon(Icons.done_all_rounded), title: Text('Tümünü okundu işaretle')),
+              child: ListTile(leading: Icon(Simge.hepsiOkundu), title: Text('Tümünü okundu işaretle')),
             ),
             const PopupMenuItem(
               value: 'hepsi',
-              child: ListTile(leading: Icon(Icons.mark_email_read_outlined), title: Text('Tüm klasörleri okundu işaretle')),
+              child: ListTile(leading: Icon(Simge.okunduYap), title: Text('Tüm klasörleri okundu işaretle')),
             ),
             if (k?.rol == 'trash' || k?.rol == 'junk')
               PopupMenuItem(
                 value: 'bosalt',
                 child: ListTile(
-                  leading: const Icon(Icons.delete_sweep_outlined, color: Marka.gul),
+                  leading: const Icon(Simge.bosalt, color: Marka.gul),
                   title: Text('${k!.gorunenAd} boşalt'),
                 ),
               ),
@@ -1010,13 +984,13 @@ class IletiListesiState extends State<IletiListesi> {
               _tarih == null ? 'Tarih' : '${bicim.format(_tarih!.start)} – ${bicim.format(_tarih!.end)}',
               _tarih != null,
               _tarihSec,
-              ikon: Icons.date_range_rounded,
+              ikon: Simge.tarihAraligi,
             ),
             if (_tarih != null)
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Tarihi kaldır',
-                icon: const Icon(Icons.close_rounded, size: 18),
+                icon: const Icon(Simge.kapat, size: 18),
                 onPressed: () {
                   setState(() => _tarih = null);
                   _yukle();
@@ -1105,14 +1079,14 @@ class IletiListesiState extends State<IletiListesi> {
   }
 
   IconData _bosSimge() {
-    if (_arama.isNotEmpty || _tarih != null) return Icons.search_off_rounded;
+    if (_arama.isNotEmpty || _tarih != null) return Simge.aramaYok;
     if (_filtre != ListeFiltresi.tumu) return _filtre.ikon;
     return switch (_klasor?.rol) {
-      'inbox' => Icons.mark_email_read_outlined,
-      'trash' => Icons.delete_outline_rounded,
-      'drafts' => Icons.edit_note_rounded,
-      'sent' => Icons.send_rounded,
-      _ => Icons.inbox_rounded,
+      'inbox' => Simge.okunduYap,
+      'trash' => Simge.sil,
+      'drafts' => Simge.taslak,
+      'sent' => Simge.gonder,
+      _ => Simge.gelen,
     };
   }
 
@@ -1154,7 +1128,7 @@ class IletiListesiState extends State<IletiListesi> {
     final r = context.r;
     Widget ipucu(String ornek, String aciklama) => ListTile(
       dense: true,
-      leading: Icon(Icons.tips_and_updates_outlined, color: r.vurgu, size: 20),
+      leading: Icon(Simge.ipucu, color: r.vurgu, size: 20),
       title: Text(
         ornek,
         style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600),
@@ -1173,14 +1147,14 @@ class IletiListesiState extends State<IletiListesi> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(color: r.vurguYumusak, shape: BoxShape.circle),
-            child: Icon(Icons.search_rounded, size: 34, color: r.vurgu),
+            child: Icon(Simge.ara, size: 34, color: r.vurgu),
           ),
         ),
         const SizedBox(height: 14),
         Text(
           'Tüm postalarınızda arayın',
           textAlign: TextAlign.center,
-          style: gosterim(18, agirlik: FontWeight.w700),
+          style: gosterim(18, agirlik: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         Text(
@@ -1193,13 +1167,13 @@ class IletiListesiState extends State<IletiListesi> {
           const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Baslik('Kayıtlı aramalar')),
           for (final k in _kayitli)
             ListTile(
-              leading: Icon(Icons.bookmark_rounded, color: r.vurgu),
+              leading: Icon(Simge.yerImi, color: r.vurgu),
               title: Text(k.ad, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(k.sorgu, style: const TextStyle(fontFamily: 'monospace')),
               onTap: () => _kayitliAc(k),
               trailing: IconButton(
                 tooltip: 'Kaydı sil',
-                icon: Icon(Icons.close_rounded, color: r.silik),
+                icon: Icon(Simge.kapat, color: r.silik),
                 onPressed: () async {
                   await islem(() => Hesap.kayitliAramaSil(k.id));
                   await _kayitlilariYukle();
@@ -1213,7 +1187,7 @@ class IletiListesiState extends State<IletiListesi> {
         ipucu('is:unread', 'Okunmamış iletiler'),
         ipucu('is:starred', 'Yıldızlı iletiler'),
         Center(
-          child: TextButton.icon(onPressed: _islecYardimi, icon: const Icon(Icons.manage_search_rounded), label: const Text('Tüm arama işleçleri')),
+          child: TextButton.icon(onPressed: _islecYardimi, icon: const Icon(Simge.aramaIslecleri), label: const Text('Tüm arama işleçleri')),
         ),
       ],
     );
@@ -1238,7 +1212,7 @@ class IletiListesiState extends State<IletiListesi> {
                   if (_filtre != ListeFiltresi.tumu)
                     OutlinedButton.icon(
                       onPressed: () => _filtreSec(ListeFiltresi.tumu),
-                      icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                      icon: const Icon(Simge.suzgecYok, size: 18),
                       label: const Text('Tüm iletileri göster'),
                     ),
                 ],
@@ -1285,7 +1259,7 @@ class IletiListesiState extends State<IletiListesi> {
                   header: true,
                   child: Text(
                     g.toUpperCase(),
-                    style: TextStyle(color: c.r.silik, fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: .8),
+                    style: TextStyle(color: c.r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: .8),
                   ),
                 ),
               );

@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import UserNotifications
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
@@ -11,7 +12,13 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     BogaPush.shared.bagla(flutterViewController.engine.binaryMessenger)
+    BogaArkaplan.bagla(flutterViewController.engine.binaryMessenger)
+    // flutter_local_notifications eklentisi kaydolurken bildirim merkezinin temsilcisini kendine alır; APNs
+    // bildirimine dokunma / öndeyken gösterme BogaPush'ta kalsın diye temsilci geri atanır.
+    UNUserNotificationCenter.current().delegate = BogaPush.shared
 
     super.awakeFromNib()
+    // Kapat düğmesi pencereyi yok etmez, gizler (uygulama arka planda çalışır; Dock'tan yeniden açılır).
+    self.isReleasedWhenClosed = false
   }
 }

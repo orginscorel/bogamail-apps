@@ -107,6 +107,36 @@ void main() {
     expect(Onbellek.ben.var_('ileti:d'), isTrue);
   });
 
+  test('önyükleme uzak görselleri de önbelleğe alır (izin varsa; gereksiz/tehditli iletide almaz)', () async {
+    await Onbellek.ben.hesapAc('m1');
+    Map<String, dynamic> gorselli(String id, {String? rol}) {
+      final m = _ileti(id);
+      (m['view'] as Map)['html'] = '<p>x</p><img src="https://site.example/$id-1.png"><img src="https://site.example/$id-2.png">';
+      if (rol != null) (m['message'] as Map)['folder_role'] = rol;
+      return m;
+    }
+
+    s.yollar
+      ..['GET /api/v1/mail/messages/g1'] = (200, gorselli('g1'))
+      ..['GET /api/v1/mail/messages/g2'] = (200, gorselli('g2', rol: 'junk'))
+      ..['GET /api/v1/mail/remote-image'] = (200, {'x': 1});
+    var izin = false;
+    Onyukleme.gorselIzni = () => izin;
+    addTearDown(() => Onyukleme.gorselIzni = () => false);
+    Iterable<String> istenen() => s.bul('GET', '/api/v1/mail/remote-image').map((i) => '${i.sorgu['u']}');
+
+    Onyukleme.ben.hemen('g1');
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(istenen(), isEmpty, reason: 'otomatik görsel kapalı');
+
+    izin = true;
+    Onyukleme.ben.eskit('g1');
+    Onyukleme.ben.hemen('g1');
+    Onyukleme.ben.hemen('g2');
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(istenen().toSet(), {'https://site.example/g1-1.png', 'https://site.example/g1-2.png'});
+  });
+
   testWidgets('önbellekteki ileti ağ beklenmeden açılır; okundu işareti yeniden GET yapmaz', (t) async {
     await t.runAsync(() async {
       await Onbellek.ben.hesapAc('m1');

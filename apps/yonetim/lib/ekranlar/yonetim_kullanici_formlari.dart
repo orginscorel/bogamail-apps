@@ -6,6 +6,7 @@ import '../oturum.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
+import '../ortak/simgeler.dart';
 
 /// Panel kullanıcısı (GET /users → items; internal/api/admin.go User).
 class PanelKullanicisi {
@@ -164,7 +165,7 @@ class YetkiSecici extends StatelessWidget {
 Widget _hataSatiri(String? h) => h == null
     ? const SizedBox.shrink()
     : Padding(
-        padding: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.only(top: 8),
         child: Text(h, style: const TextStyle(color: Marka.gul, fontSize: 13)),
       );
 
@@ -193,7 +194,7 @@ class _SifreAlani extends StatelessWidget {
       ),
       const SizedBox(width: 8),
       Padding(
-        padding: const EdgeInsets.only(top: 6),
+        padding: const EdgeInsets.only(top: 8),
         child: OutlinedButton(
           onPressed: () {
             kontrol.text = sifreUret(uzunluk: 16);
@@ -326,7 +327,7 @@ class _KullaniciOlusturDialogState extends State<KullaniciOlusturDialog> {
                 "E-posta ile davet gönderilmez: şifreyi kullanıcıya siz iletirsiniz. Kullanıcı ilk girişte kendi şifresini ve 2FA'yı ayarlayabilir.",
                 style: TextStyle(color: context.r.silik, fontSize: 13),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               if (_roller.length > 1) ...[
                 DropdownButtonFormField<String>(
                   initialValue: _rol,
@@ -372,7 +373,7 @@ class _KullaniciOlusturDialogState extends State<KullaniciOlusturDialog> {
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
         FilledButton.icon(
           onPressed: _mesgul || !_hazir ? null : _olustur,
-          icon: _dugmeIkonu(_mesgul, Icons.person_add_alt_rounded),
+          icon: _dugmeIkonu(_mesgul, Simgeler.personAddAlt),
           label: const Text('Oluştur'),
         ),
       ],
@@ -451,7 +452,7 @@ class _ProfilDuzenleDialogState extends State<ProfilDuzenleDialog> {
     ),
     actions: [
       TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
-      FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: _dugmeIkonu(_mesgul, Icons.save_rounded), label: const Text('Kaydet')),
+      FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: _dugmeIkonu(_mesgul, Simgeler.save), label: const Text('Kaydet')),
     ],
   );
 }
@@ -503,7 +504,7 @@ class _YetkilerDialogState extends State<YetkilerDialog> {
               '${widget.kullanici.eposta} · ${rolEtiketi(widget.kullanici.rol)}. Değişiklik kullanıcının oturumlarını kapatır (hemen geçerli olur).',
               style: TextStyle(color: context.r.silik, fontSize: 13),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             YetkiSecici(katalog: widget.katalog, deger: _izinler, benim: benimYetkilerim, degisti: (v) => setState(() => _izinler = v)),
             _hataSatiri(_hata),
           ],
@@ -512,7 +513,7 @@ class _YetkilerDialogState extends State<YetkilerDialog> {
     ),
     actions: [
       TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
-      FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: _dugmeIkonu(_mesgul, Icons.save_rounded), label: const Text('Kaydet')),
+      FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: _dugmeIkonu(_mesgul, Simgeler.save), label: const Text('Kaydet')),
     ],
   );
 }
@@ -568,7 +569,7 @@ class _SifreSifirlaDialogState extends State<SifreSifirlaDialog> {
             '${widget.kullanici.eposta} için yeni şifre. Kullanıcının tüm oturumları kapatılır; şifreyi güvenli bir kanaldan iletin.',
             style: TextStyle(color: context.r.silik, fontSize: 13),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           _SifreAlani(kontrol: _sifre, etiket: 'Yeni şifre', degisti: () => setState(() {})),
           _hataSatiri(_hata),
         ],
@@ -578,7 +579,7 @@ class _SifreSifirlaDialogState extends State<SifreSifirlaDialog> {
       TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
       FilledButton.icon(
         onPressed: _mesgul || _sifre.text.length < 12 ? null : _kaydet,
-        icon: _dugmeIkonu(_mesgul, Icons.key_rounded),
+        icon: _dugmeIkonu(_mesgul, Simgeler.key),
         label: const Text('Şifreyi kaydet'),
       ),
     ],
@@ -648,7 +649,7 @@ class _KullaniciOturumlariDialogState extends State<KullaniciOturumlariDialog> {
           for (final o in l)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(o.tarayici.contains('BogaMail') ? Icons.phone_iphone_rounded : Icons.laptop_rounded, color: r.soluk),
+              leading: Icon(o.tarayici.contains('BogaMail') ? Simgeler.phoneIphone : Simgeler.laptop, color: r.soluk),
               title: Text(
                 [cihazAdi(o.tarayici), if (o.musteriGorunumu != null) 'müşteri görünümü: ${o.musteriGorunumu}'].join(' · '),
                 maxLines: 2,
@@ -670,7 +671,7 @@ class _KullaniciOturumlariDialogState extends State<KullaniciOturumlariDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(widget.kullanici.eposta, style: TextStyle(color: r.silik)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               govde,
             ],
           ),
@@ -682,7 +683,7 @@ class _KullaniciOturumlariDialogState extends State<KullaniciOturumlariDialog> {
           FilledButton.icon(
             style: FilledButton.styleFrom(backgroundColor: Marka.gul),
             onPressed: (l?.isNotEmpty ?? false) ? _hepsiniKapat : null,
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Simgeler.logout),
             label: const Text('Tümünü kapat'),
           ),
       ],

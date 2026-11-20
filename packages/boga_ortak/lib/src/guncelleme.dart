@@ -1,3 +1,5 @@
+import 'simge.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -204,7 +206,7 @@ class GuncellemeBandi extends StatelessWidget {
               valueListenable: Guncelleme.ilerleme,
               builder: (_, p, _) => Row(
                 children: [
-                  Icon(Icons.system_update_rounded, size: 18, color: r.vurgu),
+                  Icon(Simge.guncelleme, size: 18, color: r.vurgu),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -216,7 +218,7 @@ class GuncellemeBandi extends StatelessWidget {
                   ),
                   Text(
                     p != null ? '' : 'Güncelle',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: r.vurgu),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: r.vurgu),
                   ),
                 ],
               ),
@@ -279,7 +281,7 @@ class _GuncellemeKartiState extends State<GuncellemeKarti> {
                   height: 44,
                   decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(12)),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.verified_rounded, color: Colors.white, size: 22),
+                  child: const Icon(Simge.dogrulanmis, color: Colors.white, size: 22),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -288,7 +290,7 @@ class _GuncellemeKartiState extends State<GuncellemeKarti> {
                     children: [
                       Text(
                         kimlik == Kimlik.posta ? 'BogaMail' : 'BogaMail Yönetim',
-                        style: gosterim(16, agirlik: FontWeight.w700, renk: r.metin),
+                        style: gosterim(16, agirlik: FontWeight.w600, renk: r.metin),
                       ),
                       const SizedBox(height: 2),
                       Text('${Guncelleme.surumMetni} · ${Guncelleme.platformAdi}', style: TextStyle(fontSize: 13, color: r.soluk)),
@@ -308,7 +310,7 @@ class _GuncellemeKartiState extends State<GuncellemeKarti> {
                   children: [
                     Text(
                       'Yeni sürüm: ${b.etiket}',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: r.metin),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: r.metin),
                     ),
                     if (b.notlar.isNotEmpty) ...[
                       const SizedBox(height: 4),
@@ -338,7 +340,7 @@ class _GuncellemeKartiState extends State<GuncellemeKarti> {
                         width: double.infinity,
                         child: FilledButton.icon(
                           onPressed: () => Guncelleme.kur(widget.api, b),
-                          icon: const Icon(Icons.system_update_rounded),
+                          icon: const Icon(Simge.guncelleme),
                           label: Text(Guncelleme.magazadan ? 'TestFlight\'ta güncelle' : 'İndir ve kur'),
                         ),
                       ),
@@ -346,7 +348,7 @@ class _GuncellemeKartiState extends State<GuncellemeKarti> {
             ] else
               Row(
                 children: [
-                  Icon(_bakildi ? Icons.check_circle_rounded : Icons.info_outline_rounded, size: 18, color: _bakildi ? Marka.zumrut : r.silik),
+                  Icon(_bakildi ? Simge.basari : Simge.bilgi, size: 18, color: _bakildi ? Marka.zumrut : r.silik),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -384,7 +386,7 @@ class ZorunluGuncellemeEkrani extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.system_update_rounded, size: 56, color: r.vurgu),
+                  Icon(Simge.guncelleme, size: 56, color: r.vurgu),
                   const SizedBox(height: 18),
                   Text('Güncelleme gerekli', style: gosterim(24, renk: r.metin)),
                   const SizedBox(height: 10),
@@ -400,7 +402,7 @@ class ZorunluGuncellemeEkrani extends StatelessWidget {
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: b == null ? () => Guncelleme.denetle(api, sessiz: false, zorla: true) : () => Guncelleme.kur(api, b),
-                        icon: const Icon(Icons.download_rounded),
+                        icon: const Icon(Simge.indir),
                         label: Text(b == null ? 'Yeniden denetle' : 'Güncelle (${b.etiket})'),
                       ),
                     ),

@@ -10,6 +10,7 @@ import '../oturum.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import 'yonetim_kullanici_formlari.dart';
+import '../ortak/simgeler.dart';
 
 /// Yöneticiler (web: /admin/users): panel kullanıcıları (oluştur, profil, yetkiler, şifre, askıya al/etkinleştir,
 /// 2FA sıfırla, oturumlar) ve iki adımlı doğrulama politikası. Kapsam sunucudadır (süper: hepsi, bayi: kendi ekibi ve
@@ -163,25 +164,25 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
     final ben = u.id == _benimId;
     return [
       if (_yonetir) ...[
-        (Icons.edit_rounded, 'Profili düzenle', 'Ad, unvan, telefon, not', () => _dialog(ProfilDuzenleDialog(kullanici: u)), false),
+        (Simgeler.edit, 'Profili düzenle', 'Ad, unvan, telefon, not', () => _dialog(ProfilDuzenleDialog(kullanici: u)), false),
         if (!ben) ...[
           (
-            Icons.manage_accounts_rounded,
+            Simgeler.manageAccounts,
             'Yetkiler',
             'Rol şablonu veya özel yetkiler',
             () => _dialog(YetkilerDialog(kullanici: u, katalog: _katalog ?? YetkiKatalogu.bos)),
             false,
           ),
-          (Icons.key_rounded, 'Şifre sıfırla', 'Yeni şifre ver, oturumları kapat', () => _dialog(SifreSifirlaDialog(kullanici: u)), false),
+          (Simgeler.key, 'Şifre sıfırla', 'Yeni şifre ver, oturumları kapat', () => _dialog(SifreSifirlaDialog(kullanici: u)), false),
           if (u.aktif)
-            (Icons.block_rounded, 'Askıya al', 'Girişi engelle, oturumları kapat', () => _durum(u), true)
+            (Simgeler.block, 'Askıya al', 'Girişi engelle, oturumları kapat', () => _durum(u), true)
           else
-            (Icons.check_circle_outline_rounded, 'Etkinleştir', 'Girişe yeniden izin ver', () => _durum(u), false),
-          if (u.mfa) (Icons.gpp_bad_outlined, '2FA sıfırla', 'Telefonu kaybeden kullanıcı için; kayda geçer', () => _mfaSifirla(u), true),
+            (Simgeler.checkCircleOutline, 'Etkinleştir', 'Girişe yeniden izin ver', () => _durum(u), false),
+          if (u.mfa) (Simgeler.gppBad, '2FA sıfırla', 'Telefonu kaybeden kullanıcı için; kayda geçer', () => _mfaSifirla(u), true),
         ],
       ],
-      (Icons.devices_rounded, 'Oturumlar', 'Açık oturumları gör${_yonetir && !ben ? ', kapat' : ''}', () => _oturumlar(u), false),
-      if (_yonetir && !ben) (Icons.delete_outline_rounded, 'Sil', 'Hesabı kalıcı olarak sil; oturumlar ve anahtarlar silinir', () => _sil(u), true),
+      (Simgeler.devices, 'Oturumlar', 'Açık oturumları gör${_yonetir && !ben ? ', kapat' : ''}', () => _oturumlar(u), false),
+      if (_yonetir && !ben) (Simgeler.deleteOutline, 'Sil', 'Hesabı kalıcı olarak sil; oturumlar ve anahtarlar silinir', () => _sil(u), true),
     ];
   }
 
@@ -211,7 +212,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(u.gorunenAd, maxLines: 1, overflow: TextOverflow.ellipsis, style: gosterim(17, agirlik: FontWeight.w700)),
+                          Text(u.gorunenAd, maxLines: 1, overflow: TextOverflow.ellipsis, style: gosterim(17, agirlik: FontWeight.w600)),
                           Text(
                             [u.eposta, rolEtiketi(u.rol), ?u.orgAdi].join(' · '),
                             maxLines: 2,
@@ -223,7 +224,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(child: _ozet(c, u.sonGiris == null ? 'Hiç' : goreliZaman(u.sonGiris), 'son giriş')),
@@ -248,7 +249,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
                 else if (Uyg.taklit != null)
                   const Padding(
                     padding: EdgeInsets.only(bottom: 8),
-                    child: Bant('Müşteri görünümündeyken panel kullanıcıları değiştirilemez.', renk: Marka.kehribar, ikon: Icons.visibility_rounded),
+                    child: Bant('Müşteri görünümündeyken panel kullanıcıları değiştirilemez.', renk: Marka.kehribar, ikon: Simgeler.visibility),
                   ),
                 for (final (i, b, ipucu, f, t) in _eylemListesi(u))
                   Padding(
@@ -267,11 +268,11 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
   Widget _ozet(BuildContext c, String deger, String etiket, {Color? renk}) {
     final r = c.r;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
-          Text(deger, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: renk)),
+          Text(deger, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w600, color: renk)),
           Text(etiket, style: TextStyle(color: r.silik, fontSize: 11.5)),
         ],
       ),
@@ -279,7 +280,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
   }
 
   Widget _mfaRozeti(PanelKullanicisi u) =>
-      u.mfa ? const Rozet('Açık', renk: Marka.zumrut, ikon: Icons.verified_user_rounded) : const SolukMetin('Kapalı');
+      u.mfa ? const Rozet('Açık', renk: Marka.zumrut, ikon: Simgeler.verifiedUser) : const SolukMetin('Kapalı');
 
   String get _altBaslik => switch (Uyg.rol) {
     'super_admin' => 'Platform ekibi, bayi ve müşteri yöneticileri',
@@ -297,7 +298,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
     return VeriTablosu<PanelKullanicisi>(
       yukleyici: _y,
       bosMetin: _q.isEmpty && _rol.isEmpty ? 'Henüz kullanıcı yok.' : 'Eşleşen kullanıcı yok.',
-      bosIkon: Icons.groups_rounded,
+      bosIkon: Simgeler.groups,
       onTap: _yonet,
       eylemler: _satirEylemleri,
       ust: FiltreCubugu(
@@ -313,7 +314,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
           if (!Uyg.musteri)
             FiltreDugmesi<String>(
               etiket: 'Rol',
-              ikon: Icons.badge_outlined,
+              ikon: Simgeler.badge,
               secenekler: roller,
               secili: _rol,
               secildi: (v) {
@@ -350,9 +351,9 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
         baslik: u.gorunenAd,
         alt: [if (u.ad.isNotEmpty) u.eposta, ?u.orgAdi].join(' · '),
         rozetler: [
-          Rozet(rolEtiketi(u.rol), ikon: Icons.badge_outlined),
+          Rozet(rolEtiketi(u.rol), ikon: Simgeler.badge),
           if (!u.aktif) DurumRozeti(u.durum),
-          if (u.mfa) const Rozet('2FA', renk: Marka.zumrut, ikon: Icons.verified_user_rounded),
+          if (u.mfa) const Rozet('2FA', renk: Marka.zumrut, ikon: Simgeler.verifiedUser),
         ],
         alanlar: [
           ('Yetki', sablonEtiketi(sablonBul(u.izinler, _katalog))),
@@ -371,7 +372,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
       baslik: 'Yöneticiler',
       alt: _altBaslik,
       yenile: _y.yenile,
-      birincil: _yonetir ? BirincilEylem(Icons.person_add_alt_rounded, 'Yeni yönetici', _yeni) : null,
+      birincil: _yonetir ? BirincilEylem(Simgeler.personAddAlt, 'Yeni yönetici', _yeni) : null,
       sekmeler: const TabBar(
         isScrollable: true,
         tabAlignment: TabAlignment.start,
@@ -465,7 +466,7 @@ class _MfaPolitikasiState extends State<MfaPolitikasi> {
   Widget build(BuildContext context) {
     final r = context.r;
     final rolKarti = BolumKarti(
-      ikon: Icons.admin_panel_settings_rounded,
+      ikon: Simgeler.adminPanelSettings,
       baslik: 'Rol bazında (platform)',
       child: _rolHata != null
           ? Text(_rolHata!, style: const TextStyle(color: Marka.gul))
@@ -488,7 +489,7 @@ class _MfaPolitikasiState extends State<MfaPolitikasi> {
     );
     final org = _org;
     final musteriKarti = BolumKarti(
-      ikon: Icons.apartment_rounded,
+      ikon: Simgeler.apartment,
       baslik: 'Müşteri bazında',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -527,7 +528,7 @@ class _MfaPolitikasiState extends State<MfaPolitikasi> {
         const Bant(
           "Zorunlu tutulan kullanıcılar bir sonraki girişlerinde kurulum yapmadan panele / webmail'e devam edemez. "
           "Telefonunu kaybeden kullanıcının 2FA'sını Kullanıcılar sekmesinden sıfırlayabilirsiniz (kayda geçer).",
-          ikon: Icons.verified_user_rounded,
+          ikon: Simgeler.verifiedUser,
         ),
         const SizedBox(height: 12),
         if (Uyg.platformYoneticisi)

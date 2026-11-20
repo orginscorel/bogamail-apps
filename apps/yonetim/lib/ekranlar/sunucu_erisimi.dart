@@ -12,6 +12,7 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/operasyon.dart';
 import 'liste_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Sunucu Erişimi (yalnızca süper yönetici, GET /host-security): SSH izin listesi, IP yasakları, koruma ayarları ve
 /// SSH bağlantı denemeleri (ayrı sekmede sıralanabilir tablo). Değişiklikler güvenlik duvarına hemen uygulanır ve
@@ -168,7 +169,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
         baslik: 'Sunucu Erişimi',
         alt: 'SSH izin listesi, IP yasakları ve bağlantı denemeleri',
         yenile: _yukle,
-        birincil: d == null ? null : BirincilEylem(Icons.block_rounded, 'IP yasakla', _yasakla),
+        birincil: d == null ? null : BirincilEylem(Simgeler.block, 'IP yasakla', _yasakla),
         sekmeler: TabBar(
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -203,60 +204,60 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
             if (d.duvarHatasi != null || d.kayitHatasi != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Bant(d.duvarHatasi ?? d.kayitHatasi!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+                child: Bant(d.duvarHatasi ?? d.kayitHatasi!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               ),
             Izgara(
               enAz: 170,
               bosluk: 10,
               children: [
-                OzetKutusu('SSH izinli adres', sayiYaz(d.sshIzinleri.length), ikon: Icons.key_rounded, renk: Marka.zumrut),
-                OzetKutusu('Yasaklı adres', sayiYaz(d.yasaklar.length), ikon: Icons.block_rounded, renk: d.yasaklar.isEmpty ? null : Marka.gul),
-                OzetKutusu('Başarılı giriş', sayiYaz(t['accepted'] ?? 0), alt: 'son ${d.gun} gün', ikon: Icons.login_rounded),
+                OzetKutusu('SSH izinli adres', sayiYaz(d.sshIzinleri.length), ikon: Simgeler.key, renk: Marka.zumrut),
+                OzetKutusu('Yasaklı adres', sayiYaz(d.yasaklar.length), ikon: Simgeler.block, renk: d.yasaklar.isEmpty ? null : Marka.gul),
+                OzetKutusu('Başarılı giriş', sayiYaz(t['accepted'] ?? 0), alt: 'son ${d.gun} gün', ikon: Simgeler.login),
                 OzetKutusu(
                   'Hatalı deneme',
                   sayiYaz((t['failed'] ?? 0) + (t['invalid_user'] ?? 0)),
                   alt: '${sayiYaz(t['invalid_user'] ?? 0)} olmayan kullanıcı',
-                  ikon: Icons.password_rounded,
+                  ikon: Simgeler.password,
                   renk: (t['failed'] ?? 0) + (t['invalid_user'] ?? 0) > 0 ? Marka.kehribar : null,
                 ),
                 OzetKutusu(
                   'Duvarda engellenen',
                   d.dusurmeKaydi ? sayiYaz(t['dropped'] ?? 0) : '—',
                   alt: d.dusurmeKaydi ? 'son ${d.gun} gün' : 'kayıt kapalı',
-                  ikon: Icons.shield_rounded,
+                  ikon: Simgeler.shield,
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _benimIpKarti(d),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             if (iki)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: izin),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   Expanded(child: yasak),
                 ],
               )
             else ...[
               izin,
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               yasak,
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             if (iki)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 3, child: _enCokDeneyenler(d)),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   Expanded(flex: 2, child: ayar),
                 ],
               )
             else ...[
               _enCokDeneyenler(d),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               ayar,
             ],
           ],
@@ -284,7 +285,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(ok ? Icons.verified_user_rounded : Icons.warning_amber_rounded, color: renk, size: 26),
+              Icon(ok ? Simgeler.verifiedUser : Simgeler.warningAmber, color: renk, size: 26),
               const SizedBox(width: 12),
               Flexible(
                 child: Column(
@@ -298,7 +299,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
                         Flexible(
                           child: SelectableText(
                             d.benimIp.isEmpty ? '—' : d.benimIp,
-                            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700, fontSize: 18),
+                            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600, fontSize: 18),
                           ),
                         ),
                         if (d.benimIp.isNotEmpty)
@@ -306,7 +307,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
                             tooltip: 'Kopyala',
                             visualDensity: VisualDensity.compact,
                             onPressed: () => kopyala(d.benimIp, mesaj: 'IP adresi kopyalandı'),
-                            icon: const Icon(Icons.copy_rounded, size: 17),
+                            icon: const Icon(Simgeler.copy, size: 17),
                           ),
                       ],
                     ),
@@ -325,7 +326,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
               onPressed: _mesgul != null ? null : () => _izinVer(d.benimIp),
               icon: _mesgul == 'izin:${d.benimIp}'
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.key_rounded),
+                  : const Icon(Simgeler.key),
               label: const Text("Bu IP'ye SSH izni ver", style: TextStyle(fontWeight: FontWeight.w600)),
             ),
         ],
@@ -337,22 +338,22 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
     final r = context.r;
     return BolumKarti(
       baslik: 'SSH izin listesi',
-      ikon: Icons.key_rounded,
+      ikon: Simgeler.key,
       altBaslik: 'SSH (22) yalnızca bu adreslerden açıktır; diğer her yerden gelen bağlantı düşürülür.',
-      sag: TextButton.icon(onPressed: _mesgul != null ? null : _izinEkle, icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Ekle')),
+      sag: TextButton.icon(onPressed: _mesgul != null ? null : _izinEkle, icon: const Icon(Simgeler.add, size: 18), label: const Text('Ekle')),
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
       child: d.sshIzinleri.isEmpty
           ? Text('İzinli adres yok.', style: TextStyle(color: r.silik))
           : Column(
               children: [
                 for (final (i, ip) in d.sshIzinleri.indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle_rounded, size: 16, color: Marka.zumrut),
-                        const SizedBox(width: 10),
+                        const Icon(SimgelerKalin.checkCircle, size: 16, color: Marka.zumrut),
+                        const SizedBox(width: 8),
                         Expanded(child: SelectableText(ip, style: const TextStyle(fontFamily: 'monospace', fontSize: 14))),
                         if (ip == d.benimIp) const Rozet('siz', renk: Marka.mavi),
                         IconButton(
@@ -360,7 +361,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
                           onPressed: _mesgul != null || d.sshIzinleri.length == 1 ? null : () => _izinKaldir(ip),
                           icon: _mesgul == 'izin:$ip'
                               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.delete_outline_rounded, size: 20),
+                              : const Icon(Simgeler.deleteOutline, size: 20),
                         ),
                       ],
                     ),
@@ -375,16 +376,16 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
     final r = context.r;
     return BolumKarti(
       baslik: 'Yasaklı IP adresleri',
-      ikon: Icons.block_rounded,
+      ikon: Simgeler.block,
       altBaslik: 'Yasaklı bir adresten gelen tüm bağlantılar (SSH, posta, web) güvenlik duvarında düşürülür.',
-      sag: TextButton.icon(onPressed: () => _yasakla(), icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Yasakla')),
+      sag: TextButton.icon(onPressed: () => _yasakla(), icon: const Icon(Simgeler.add, size: 18), label: const Text('Yasakla')),
       padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
       child: d.yasaklar.isEmpty
           ? Text('Yasaklı adres yok.', style: TextStyle(color: r.silik))
           : Column(
               children: [
                 for (final (i, y) in d.yasaklar.indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
@@ -394,7 +395,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Wrap(
-                                spacing: 6,
+                                spacing: 8,
                                 runSpacing: 4,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
@@ -437,7 +438,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
     final enCok = l.isEmpty ? 1 : l.first.dusmanca;
     return BolumKarti(
       baslik: 'En çok deneme yapan adresler',
-      ikon: Icons.terminal_rounded,
+      ikon: Simgeler.terminal,
       altBaslik: 'Son ${d.gun} gün · hatalı ve engellenen denemeler.${d.dusurmeKaydi ? '' : ' Güvenlik duvarının engellediği denemeler kaydedilmiyor; koruma ayarlarından açabilirsiniz.'}',
       sag: Builder(builder: (c) => TextButton(onPressed: () => DefaultTabController.of(c).animateTo(1), child: const Text('Tümü'))),
       child: l.isEmpty
@@ -449,7 +450,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
                     borderRadius: BorderRadius.circular(8),
                     onTap: () => _kayitlar(s.ip),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -457,7 +458,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
                             children: [
                               Expanded(
                                 child: Wrap(
-                                  spacing: 6,
+                                  spacing: 8,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     Text(s.ip, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600, fontSize: 13)),
@@ -465,7 +466,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
                                   ],
                                 ),
                               ),
-                              Text(sayiYaz(s.dusmanca), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              Text(sayiYaz(s.dusmanca), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -488,10 +489,10 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
   }
 
   List<SatirEylemi> _kaynakEylemleri(SunucuErisimi d, SshKaynagi s) => [
-    SatirEylemi(Icons.description_outlined, 'Kayıtlar', () => _kayitlar(s.ip)),
-    SatirEylemi(Icons.copy_rounded, 'IP adresini kopyala', () => kopyala(s.ip, mesaj: 'IP adresi kopyalandı')),
-    if (s.yasakli) SatirEylemi(Icons.lock_open_rounded, 'Yasağı kaldır', () => _yasakKaldir(s.ip)),
-    if (!s.yasakli && !s.izinli && s.ip != d.benimIp) SatirEylemi(Icons.block_rounded, 'Yasakla', () => _yasakla(s.ip), tehlikeli: true),
+    SatirEylemi(Simgeler.description, 'Kayıtlar', () => _kayitlar(s.ip)),
+    SatirEylemi(Simgeler.copy, 'IP adresini kopyala', () => kopyala(s.ip, mesaj: 'IP adresi kopyalandı')),
+    if (s.yasakli) SatirEylemi(Simgeler.lockOpen, 'Yasağı kaldır', () => _yasakKaldir(s.ip)),
+    if (!s.yasakli && !s.izinli && s.ip != d.benimIp) SatirEylemi(Simgeler.block, 'Yasakla', () => _yasakla(s.ip), tehlikeli: true),
   ];
 
   Widget _denemeler(SunucuErisimi d) {
@@ -506,7 +507,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
         if (s.ip == d.benimIp) const Rozet('siz', renk: Marka.mavi),
       ],
     );
-    Widget sayi(int n, Color renk) => Text(sayiYaz(n), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: n > 0 ? renk : r.silik));
+    Widget sayi(int n, Color renk) => Text(sayiYaz(n), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: n > 0 ? renk : r.silik));
     return VeriTablosu<SshKaynagi>(
       yukleyici: _y,
       onTap: (s) => _kayitlar(s.ip),
@@ -518,7 +519,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
         _artan = b;
       }),
       vurgulu: (s) => !s.yasakli && !s.izinli && s.dusmanca >= 20,
-      bosIkon: Icons.terminal_rounded,
+      bosIkon: Simgeler.terminal,
       bosMetin: _q.isEmpty && _suzgec.isEmpty ? 'Kayıtlı SSH denemesi yok.' : 'Eşleşen adres yok.',
       ust: Column(
         mainAxisSize: MainAxisSize.min,
@@ -529,7 +530,7 @@ class _SunucuErisimiEkraniState extends State<SunucuErisimiEkrani> {
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Durum',
-                ikon: Icons.flag_outlined,
+                ikon: Simgeler.flag,
                 secenekler: [('', 'Tümü'), for (final e in suzgecler.entries) (e.key, e.value)],
                 secili: _suzgec,
                 secildi: (v) => _tabloSuz(() => _suzgec = v),
@@ -638,7 +639,7 @@ class _YasakDialogState extends State<YasakDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('IP yasakla', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('IP yasakla', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -670,9 +671,9 @@ class _YasakDialogState extends State<YasakDialog> {
                 'Süre',
                 style: TextStyle(color: context.r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               SecimCipleri<int>(secenekler: [for (final (s, e) in yasakSureleri) (s, e)], secili: _saat, secildi: (v) => setState(() => _saat = v)),
-              if (_hata != null) ...[const SizedBox(height: 12), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+              if (_hata != null) ...[const SizedBox(height: 12), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
             ],
           ),
         ),
@@ -684,7 +685,7 @@ class _YasakDialogState extends State<YasakDialog> {
           onPressed: _mesgul || _ip.text.trim().isEmpty ? null : _kaydet,
           icon: _mesgul
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.block_rounded),
+              : const Icon(Simgeler.block),
           label: const Text('Yasakla'),
         ),
       ],
@@ -739,14 +740,14 @@ class _SshKayitlariState extends State<SshKayitlari> {
                   Expanded(
                     child: Text(
                       widget.ip,
-                      style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700, fontSize: 17),
+                      style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600, fontSize: 17),
                     ),
                   ),
                   if (l != null && l.isNotEmpty)
                     IconButton(
                       tooltip: 'Tümünü kopyala',
                       onPressed: () => kopyala(l.map((o) => o.satir).join('\n'), mesaj: 'Kayıtlar kopyalandı'),
-                      icon: const Icon(Icons.copy_all_rounded),
+                      icon: const Icon(Simgeler.copyAll),
                     ),
                 ],
               ),
@@ -769,11 +770,11 @@ class _SshKayitlariState extends State<SshKayitlari> {
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       itemCount: l.length,
-                      separatorBuilder: (_, _) => Divider(height: 1, color: r.kenar),
+                      separatorBuilder: (_, _) => Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                       itemBuilder: (c, i) {
                         final o = l[i];
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -863,7 +864,7 @@ class _KorumaAyarlariState extends State<KorumaAyarlari> {
     final sureler = {for (final (s, e) in yasakSureleri) s: e, _a.yasakSaat: yasakSuresiEtiketi(_a.yasakSaat)};
     return BolumKarti(
       baslik: 'Koruma ayarları',
-      ikon: Icons.shield_rounded,
+      ikon: Simgeler.shield,
       altBaslik: 'Engellenen denemelerin kaydı ve tekrar tekrar deneyen adreslerin otomatik yasaklanması.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -885,7 +886,7 @@ class _KorumaAyarlariState extends State<KorumaAyarlari> {
             onChanged: (v) => setState(() => _a = _a.kopya(etkin: v)),
             title: const Text('Otomatik yasaklama', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -900,7 +901,7 @@ class _KorumaAyarlariState extends State<KorumaAyarlari> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _pencere,
@@ -922,7 +923,7 @@ class _KorumaAyarlariState extends State<KorumaAyarlari> {
             items: [for (final e in sureler.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
             onChanged: (v) => setState(() => _a = _a.kopya(yasakSaat: v)),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             '${pencere ?? '?'} dakikada ${esik ?? '?'} veya daha fazla hatalı / engellenen SSH denemesi yapan adres yasaklanır. SSH izin listesindeki adresler, sunucunun kendi adresleri ve yerel ağlar hiçbir zaman yasaklanmaz.',
             style: TextStyle(color: r.silik, fontSize: 12),

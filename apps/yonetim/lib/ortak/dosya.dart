@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../oturum.dart';
+import 'simgeler.dart';
 
 // Dosya işlemleri: indirme (oturum çerezleriyle), mobilde paylaşım sayfası, masaüstünde İndirilenler/kaydetme
 // penceresi ve ardından açma; dosya seçme; güvenli HTML önizleme; QR çizimi.
@@ -92,8 +93,8 @@ Future<void> _teslimEt(File f, String ad, String? tur) async {
     await showDialog<void>(
       context: gezgin.context,
       builder: (c) => AlertDialog(
-        icon: Icon(Icons.task_alt_rounded, color: c.r.vurgu, size: 30),
-        title: Text('Dosya hazır', style: gosterim(19, agirlik: FontWeight.w700)),
+        icon: Icon(Simgeler.taskAlt, color: c.r.vurgu, size: 30),
+        title: Text('Dosya hazır', style: gosterim(19, agirlik: FontWeight.w600)),
         content: Text('$ad (${boyutYaz(f.lengthSync())})\nKaydetmek veya göndermek için Paylaş\'ı kullanın.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat')),
@@ -113,7 +114,7 @@ Future<void> _teslimEt(File f, String ad, String? tur) async {
                 bildir('Paylaşılamadı', tur: MesajTur.hata);
               }
             },
-            icon: const Icon(Icons.ios_share_rounded, size: 18),
+            icon: const Icon(Simgeler.iosShare, size: 18),
             label: const Text('Paylaş'),
           ),
         ],
@@ -125,8 +126,8 @@ Future<void> _teslimEt(File f, String ad, String? tur) async {
   await showDialog<void>(
     context: gezgin.context,
     builder: (c) => AlertDialog(
-      icon: Icon(Icons.download_done_rounded, color: c.r.vurgu, size: 30),
-      title: Text('İndirildi', style: gosterim(19, agirlik: FontWeight.w700)),
+      icon: Icon(Simgeler.downloadDone, color: c.r.vurgu, size: 30),
+      title: Text('İndirildi', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SelectableText('${f.path}\n${boyutYaz(f.lengthSync())}'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat')),
@@ -142,7 +143,7 @@ Future<void> _teslimEt(File f, String ad, String? tur) async {
             Navigator.pop(c);
             await dosyayiAc(f.path, tur: tur);
           },
-          icon: const Icon(Icons.open_in_new_rounded, size: 18),
+          icon: const Icon(Simgeler.openInNew, size: 18),
           label: const Text('Aç'),
         ),
       ],
@@ -176,7 +177,7 @@ Future<bool> dosyaIndir(String yol, String ad, {String baslik = 'İndiriliyor', 
     context: gezgin.context,
     barrierDismissible: false,
     builder: (c) => AlertDialog(
-      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
       content: ValueListenableBuilder<(int, int)>(
         valueListenable: ilerleme,
         builder: (_, n, _) => Column(
@@ -297,7 +298,7 @@ class HtmlOnizleme extends StatelessWidget {
     final Widget icerik;
     if (!htmlGorunumuVar) {
       icerik = SingleChildScrollView(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: SelectableText(htmlDuzMetin(html), style: const TextStyle(color: Color(0xFF111111), height: 1.45)),
       );
     } else {
@@ -364,7 +365,7 @@ class QrKodu extends StatelessWidget {
       child: Container(
         width: boyut,
         height: boyut,
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
         child: CustomPaint(painter: _QrBoyayici(img)),
       ),

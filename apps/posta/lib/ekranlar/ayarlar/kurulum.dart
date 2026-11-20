@@ -65,7 +65,7 @@ class _OzelliklerKarti extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.r;
     return AyarKarti(
-      ikon: Icons.workspace_premium_outlined,
+      ikon: Simge.paket,
       baslik: 'Paketinizdeki özellikler',
       aciklama: 'Kurumunuzun e-posta paketinde size açık olan özellikler.',
       child: LayoutBuilder(
@@ -88,7 +88,7 @@ class _OzelliklerKarti extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Icon(a.ozellik(e.key) ? Icons.check_circle_rounded : Icons.cancel_outlined, size: 18, color: a.ozellik(e.key) ? Marka.zumrut : r.silik),
+                        Icon(a.ozellik(e.key) ? Simge.basari : Simge.iptal, size: 18, color: a.ozellik(e.key) ? Marka.zumrut : r.silik),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(e.value, style: TextStyle(fontSize: 13.5, color: a.ozellik(e.key) ? r.metin : r.silik)),
@@ -154,7 +154,7 @@ class _ProgramKarti extends StatelessWidget {
               Icon(i, size: 18, color: r.vurgu),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(baslik, style: const TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(baslik, style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -165,7 +165,7 @@ class _ProgramKarti extends StatelessWidget {
       ),
     );
     return AyarKarti(
-      ikon: Icons.devices_rounded,
+      ikon: Simge.cihazlar,
       baslik: 'Posta programına kur',
       aciklama: 'Hesabınızı Apple Mail, Outlook, Thunderbird veya telefonunuzun posta uygulamasına ekleyin.',
       child: !imap
@@ -185,24 +185,24 @@ class _ProgramKarti extends StatelessWidget {
                   dikeyAralik: 10,
                   children: [
                     kart(
-                      Icons.phone_iphone_rounded,
+                      Simge.telefon,
                       'iPhone, iPad ve Mac (Apple Mail)',
                       'Kurulum profilini indirip açın; posta hesabınız${dav ? ', takviminiz ve kişileriniz' : ''} otomatik eklenir. Şifreniz dosyada yer almaz, kurulum sırasında sorulur.',
                       eylem: FilledButton.tonalIcon(
                         key: const ValueKey('apple-profili'),
                         onPressed: _appleProfili,
-                        icon: const Icon(Icons.download_rounded, size: 18),
+                        icon: const Icon(Simge.indir, size: 18),
                         label: const Text('Kurulum profilini indir'),
                       ),
                     ),
                     kart(
-                      Icons.computer_rounded,
+                      Simge.bilgisayar,
                       'Outlook, Thunderbird, Android',
                       'Yeni hesap eklerken "elle yapılandır" seçeneğini seçin ve aşağıdaki bilgileri girin. Tümünü tek seferde kopyalayabilirsiniz.',
                       eylem: OutlinedButton.icon(
                         key: const ValueKey('ayarlari-kopyala'),
                         onPressed: () => kopyala(_metin, mesaj: 'Ayarlar kopyalandı'),
-                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        icon: const Icon(Simge.kopyala, size: 18),
                         label: const Text('Ayarları kopyala'),
                       ),
                     ),
@@ -228,7 +228,7 @@ class _BilgiKutusu extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(baslik, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+          Text(baslik, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
           const SizedBox(height: 6),
           for (final (k, v) in satirlar)
             Padding(
@@ -282,7 +282,7 @@ class _BaglantiKarti extends StatelessWidget {
         'Sunucu sertifikası henüz kendinden imzalı: posta programınız ilk bağlantıda güvenlik uyarısı gösterebilir; sertifikayı kabul etmeniz gerekir.',
     ];
     return AyarKarti(
-      ikon: Icons.settings_ethernet_rounded,
+      ikon: Simge.kurulum,
       baslik: 'Bağlantı ayarları',
       aciklama: 'Outlook, Thunderbird veya telefon posta uygulaması için gereken bilgiler.',
       sag: DurumRozeti(imap ? 'Kullanılabilir' : (b.imapAcik ? 'Paketinizde kapalı' : 'Henüz kullanılamıyor'), acik: imap),
@@ -365,7 +365,7 @@ class _DavKarti extends StatelessWidget {
     final r = context.r;
     final url = '${Uyg.api.sunucu.replaceAll(RegExp(r'/+$'), '')}${b.davYolu}';
     return AyarKarti(
-      ikon: Icons.event_repeat_rounded,
+      ikon: Simge.yinelenen,
       baslik: 'Takvim ve kişi eşitleme (CalDAV/CardDAV)',
       aciklama: 'Telefonunuzun ve bilgisayarınızın takvim/kişiler uygulamasını takviminiz ve rehberinizle eşitleyin.',
       sag: DurumRozeti(acik ? 'Kullanılabilir' : 'Paketinizde yok', acik: acik),
@@ -394,7 +394,7 @@ class _DavKarti extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
                     onPressed: () => kopyala(url, mesaj: 'Sunucu adresi kopyalandı'),
-                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    icon: const Icon(Simge.kopyala, size: 18),
                     label: const Text('Sunucu adresini kopyala'),
                   ),
                 ),
@@ -419,7 +419,7 @@ class _DavKarti extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(e.key, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                                  Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                                   const SizedBox(height: 4),
                                   Text(e.value, style: TextStyle(color: r.soluk, fontSize: 12.5, height: 1.4)),
                                 ],

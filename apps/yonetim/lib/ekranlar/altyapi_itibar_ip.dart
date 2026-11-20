@@ -8,6 +8,7 @@ import '../oturum.dart';
 import '../ortak/bilesenler.dart';
 import '../veri/json.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
 
 const _kullanimMetinleri = {'shared': 'Paylaşımlı', 'dedicated': 'Müşteriye özel', 'pool': 'IP havuzu', 'plan': 'Paket IP\'si', 'idle': 'Kullanılmıyor'};
 const dereceMetinleri = {'iyi': 'İyi', 'orta': 'Orta', 'zayif': 'Zayıf', 'kritik': 'Kritik', 'bilinmiyor': 'Bilinmiyor'};
@@ -28,11 +29,11 @@ class DurumSimgesi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (ikon, renk) = switch (durum) {
-      'ok' => (Icons.check_circle_rounded, Marka.zumrut),
-      'warn' => (Icons.warning_amber_rounded, Marka.kehribar),
-      'fail' => (Icons.cancel_rounded, Marka.gul),
-      'info' => (Icons.info_outline_rounded, context.r.silik),
-      _ => (Icons.help_outline_rounded, context.r.silik),
+      'ok' => (Simgeler.checkCircle, Marka.zumrut),
+      'warn' => (Simgeler.warningAmber, Marka.kehribar),
+      'fail' => (Simgeler.cancel, Marka.gul),
+      'info' => (Simgeler.infoOutline, context.r.silik),
+      _ => (Simgeler.helpOutline, context.r.silik),
     };
     return Icon(ikon, size: boyut, color: renk);
   }
@@ -61,10 +62,10 @@ class PuanHalkasi extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(puan == null ? '—' : '$v', style: gosterim(28, renk: r.metin)),
+                Text(puan == null ? '—' : '$v', style: gosterim(28, agirlik: FontWeight.w600, renk: r.metin)),
                 Text(
                   dereceMetinleri[derece] ?? derece,
-                  style: TextStyle(color: dereceRengi(context, derece), fontSize: 12, fontWeight: FontWeight.w700),
+                  style: TextStyle(color: dereceRengi(context, derece), fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -89,7 +90,7 @@ class PuanKarti extends StatelessWidget {
     final faktorler = haritalar(s['factors']);
     return BolumKarti(
       baslik: 'İtibar puanı · ${metin(ip['address'])}',
-      ikon: Icons.star_outline_rounded,
+      ikon: Simgeler.starOutline,
       altBaslik: 'Ölçülebilen faktörlerin ağırlıklı ortalaması (0–100). Kapsam: %${tamsayi(s['coverage'])}; ölçülemeyen faktörler (gri) puana katılmaz.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -115,7 +116,7 @@ class PuanKarti extends StatelessWidget {
                       'Derece: 85+ İyi · 70–84 Orta · 50–69 Zayıf · <50 Kritik. ${metin(ip['attribution'])}',
                       style: TextStyle(color: r.soluk, fontSize: 12),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     _PuanGecmisi(gecmis: haritalar(ip['history'])),
                   ],
                 ),
@@ -124,7 +125,7 @@ class PuanKarti extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           for (final (i, f) in faktorler.indexed) ...[
-            if (i > 0) Divider(height: 1, color: r.kenar),
+            if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
@@ -152,7 +153,7 @@ class PuanKarti extends StatelessWidget {
                     children: [
                       Text(
                         metin(f['status']) == 'unknown' ? '—' : _puanYaz(ondalik(f['points'])),
-                        style: TextStyle(color: r.metin, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: r.metin, fontWeight: FontWeight.w600),
                       ),
                       Text('/ ${tamsayi(f['weight'])}', style: TextStyle(color: r.silik, fontSize: 11)),
                     ],
@@ -230,13 +231,13 @@ class OnerilerKarti extends StatelessWidget {
     final r = context.r;
     return BolumKarti(
       baslik: 'Öneriler',
-      ikon: Icons.lightbulb_outline_rounded,
+      ikon: Simgeler.lightbulbOutline,
       altBaslik: 'Ölçülen sorunlardan üretilir; önem sırasına göre.',
       child: oneriler.isEmpty
           ? const Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: Marka.zumrut, size: 18),
-                SizedBox(width: 6),
+                Icon(Simgeler.checkCircle, color: Marka.zumrut, size: 18),
+                SizedBox(width: 8),
                 Text('Ölçülen bir sorun yok.', style: TextStyle(color: Marka.zumrut)),
               ],
             )
@@ -259,7 +260,7 @@ class OnerilerKarti extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
-                              sev == 'critical' ? Icons.report_rounded : (sev == 'warning' ? Icons.warning_amber_rounded : Icons.info_outline_rounded),
+                              sev == 'critical' ? Simgeler.report : (sev == 'warning' ? Simgeler.warningAmber : Simgeler.infoOutline),
                               color: renk,
                               size: 18,
                             ),
@@ -270,7 +271,7 @@ class OnerilerKarti extends StatelessWidget {
                                 children: [
                                   Text(
                                     metin(o['title']),
-                                    style: TextStyle(color: r.metin, fontWeight: FontWeight.w700, fontSize: 13.5),
+                                    style: TextStyle(color: r.metin, fontWeight: FontWeight.w600, fontSize: 13.5),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(metin(o['detail']), style: TextStyle(color: r.soluk, fontSize: 12.5)),
@@ -278,7 +279,7 @@ class OnerilerKarti extends StatelessWidget {
                                   Text.rich(
                                     TextSpan(
                                       text: 'Yapılacak: ',
-                                      style: const TextStyle(fontWeight: FontWeight.w700),
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
                                       children: [
                                         TextSpan(
                                           text: metin(o['fix']),
@@ -360,7 +361,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
     final r = c.r;
     final baslik = Text(
       'Ters DNS ve HELO',
-      style: TextStyle(color: r.metin, fontWeight: FontWeight.w700),
+      style: TextStyle(color: r.metin, fontWeight: FontWeight.w600),
     );
     if (rap == null) {
       return Column(
@@ -421,12 +422,12 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
           children: [
             Text(
               'Kara listeler (DNSBL)',
-              style: TextStyle(color: r.metin, fontWeight: FontWeight.w700),
+              style: TextStyle(color: r.metin, fontWeight: FontWeight.w600),
             ),
             if (rap?['dnsbl'] is List) Rozet(listede > 0 ? '$listede listede' : 'listede değil', renk: listede > 0 ? Marka.gul : Marka.zumrut),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         if (dnsbl.isEmpty)
           Text('Henüz sorgulanmadı.', style: TextStyle(color: r.soluk, fontSize: 13))
         else
@@ -438,7 +439,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
             child: Column(
               children: [
                 for (final (i, d) in dnsbl.indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   Builder(
                     builder: (c) {
                       final zon = metin(d['zone']);
@@ -448,7 +449,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
                       final aciklama = metinYa(d['meaning']) ?? (durum == 'listed' ? metinYa(d['detail']) : null);
                       final kaldir = metinYa(z['delist']);
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -473,7 +474,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
                                   _blMetin[durum] ?? durum,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: durum == 'listed' ? FontWeight.w700 : FontWeight.w500,
+                                    fontWeight: durum == 'listed' ? FontWeight.w600 : FontWeight.w500,
                                     color: switch (durum) {
                                       'clean' => Marka.zumrut,
                                       'listed' => Marka.gul,
@@ -490,7 +491,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
                               TextButton.icon(
                                 style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
                                 onPressed: () => adresAc(Uri.parse(kaldir)),
-                                icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                                icon: const Icon(SimgelerKalin.openInNew, size: 14),
                                 label: const Text('Kaldırma sayfası', style: TextStyle(fontSize: 12)),
                               ),
                           ],
@@ -502,7 +503,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
               ],
             ),
           ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           'Sorgular sistem DNS çözücüsü üzerinden yapılır ve en az 30 dk önbelleğe alınır'
           '${tarihOku(rap?['dnsbl_checked_at']) != null ? ' · son sorgu ${tamZaman(tarihOku(rap?['dnsbl_checked_at']))}' : ''}'
@@ -521,7 +522,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
     final kullanim = metin(ip['usage']);
     Widget kutu(String e, String d, [Color? renk]) => Expanded(
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: r.kenar),
@@ -530,7 +531,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(e, style: TextStyle(color: r.soluk, fontSize: 11.5)),
-            Text(d, style: gosterim(18, renk: renk ?? r.metin)),
+            Text(d, style: gosterim(18, agirlik: FontWeight.w600, renk: renk ?? r.metin)),
           ],
         ),
       ),
@@ -540,9 +541,9 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
       children: [
         Text(
           'Isınma ve hacim',
-          style: TextStyle(color: r.metin, fontWeight: FontWeight.w700),
+          style: TextStyle(color: r.metin, fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
@@ -566,14 +567,14 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
           Row(
             children: [
               kutu('teslim', sayiYaz(tamsayi(ip['delivered_7d'])), Marka.zumrut),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               kutu('kalıcı hata', sayiYaz(tamsayi(ip['hard_7d'])), Marka.gul),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               kutu('geçici hata', sayiYaz(tamsayi(ip['soft_7d'])), Marka.kehribar),
             ],
           ),
         ],
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           'Sayılar: uzak sunucudan kesin yanıt alınan alıcılar (teslim + kalıcı/süresi dolmuş geri dönme). ${metin(ip['attribution'])}',
           style: TextStyle(color: r.silik, fontSize: 11.5),
@@ -591,18 +592,18 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
     final denetim = tarihOku(ip['checked_at']);
     return BolumKarti(
       baslik: metin(ip['address']),
-      ikon: Icons.lan_outlined,
+      ikon: Simgeler.lan,
       sag: OutlinedButton.icon(
         onPressed: _mesgul ? null : _denetle,
-        icon: _mesgul ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh_rounded, size: 18),
+        icon: _mesgul ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Simgeler.refresh, size: 18),
         label: const Text('Denetle'),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               if (!mantik(ip['enabled'], true)) Rozet('devre dışı', renk: r.soluk),
               Rozet(_kullanimMetinleri[kullanim] ?? kullanim, renk: kullanim == 'idle' ? r.soluk : Marka.mor),
@@ -611,7 +612,7 @@ class _IpSaglikKartiState extends State<IpSaglikKarti> {
               if (metinYa(ip['plan_name']) != null) Rozet('paket: ${metin(ip['plan_name'])}', renk: r.soluk),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'HELO ${metin(ip['helo_name'])} · ${metin(ip['role']) == 'both' ? 'gelen + giden' : 'giden'} · havuz ${metin(ip['pool'])}'
             '${denetim != null ? ' · son denetim ${goreliZaman(denetim)}' : ' · henüz denetlenmedi'}',

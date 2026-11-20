@@ -64,7 +64,7 @@ class OdaSimgesi extends StatelessWidget {
         borderRadius: BorderRadius.circular(boyut * .3),
       ),
       alignment: Alignment.center,
-      child: oda.kanal ? Text('#', style: gosterim(boyut * .48, renk: r.vurgu)) : Icon(Icons.groups_rounded, color: Avatar.renkFor(oda.id), size: boyut * .55),
+      child: oda.kanal ? Text('#', style: gosterim(boyut * .48, renk: r.vurgu)) : Icon(Simge.gruplar, color: Avatar.renkFor(oda.id), size: boyut * .55),
     );
   }
 }
@@ -81,7 +81,7 @@ class SayiHapi extends StatelessWidget {
     child: Text(
       sayi > 99 ? '99+' : '$sayi',
       textAlign: TextAlign.center,
-      style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w800),
+      style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
     ),
   );
 }

@@ -53,14 +53,14 @@ class PlanlananlarEkrani extends StatelessWidget {
     altBaslik: '"Daha sonra gönder" ile zamanladığınız iletiler. Bekleyenlerin zamanını değiştirebilir veya iptal edebilirsiniz.',
     yukle: Hesap.planlananlar,
     govde: (context, l, yenile) {
-      if (l.isEmpty) return [const BosKart('Planlanmış gönderim yok.', ikon: Icons.schedule_send_outlined)];
+      if (l.isEmpty) return [const BosKart('Planlanmış gönderim yok.', ikon: Simge.planliGonder)];
       final r = context.r;
       return [
         KartListe(
           children: [
             for (final p in l)
               ListTile(
-                leading: Icon(Icons.schedule_send_rounded, color: r.vurgu),
+                leading: Icon(Simge.planliGonder, color: r.vurgu),
                 title: Text(p.konu.trim().isEmpty ? '(konu yok)' : p.konu, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,7 +71,7 @@ class PlanlananlarEkrani extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 4,
                       children: [
-                        Rozet(_zaman(p.zaman), ikon: Icons.event_rounded, renk: r.vurgu),
+                        Rozet(_zaman(p.zaman), ikon: Simge.etkinlik, renk: r.vurgu),
                         Rozet(_durumlar[p.durum]?.$1 ?? p.durum, renk: _durumlar[p.durum]?.$2 ?? Marka.mavi),
                       ],
                     ),
@@ -98,12 +98,12 @@ class PlanlananlarEkrani extends StatelessWidget {
                         itemBuilder: (_) => const [
                           PopupMenuItem(
                             value: 'zaman',
-                            child: ListTile(leading: Icon(Icons.edit_calendar_rounded), title: Text('Zamanı değiştir')),
+                            child: ListTile(leading: Icon(Simge.takvimDuzenle), title: Text('Zamanı değiştir')),
                           ),
                           PopupMenuItem(
                             value: 'iptal',
                             child: ListTile(
-                              leading: Icon(Icons.cancel_schedule_send_outlined, color: Marka.gul),
+                              leading: Icon(Simge.planIptal, color: Marka.gul),
                               title: Text('Gönderimi iptal et'),
                             ),
                           ),
@@ -171,7 +171,7 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, yenile) => AlertDialog(
-          title: Text(k == null || k.id.isEmpty ? 'Yeni kişi' : 'Kişiyi düzenle', style: gosterim(19, agirlik: FontWeight.w700)),
+          title: Text(k == null || k.id.isEmpty ? 'Yeni kişi' : 'Kişiyi düzenle', style: gosterim(19, agirlik: FontWeight.w600)),
           content: SizedBox(
             width: 420,
             child: SingleChildScrollView(
@@ -249,11 +249,7 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
     final l = _l;
     return Scaffold(
       appBar: AppBar(title: const Text('Kişiler')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _duzenle(),
-        icon: const Icon(Icons.person_add_alt_1_rounded),
-        label: const Text('Kişi ekle'),
-      ),
+      floatingActionButton: FloatingActionButton.extended(onPressed: () => _duzenle(), icon: const Icon(Simge.kisiEkle), label: const Text('Kişi ekle')),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -267,7 +263,7 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _yukle(),
                   onChanged: (_) => _yukle(),
-                  decoration: const InputDecoration(hintText: 'Ad, adres veya şirket ara', prefixIcon: Icon(Icons.search_rounded), isDense: true),
+                  decoration: const InputDecoration(hintText: 'Ad, adres veya şirket ara', prefixIcon: Icon(Simge.ara), isDense: true),
                 ),
               ),
               SizedBox(
@@ -306,7 +302,7 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                           children: [
                             if (l.isEmpty)
-                              const BosKart('Kişi bulunamadı. Yazıştığınız adresler otomatik olarak eklenir.', ikon: Icons.contacts_outlined)
+                              const BosKart('Kişi bulunamadı. Yazıştığınız adresler otomatik olarak eklenir.', ikon: Simge.kisiler)
                             else ...[
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
@@ -353,7 +349,7 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
         children: [
           IconButton(
             tooltip: k.favori ? 'Favorilerden çıkar' : 'Favorilere ekle',
-            icon: Icon(k.favori ? Icons.star_rounded : Icons.star_border_rounded, color: k.favori ? Marka.kehribar : r.silik),
+            icon: Icon(k.favori ? Simge.yildizDolu : Simge.yildiz, color: k.favori ? Marka.kehribar : r.silik),
             onPressed: () async {
               await islem(() => Hesap.kisiKaydet(k.kopya(favori: !k.favori)));
               await _yukle();
@@ -361,7 +357,7 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
           ),
           IconButton(
             tooltip: 'Sil',
-            icon: Icon(Icons.delete_outline_rounded, color: r.silik),
+            icon: Icon(Simge.sil, color: r.silik),
             onPressed: () async {
               if (!await onayla(context, '"$ad" silinsin mi?', evet: 'Sil', tehlikeli: true)) return;
               await islem(() => Hesap.kisiSil(k.id), tamam: 'Kişi silindi');
@@ -402,40 +398,33 @@ class _GondericiListeleriEkraniState extends State<GondericiListeleriEkrani> {
     baslik: 'Güvenilir ve engelli gönderenler',
     altBaslik: 'Engellenen gönderenlerin iletileri doğrudan Gereksiz klasörüne gider. Güvenilir gönderenler hiçbir zaman gereksiz sayılmaz.',
     yukle: Hesap.gondericiListeleri,
-    fab: (context, yenile) => FloatingActionButton.extended(onPressed: () => _ekle(yenile), icon: const Icon(Icons.add_rounded), label: const Text('Ekle')),
+    fab: (context, yenile) => FloatingActionButton.extended(onPressed: () => _ekle(yenile), icon: const Icon(Simge.ekle), label: const Text('Ekle')),
     govde: (context, l, yenile) {
       final r = context.r;
       final secili = l.where((k) => k.tur == _tur).toList();
       return [
         SegmentedButton<String>(
           segments: [
-            ButtonSegment(value: 'block', icon: const Icon(Icons.block_rounded), label: Text('Engelli (${l.where((k) => k.tur == 'block').length})')),
-            ButtonSegment(
-              value: 'allow',
-              icon: const Icon(Icons.verified_user_outlined),
-              label: Text('Güvenilir (${l.where((k) => k.tur == 'allow').length})'),
-            ),
+            ButtonSegment(value: 'block', icon: const Icon(Simge.engelle), label: Text('Engelli (${l.where((k) => k.tur == 'block').length})')),
+            ButtonSegment(value: 'allow', icon: const Icon(Simge.guvenli), label: Text('Güvenilir (${l.where((k) => k.tur == 'allow').length})')),
           ],
           selected: {_tur},
           onSelectionChanged: (s) => setState(() => _tur = s.first),
         ),
         const SizedBox(height: 12),
         if (secili.isEmpty)
-          BosKart(
-            _tur == 'block' ? 'Engellenmiş gönderen yok.' : 'Güvenilir gönderen yok.',
-            ikon: _tur == 'block' ? Icons.block_rounded : Icons.verified_user_outlined,
-          )
+          BosKart(_tur == 'block' ? 'Engellenmiş gönderen yok.' : 'Güvenilir gönderen yok.', ikon: _tur == 'block' ? Simge.engelle : Simge.guvenli)
         else
           KartListe(
             children: [
               for (final k in secili)
                 ListTile(
-                  leading: Icon(_tur == 'block' ? Icons.block_rounded : Icons.verified_user_rounded, color: _tur == 'block' ? Marka.gul : Marka.zumrut),
+                  leading: Icon(_tur == 'block' ? Simge.engelle : Simge.guvenli, color: _tur == 'block' ? Marka.gul : Marka.zumrut),
                   title: Text(k.deger),
                   subtitle: k.tarih == null ? null : Text('Eklenme: ${_zaman(k.tarih)}'),
                   trailing: IconButton(
                     tooltip: 'Listeden çıkar',
-                    icon: Icon(Icons.close_rounded, color: r.silik),
+                    icon: Icon(Simge.kapat, color: r.silik),
                     onPressed: () async {
                       await islem(() => Hesap.gondericiSil(k.id), tamam: 'Listeden çıkarıldı');
                       await yenile();
@@ -490,7 +479,7 @@ class _YonlendirmeEkraniState extends State<YonlendirmeEkrani> {
             children: [
               Row(
                 children: [
-                  Icon(y.adres.isEmpty ? Icons.forward_to_inbox_outlined : Icons.forward_to_inbox_rounded, color: y.adres.isEmpty ? r.silik : r.vurgu),
+                  Icon(y.adres.isEmpty ? Simge.yonlendir : Simge.yonlendir, color: y.adres.isEmpty ? r.silik : r.vurgu),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -568,13 +557,13 @@ class KarantinaEkrani extends StatelessWidget {
     altBaslik: 'Güvenlik taramasında tutulan ve size teslim edilmeyen iletiler. Serbest bırakılması için yöneticinize başvurun.',
     yukle: Hesap.karantina,
     govde: (context, l, _) {
-      if (l.isEmpty) return [const BosKart('Karantinada ileti yok.', ikon: Icons.shield_outlined)];
+      if (l.isEmpty) return [const BosKart('Karantinada ileti yok.', ikon: Simge.kalkan)];
       return [
         KartListe(
           children: [
             for (final k in l)
               ListTile(
-                leading: const Icon(Icons.gpp_maybe_outlined, color: Marka.kehribar),
+                leading: const Icon(Simge.gereksiz, color: Marka.kehribar),
                 title: Text(k.konu.trim().isEmpty ? '(konu yok)' : k.konu, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text('${k.gonderen}\n${k.neden} · ${_zaman(k.tarih)}${k.bitis == null ? '' : ' · Silinme: ${_zaman(k.bitis)}'}'),
                 isThreeLine: true,
@@ -613,8 +602,8 @@ class _GonderimDurumuEkraniState extends State<GonderimDurumuEkrani> {
     govde: (context, l, _) => [
       SegmentedButton<String>(
         segments: const [
-          ButtonSegment(value: 'out', icon: Icon(Icons.north_east_rounded), label: Text('Gönderilen')),
-          ButtonSegment(value: 'in', icon: Icon(Icons.south_west_rounded), label: Text('Gelen')),
+          ButtonSegment(value: 'out', icon: Icon(Simge.gidenOk), label: Text('Gönderilen')),
+          ButtonSegment(value: 'in', icon: Icon(Simge.gelenOk), label: Text('Gelen')),
         ],
         selected: {_yon},
         onSelectionChanged: (s) => setState(() => _yon = s.first),
@@ -624,11 +613,11 @@ class _GonderimDurumuEkraniState extends State<GonderimDurumuEkrani> {
         controller: TextEditingController(text: _q),
         textInputAction: TextInputAction.search,
         onSubmitted: (v) => setState(() => _q = v.trim()),
-        decoration: const InputDecoration(hintText: 'Adres veya konu ara', prefixIcon: Icon(Icons.search_rounded), isDense: true),
+        decoration: const InputDecoration(hintText: 'Adres veya konu ara', prefixIcon: Icon(Simge.ara), isDense: true),
       ),
       const SizedBox(height: 12),
       if (l.isEmpty)
-        const BosKart('Kayıt bulunamadı.', ikon: Icons.local_shipping_outlined)
+        const BosKart('Kayıt bulunamadı.', ikon: Simge.kargo)
       else
         KartListe(
           children: [
@@ -676,16 +665,16 @@ class YedeklerEkrani extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('${_zaman(y.tarih)} yedeğini geri yükle', style: gosterim(17, agirlik: FontWeight.w700)),
+              child: Text('${_zaman(y.tarih)} yedeğini geri yükle', style: gosterim(17, agirlik: FontWeight.w600)),
             ),
             ListTile(
-              leading: const Icon(Icons.create_new_folder_outlined),
+              leading: const Icon(Simge.klasorEkle),
               title: const Text('Ayrı bir klasöre'),
               subtitle: const Text('Önerilen: iletiler "Geri yüklenenler" altında yeni bir klasöre konur.'),
               onTap: () => Navigator.pop(c, 'restore_folder'),
             ),
             ListTile(
-              leading: const Icon(Icons.settings_backup_restore_rounded),
+              leading: const Icon(Simge.geriYukle),
               title: const Text('Özgün klasörlerine'),
               subtitle: const Text('Eksik iletiler eski yerlerine döner; var olanlar tekrarlanmaz.'),
               onTap: () => Navigator.pop(c, 'original'),
@@ -718,13 +707,13 @@ class YedeklerEkrani extends StatelessWidget {
           child: Text('Yedekler ${v.saklama} gün saklanır.', style: TextStyle(color: context.r.soluk)),
         ),
       if (v.ogeler.isEmpty)
-        const BosKart('Henüz yedek yok.', ikon: Icons.backup_outlined)
+        const BosKart('Henüz yedek yok.', ikon: Simge.yedek)
       else
         KartListe(
           children: [
             for (final y in v.ogeler)
               ListTile(
-                leading: Icon(Icons.backup_rounded, color: context.r.vurgu),
+                leading: Icon(Simge.yedek, color: context.r.vurgu),
                 title: Text(_zaman(y.tarih)),
                 subtitle: Text('${sayiYaz(y.ileti)} ileti · ${boyutYaz(y.boyut)}'),
                 trailing: TextButton(onPressed: () => _geriYukle(context, y), child: const Text('Geri yükle')),
@@ -758,7 +747,7 @@ class EtiketlerEkrani extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 20,
                     backgroundColor: e.value,
-                    child: e.key == mevcut ? const Icon(Icons.check_rounded, color: Colors.white) : null,
+                    child: e.key == mevcut ? const Icon(Simge.onay, color: Colors.white) : null,
                   ),
                 ),
               ),
@@ -804,7 +793,7 @@ class EtiketlerEkrani extends StatelessWidget {
                         child: CircleAvatar(
                           radius: 16,
                           backgroundColor: e.value,
-                          child: e.key == renk ? const Icon(Icons.check_rounded, color: Colors.white, size: 18) : null,
+                          child: e.key == renk ? const Icon(Simge.onay, color: Colors.white, size: 18) : null,
                         ),
                       ),
                     ),
@@ -834,11 +823,11 @@ class EtiketlerEkrani extends StatelessWidget {
         PostaDurum.ben.sayilariYenile(listeler: false);
         await yenile();
       },
-      icon: const Icon(Icons.new_label_outlined),
+      icon: const Icon(Simge.etiketEkle),
       label: const Text('Etiket ekle'),
     ),
     govde: (context, l, yenile) {
-      if (l.isEmpty) return [const BosKart('Henüz etiket yok.', ikon: Icons.label_outline_rounded)];
+      if (l.isEmpty) return [const BosKart('Henüz etiket yok.', ikon: Simge.etiket)];
       Future<void> sonra() async {
         PostaDurum.ben.sayilariYenile(listeler: false);
         await yenile();
@@ -849,7 +838,7 @@ class EtiketlerEkrani extends StatelessWidget {
           children: [
             for (final e in l)
               ListTile(
-                leading: Icon(Icons.label_rounded, color: etiketRengi(e.renk)),
+                leading: Icon(Simge.etiket, color: etiketRengi(e.renk)),
                 title: Text(e.ad),
                 subtitle: Text('${sayiYaz(e.toplam)} ileti${e.okunmamis > 0 ? ' · ${sayiYaz(e.okunmamis)} okunmamış' : ''}'),
                 trailing: PopupMenuButton<String>(
@@ -882,16 +871,16 @@ class EtiketlerEkrani extends StatelessWidget {
                   itemBuilder: (_) => const [
                     PopupMenuItem(
                       value: 'ad',
-                      child: ListTile(leading: Icon(Icons.drive_file_rename_outline), title: Text('Yeniden adlandır')),
+                      child: ListTile(leading: Icon(Simge.yenidenAdlandir), title: Text('Yeniden adlandır')),
                     ),
                     PopupMenuItem(
                       value: 'renk',
-                      child: ListTile(leading: Icon(Icons.palette_outlined), title: Text('Rengi değiştir')),
+                      child: ListTile(leading: Icon(Simge.palet), title: Text('Rengi değiştir')),
                     ),
                     PopupMenuItem(
                       value: 'sil',
                       child: ListTile(
-                        leading: Icon(Icons.delete_outline_rounded, color: Marka.gul),
+                        leading: Icon(Simge.sil, color: Marka.gul),
                         title: Text('Sil'),
                       ),
                     ),

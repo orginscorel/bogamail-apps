@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:yonetim/ekranlar/bayiler.dart';
 import 'package:yonetim/ekranlar/yoneticiler.dart';
+import 'package:yonetim/ortak/simgeler.dart';
 import 'package:yonetim/oturum.dart';
 
 import 'sahte_api.dart';
@@ -43,7 +44,7 @@ void main() {
   /// Listenin ilk satırının "⋮" menüsünü açar (testlerde silinecek bayi ilk sıradadır).
   Future<void> satirMenusu(WidgetTester t, String ad) async {
     expect(find.text(ad), findsWidgets);
-    await t.tap(find.byIcon(Icons.more_vert_rounded).first);
+    await t.tap(find.byIcon(Simgeler.moreVert).first);
     await t.pumpAndSettle();
   }
 

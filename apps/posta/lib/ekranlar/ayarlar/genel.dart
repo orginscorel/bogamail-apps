@@ -19,7 +19,7 @@ class GenelAyari extends StatelessWidget {
         children: [
           _GeriAlKarti(a: a, kaydet: kaydet),
           AyarKarti(
-            ikon: Icons.dns_outlined,
+            ikon: Simge.sunucu,
             baslik: 'Sunucu',
             aciklama: 'Bu uygulamanın bağlandığı BogaMail sunucusu.',
             child: InkWell(
@@ -29,7 +29,7 @@ class GenelAyari extends StatelessWidget {
                   Expanded(
                     child: SelectableText(Uyg.api.sunucu, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
                   ),
-                  const Icon(Icons.copy_rounded, size: 18),
+                  const Icon(Simge.kopyala, size: 18),
                 ],
               ),
             ),
@@ -98,7 +98,7 @@ class _GenelFormState extends State<_GenelForm> {
   Widget build(BuildContext context) {
     final ps = _ps;
     return AyarKarti(
-      ikon: Icons.tune_rounded,
+      ikon: Simge.ayarlarInce,
       baslik: 'Genel',
       aciklama: 'Adınızın nasıl görüneceği ve ileti listesinin düzeni.',
       alt: KaydetDugmesi(key: const ValueKey('genel-kaydet'), etkin: _kirli && ps != null && _adGecerli, mesgul: _mesgul, basildi: _gonder),
@@ -174,7 +174,7 @@ class _GeriAlKartiState extends State<_GeriAlKarti> {
   bool _mesgul = false;
   @override
   Widget build(BuildContext context) => AyarKarti(
-    ikon: Icons.undo_rounded,
+    ikon: Simge.geriAl,
     baslik: 'Gönderimi geri al',
     aciklama: 'Gönder\'e bastıktan sonra ileti bu süre boyunca sunucuda bekletilir; "Geri al" ile taslağa döner.',
     child: SecimCipleri<int>(

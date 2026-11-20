@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../oturum.dart';
 import '../ortak/secimler.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 /// Müşteri filtresi çipi (ortak/platform yöneticisi için): seçiliyken dokununca ya da çarpıyla kaldırılır.
 class MusteriFiltresi extends StatelessWidget {
@@ -24,7 +25,7 @@ class MusteriFiltresi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InputChip(
-    avatar: const Icon(Icons.business_rounded, size: 17),
+    avatar: const Icon(Simgeler.business, size: 17),
     label: Text(ad ?? 'Tüm müşteriler'),
     selected: ad != null,
     showCheckmark: false,
@@ -54,15 +55,15 @@ class KapsamSecici extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Kapsam', style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
-          runSpacing: 6,
+          runSpacing: 8,
           children: [
             if (platform)
               ChoiceChip(label: const Text('Tüm platform'), selected: orgId == null, showCheckmark: false, onSelected: (_) => degisti(null, null)),
             ChoiceChip(
-              avatar: const Icon(Icons.business_rounded, size: 16),
+              avatar: const Icon(SimgelerKalin.business, size: 16),
               label: Text(orgAdi ?? 'Müşteri seçin'),
               selected: orgId != null,
               showCheckmark: false,
@@ -155,7 +156,7 @@ Future<void> ayrintiGoster(BuildContext context, {required String baslik, String
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(baslik, style: gosterim(18, agirlik: FontWeight.w700)),
+          Text(baslik, style: gosterim(18, agirlik: FontWeight.w600)),
           if (alt != null) Text(alt, style: TextStyle(color: c.r.silik, fontSize: 12.5, fontWeight: FontWeight.w500)),
         ],
       ),

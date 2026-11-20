@@ -11,6 +11,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'ekip_kampanya_ortak.dart';
+import '../ortak/simgeler.dart';
 
 const _blokEtiketleri = {
   'heading': 'Başlık',
@@ -89,9 +90,9 @@ class _SablonlarSekmesiState extends State<SablonlarSekmesi> {
   int _blok(Map<String, dynamic> t) => t['blocks'] is List ? (t['blocks'] as List).length : 0;
 
   List<SatirEylemi> _eylemler(Map<String, dynamic> t) => [
-    SatirEylemi(Icons.edit_outlined, 'Düzenle', () => _duzenle(t)),
-    if (widget.b.acik) SatirEylemi(Icons.copy_rounded, 'Kopyasını oluştur', () => _duzenle({...t, 'id': '', 'name': '${metin(t['name'])} (kopya)'})),
-    SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(t), tehlikeli: true),
+    SatirEylemi(Simgeler.edit, 'Düzenle', () => _duzenle(t)),
+    if (widget.b.acik) SatirEylemi(Simgeler.copy, 'Kopyasını oluştur', () => _duzenle({...t, 'id': '', 'name': '${metin(t['name'])} (kopya)'})),
+    SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(t), tehlikeli: true),
   ];
 
   @override
@@ -100,11 +101,11 @@ class _SablonlarSekmesiState extends State<SablonlarSekmesi> {
     return VeriTablosu<Map<String, dynamic>>(
       yukleyici: _y,
       bosMetin: 'Henüz şablon yok. İlk şablonunuzu oluşturun; kampanyalarda tekrar tekrar kullanabilirsiniz.',
-      bosIkon: Icons.dashboard_customize_outlined,
+      bosIkon: Simgeler.dashboardCustomize,
       onTap: _duzenle,
       eylemler: _eylemler,
       ust: Padding(
-        padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 8),
+        padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 8),
         child: Wrap(
           spacing: 12,
           runSpacing: 8,
@@ -117,7 +118,7 @@ class _SablonlarSekmesiState extends State<SablonlarSekmesi> {
                 style: TextStyle(color: context.r.soluk, fontSize: 12.5),
               ),
             ),
-            FilledButton.icon(onPressed: widget.b.acik ? () => _duzenle(null) : null, icon: const Icon(Icons.add_rounded), label: const Text('Yeni şablon')),
+            FilledButton.icon(onPressed: widget.b.acik ? () => _duzenle(null) : null, icon: const Icon(Simgeler.add), label: const Text('Yeni şablon')),
           ],
         ),
       ),
@@ -415,7 +416,7 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
                           _surum++;
                           _degisti();
                         },
-                  icon: const Icon(Icons.add_rounded, size: 17),
+                  icon: const Icon(Simgeler.add, size: 17),
                   label: const Text('Sütun'),
                 ),
                 OutlinedButton.icon(
@@ -426,7 +427,7 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
                           _surum++;
                           _degisti();
                         },
-                  icon: const Icon(Icons.remove_rounded, size: 17),
+                  icon: const Icon(Simgeler.remove, size: 17),
                   label: const Text('Son sütunu kaldır'),
                 ),
               ],
@@ -434,7 +435,7 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
             for (var i = 0; i < sutunlar.length; i++)
               Container(
                 margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   border: Border.all(color: context.r.kenar),
                   borderRadius: BorderRadius.circular(10),
@@ -493,7 +494,7 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
           'Zorunlu alt bilgi (şirket adı, adres, abonelikten çıkma bağlantısı) her iletiye otomatik eklenir; buraya eklemeniz gerekmez.',
           style: TextStyle(color: r.soluk, fontSize: 12.5),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         TextField(
           controller: _ad,
           maxLength: 120,
@@ -504,8 +505,8 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
         for (var i = 0; i < _bloklar.length; i++)
           Container(
             key: ValueKey('b$_surum-$i'),
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.fromLTRB(12, 6, 6, 12),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
             decoration: BoxDecoration(
               color: r.kart,
               border: Border.all(color: r.kenar),
@@ -519,14 +520,14 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
                     Expanded(
                       child: Text(
                         _blokEtiketleri[metin(_bloklar[i]['type'])] ?? metin(_bloklar[i]['type']),
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
-                    IconButton(tooltip: 'Yukarı taşı', onPressed: i == 0 ? null : () => _tasi(i, -1), icon: const Icon(Icons.arrow_upward_rounded, size: 19)),
+                    IconButton(tooltip: 'Yukarı taşı', onPressed: i == 0 ? null : () => _tasi(i, -1), icon: const Icon(Simgeler.arrowUpward, size: 19)),
                     IconButton(
                       tooltip: 'Aşağı taşı',
                       onPressed: i == _bloklar.length - 1 ? null : () => _tasi(i, 1),
-                      icon: const Icon(Icons.arrow_downward_rounded, size: 19),
+                      icon: const Icon(Simgeler.arrowDownward, size: 19),
                     ),
                     IconButton(
                       tooltip: 'Bloğu sil',
@@ -535,11 +536,11 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
                         _surum++;
                         _degisti();
                       },
-                      icon: const Icon(Icons.delete_outline_rounded, size: 19, color: Marka.gul),
+                      icon: const Icon(Simgeler.deleteOutline, size: 19, color: Marka.gul),
                     ),
                   ],
                 ),
-                Padding(padding: const EdgeInsets.only(right: 6), child: _blokAlanlari(_bloklar[i])),
+                Padding(padding: const EdgeInsets.only(right: 8), child: _blokAlanlari(_bloklar[i])),
               ],
             ),
           ),
@@ -562,7 +563,7 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
                       _bloklar.add(_yeniBlok(_ekleTur));
                       _degisti();
                     },
-              icon: const Icon(Icons.add_rounded),
+              icon: const Icon(Simgeler.add),
               label: const Text('Blok ekle'),
             ),
           ],
@@ -632,15 +633,15 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(
           'Önizleme (düz metin sürümü, örnek verilerle)',
           style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 12.5),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         if (_onizlemeHata != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Text(_onizlemeHata!, style: const TextStyle(color: Marka.gul)),
           ),
         Container(
@@ -657,7 +658,7 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
                   ? HtmlOnizleme(html: _onizlemeHtml, yukseklik: 420)
                   : SelectableText(_onizleme!, style: const TextStyle(fontSize: 12.5)),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(child: Text('Betikler çalışmaz, uzak görseller yüklenmez; asıl görünüm için test gönderimi yapın.', style: TextStyle(color: r.silik, fontSize: 12))),
@@ -695,18 +696,18 @@ class _SablonDuzenleyiciState extends State<SablonDuzenleyici> {
         ),
         if (_hata != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-            child: Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
           ),
         const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: Wrap(
             alignment: WrapAlignment.end,
             spacing: 8,
             runSpacing: 8,
             children: [
-              OutlinedButton.icon(onPressed: acik ? _testGonder : null, icon: const Icon(Icons.send_rounded, size: 18), label: const Text('Test gönder')),
+              OutlinedButton.icon(onPressed: acik ? _testGonder : null, icon: const Icon(Simgeler.send, size: 18), label: const Text('Test gönder')),
               FilledButton(onPressed: _mesgul || !acik || _ad.text.trim().isEmpty ? null : _kaydet, child: const Text('Kaydet')),
             ],
           ),
@@ -780,7 +781,7 @@ class _TestDialogState extends State<_TestDialog> {
             'Örnek verilerle tek bir kopya gönderilir (konuya [TEST] eklenir). Yalnızca kendi adresinize veya bu müşterinin posta kutularına.',
             style: TextStyle(color: context.r.soluk, fontSize: 13),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             initialValue: _kutu,
             isExpanded: true,
@@ -795,7 +796,7 @@ class _TestDialogState extends State<_TestDialog> {
             ],
             onChanged: (v) => setState(() => _kutu = v),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           TextField(
             controller: _alici,
             keyboardType: TextInputType.emailAddress,

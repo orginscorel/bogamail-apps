@@ -11,6 +11,7 @@ import 'musteri_model.dart';
 import 'paketim.dart';
 import 'posta_kutulari.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
 
 /// Müşteri üzerindeki ortak işlemler (tablo satır menüsü ve ayrıntı paneli aynı kodu kullanır).
 class MusteriEylemleri {
@@ -133,7 +134,7 @@ Future<void> musteriDetayAc(BuildContext context, Musteri m, void Function(Muste
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 8, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
                   child: Row(
                     children: [
                       Expanded(
@@ -142,7 +143,7 @@ Future<void> musteriDetayAc(BuildContext context, Musteri m, void Function(Muste
                           style: TextStyle(color: c.r.silik, fontWeight: FontWeight.w600),
                         ),
                       ),
-                      IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Icons.close_rounded)),
+                      IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Simgeler.close)),
                     ],
                   ),
                 ),
@@ -246,7 +247,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
           if (_hata != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Bant(_hata!, renk: Marka.gul, ikon: Icons.cloud_off_rounded),
+              child: Bant(_hata!, renk: Marka.gul, ikon: Simgeler.cloudOff),
             ),
           const SizedBox(height: 12),
           _kullanim(context, m),
@@ -254,21 +255,21 @@ class _MusteriDetayState extends State<MusteriDetay> {
           _kart(context, m),
           const Baslik('Kısayollar'),
           EylemSatiri(
-            ikon: Icons.language_rounded,
+            ikon: Simgeler.language,
             baslik: 'Alan adları',
             ipucu: '${m.alanSayisi} / ${sinirYaz(m.enFazlaAlan)} alan adı',
             onTap: () => MusteriEylemleri.alanAdlari(context, m),
           ),
           const SizedBox(height: 8),
           EylemSatiri(
-            ikon: Icons.inbox_rounded,
+            ikon: Simgeler.inbox,
             baslik: 'Posta kutuları',
             ipucu: '${m.kutuSayisi} / ${sinirYaz(m.enFazlaKutu)} posta kutusu',
             onTap: () => MusteriEylemleri.postaKutulari(context, m),
           ),
           const SizedBox(height: 8),
           EylemSatiri(
-            ikon: Icons.verified_outlined,
+            ikon: Simgeler.verified,
             baslik: 'Paket ve kullanım',
             ipucu: 'Paket özellikleri, kalan haklar, gönderim sınırları ve veri dışa aktarma',
             onTap: () => sayfaAc(context, m.ad, PaketimEkrani(orgId: m.id, orgAdi: m.ad)),
@@ -276,7 +277,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
           if (MusteriYetki.girer) ...[
             const SizedBox(height: 8),
             EylemSatiri(
-              ikon: Icons.login_rounded,
+              ikon: Simgeler.login,
               baslik: 'Müşteri paneline gir',
               ipucu: 'Müşterinin gördüğü panel (kayıt altında)',
               onTap: () => MusteriEylemleri.paneleGir(context, m),
@@ -286,7 +287,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
           _guvenlik(context),
           const SizedBox(height: 8),
           EylemSatiri(
-            ikon: Icons.travel_explore_rounded,
+            ikon: Simgeler.travelExplore,
             baslik: 'Kendi alan adıyla giriş',
             ipucu: 'Markalı giriş adresi (ör. posta.firmaniz.com) ve DNS denetimi',
             onTap: () => girisAdresiAc(context, m),
@@ -294,14 +295,14 @@ class _MusteriDetayState extends State<MusteriDetay> {
           if (Uyg.ortak) ...[
             const Baslik('Paket ve gönderim'),
             EylemSatiri(
-              ikon: Icons.toggle_on_outlined,
+              ikon: Simgeler.toggleOn,
               baslik: 'Özellikler',
               ipucu: MusteriYetki.haklariDuzenler ? 'Paketten bağımsız özellik aç / kapat' : 'Paketten gelen ve geçersiz kılınan özellikler',
               onTap: () => ozellikleriAc(context, m),
             ),
             const SizedBox(height: 8),
             EylemSatiri(
-              ikon: Icons.straighten_rounded,
+              ikon: Simgeler.straighten,
               baslik: 'Boyut limitleri',
               ipucu: 'İleti, ek ve imza boyutu',
               onTap: () => boyutLimitleriniAc(context, m),
@@ -309,7 +310,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
             if (MusteriYetki.topluGonderim) ...[
               const SizedBox(height: 8),
               EylemSatiri(
-                ikon: Icons.campaign_outlined,
+                ikon: Simgeler.campaign,
                 baslik: 'Toplu gönderim',
                 ipucu: 'Kampanya onay kuralı ve hız sınırı',
                 onTap: () => topluGonderimAc(context, m),
@@ -317,13 +318,13 @@ class _MusteriDetayState extends State<MusteriDetay> {
             ],
             if (MusteriYetki.platform) ...[
               const SizedBox(height: 8),
-              EylemSatiri(ikon: Icons.dns_outlined, baslik: 'Çıkış IP\'si', ipucu: 'Dışarı giden postanın IP adresi', onTap: () => cikisIpAc(context, m)),
+              EylemSatiri(ikon: Simgeler.dns, baslik: 'Çıkış IP\'si', ipucu: 'Dışarı giden postanın IP adresi', onTap: () => cikisIpAc(context, m)),
             ],
           ],
           if (MusteriYetki.disaAktarir || MusteriYetki.platform) const Baslik('Diğer işlemler'),
           if (MusteriYetki.disaAktarir) ...[
             EylemSatiri(
-              ikon: Icons.inventory_2_outlined,
+              ikon: Simgeler.inventory2,
               baslik: 'Tümünü dışa aktar',
               ipucu: 'Tüm kutular: e-posta, kişiler, takvim (.zip)',
               onTap: () => disaAktarmaAc(context, m),
@@ -332,7 +333,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
           ],
           if (MusteriYetki.platform && m.bayiId == null) ...[
             EylemSatiri(
-              ikon: Icons.handshake_outlined,
+              ikon: Simgeler.handshake,
               baslik: 'Bayi yap',
               ipucu: 'Bu müşteriyi bayiye dönüştür; kendi müşterilerini açabilsin',
               onTap: _bayiYap,
@@ -341,7 +342,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
           ],
           if (MusteriYetki.platform)
             EylemSatiri(
-              ikon: Icons.verified_user_outlined,
+              ikon: Simgeler.verifiedUser,
               baslik: m.dahili ? 'Müşterilere taşı' : 'Yönetici bölümüne taşı',
               ipucu: m.dahili ? 'Silme korumasını kaldır' : 'Müşterilerden ayır; silinmeye karşı koru',
               onTap: () async => _guncel(await MusteriEylemleri.dahiliTasi(context, m)),
@@ -349,7 +350,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
           if (yonetir) ...[
             const Baslik('Tehlikeli bölge'),
             EylemSatiri(
-              ikon: m.aktif ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
+              ikon: m.aktif ? Simgeler.pauseCircleOutline : Simgeler.playCircleOutline,
               baslik: m.aktif ? 'Müşteriyi askıya al' : 'Müşteriyi etkinleştir',
               ipucu: m.aktif ? 'Giriş ve gönderim durur' : 'Hesap yeniden kullanıma açılır',
               tehlikeli: m.aktif,
@@ -357,10 +358,10 @@ class _MusteriDetayState extends State<MusteriDetay> {
             ),
             const SizedBox(height: 8),
             if (m.dahili)
-              const Bant('Korumalı: Yönetici bölümündeki kuruluş silinemez.', ikon: Icons.verified_user_outlined)
+              const Bant('Korumalı: Yönetici bölümündeki kuruluş silinemez.', ikon: Simgeler.verifiedUser)
             else
               EylemSatiri(
-                ikon: Icons.delete_outline_rounded,
+                ikon: Simgeler.deleteOutline,
                 baslik: 'Müşteriyi sil',
                 ipucu: 'Yalnızca hiç alan adı kalmadığında',
                 tehlikeli: true,
@@ -388,7 +389,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(m.ad, style: gosterim(18, agirlik: FontWeight.w700)),
+                    Text(m.ad, style: gosterim(18, agirlik: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text(
                       [m.paketAdi ?? 'Paketsiz', if (m.bayiAdi != null) 'Bayi: ${m.bayiAdi}', if (m.eklenme != null) kisaZaman(m.eklenme)].join(' · '),
@@ -396,11 +397,11 @@ class _MusteriDetayState extends State<MusteriDetay> {
                     ),
                     const SizedBox(height: 8),
                     Wrap(
-                      spacing: 6,
+                      spacing: 8,
                       runSpacing: 4,
                       children: [
                         DurumRozeti(m.durum),
-                        if (m.dahili) const Rozet('Yönetici', renk: Marka.mavi, ikon: Icons.verified_user_outlined),
+                        if (m.dahili) const Rozet('Yönetici', renk: Marka.mavi, ikon: Simgeler.verifiedUser),
                         if (sektor != null) Rozet(sektor, renk: Marka.mor),
                         if (musteriTurleri[m.p('customer_type')] case final t?) Rozet(t, renk: Marka.zumrut),
                       ],
@@ -411,7 +412,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
             ],
           ),
           if (MusteriYetki.yonetir || MusteriYetki.girer) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -419,13 +420,13 @@ class _MusteriDetayState extends State<MusteriDetay> {
                 if (MusteriYetki.yonetir || Uyg.musteri)
                   FilledButton.icon(
                     onPressed: () async => _guncel(await MusteriEylemleri.duzenle(context, m)),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    icon: const Icon(Simgeler.edit, size: 18),
                     label: const Text('Düzenle'),
                   ),
                 if (MusteriYetki.girer)
                   OutlinedButton.icon(
                     onPressed: () => MusteriEylemleri.paneleGir(context, m),
-                    icon: const Icon(Icons.login_rounded, size: 18),
+                    icon: const Icon(Simgeler.login, size: 18),
                     label: const Text('Müşteri paneline gir'),
                   ),
               ],
@@ -443,7 +444,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
         children: [
           Text(
             deger,
-            style: gosterim(17, agirlik: FontWeight.w700),
+            style: gosterim(17, agirlik: FontWeight.w600),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -464,12 +465,12 @@ class _MusteriDetayState extends State<MusteriDetay> {
               hucre(boyutYaz(m.kullanilan), 'Kullanılan'),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Text(
             'Tahsis edilen kota',
             style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           if (toplam > 0)
             KullanimCubugu(kullanilan: m.ayrilan, toplam: toplam)
           else
@@ -505,14 +506,14 @@ class _MusteriDetayState extends State<MusteriDetay> {
       ('Kaynak', m.p('source'), false),
     ].where((s) => s.$2.isNotEmpty).toList();
     if (satirlar.isEmpty && m.p('notes').isEmpty) {
-      return const Bant('Müşteri kartı boş. "Düzenle" ile yetkili, sektör ve fatura bilgilerini ekleyin.', ikon: Icons.badge_outlined);
+      return const Bant('Müşteri kartı boş. "Düzenle" ile yetkili, sektör ve fatura bilgilerini ekleyin.', ikon: Simgeler.badge);
     }
     return Kutu(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (final (a, d, k) in satirlar) BilgiSatiri(a, d, kopyalanabilir: k),
-          if (m.p('notes').isNotEmpty) ...[const SizedBox(height: 8), Bant('Not: ${m.p('notes')}', renk: Marka.kehribar, ikon: Icons.sticky_note_2_outlined)],
+          if (m.p('notes').isNotEmpty) ...[const SizedBox(height: 8), Bant('Not: ${m.p('notes')}', renk: Marka.kehribar, ikon: Simgeler.stickyNote2)],
         ],
       ),
     );
@@ -520,7 +521,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
 
   Widget _guvenlik(BuildContext context) {
     final mfa = _mfa;
-    if (mfa == null) return const Bant('İki adımlı doğrulama politikası yüklenemedi.', ikon: Icons.shield_outlined);
+    if (mfa == null) return const Bant('İki adımlı doğrulama politikası yüklenemedi.', ikon: Simgeler.shield);
     final duzenler = MusteriYetki.mfaDuzenler && !_mfaMesgul;
     return Kutu(
       child: Material(

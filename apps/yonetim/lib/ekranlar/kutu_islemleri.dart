@@ -9,6 +9,7 @@ import '../ortak/dosya.dart';
 export '../ortak/dosya.dart' show dosyaIndir;
 import '../veri/json.dart';
 import '../veri/modeller.dart';
+import '../ortak/simgeler.dart';
 
 // Posta kutusu yönetici işlemleri (web: mailboxes/page.tsx "Yönet"): dışa aktarma, boyut limitleri, IMAP ile
 // taşıma, yedekten geri yükleme, 2FA sıfırlama, uygulama şifresi silme. Sunucu: impersonate.go, limits_api.go,
@@ -51,7 +52,7 @@ Future<void> boyutLimitleri(BuildContext context, PostaKutusu k) async {
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, yenile) => AlertDialog(
-        title: Text('Boyut limitleri', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('Boyut limitleri', style: gosterim(19, agirlik: FontWeight.w600)),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Column(
@@ -59,7 +60,7 @@ Future<void> boyutLimitleri(BuildContext context, PostaKutusu k) async {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(k.adres, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               for (final e in _limitAdlari.entries) ...[
                 BilgiSatiri(
                   e.value,
@@ -75,7 +76,7 @@ Future<void> boyutLimitleri(BuildContext context, PostaKutusu k) async {
                     ),
                   ),
               ],
-              if (hata != null) Bant(hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+              if (hata != null) Bant(hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
               if (!duzenler) Text('Limitleri yalnızca platform ve bayi yöneticileri değiştirebilir.', style: TextStyle(color: c.r.silik, fontSize: 12)),
             ],
           ),
@@ -130,7 +131,7 @@ Future<bool> imapTasima(BuildContext context, PostaKutusu k) async {
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, yenile) => AlertDialog(
-        title: Text('IMAP ile taşı', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('IMAP ile taşı', style: gosterim(19, agirlik: FontWeight.w600)),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 460),
           child: SingleChildScrollView(
@@ -157,17 +158,17 @@ Future<bool> imapTasima(BuildContext context, PostaKutusu k) async {
                       hata = oauth == null ? null : 'Not: $oauth';
                     }),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                 ],
                 TextField(controller: sunucu, decoration: const InputDecoration(labelText: 'IMAP sunucusu', hintText: 'imap.ornek.com', isDense: true)),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     SizedBox(
                       width: 110,
                       child: TextField(controller: port, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Port', isDense: true)),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: guvenlik,
@@ -178,11 +179,11 @@ Future<bool> imapTasima(BuildContext context, PostaKutusu k) async {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 TextField(controller: kullanici, autocorrect: false, decoration: const InputDecoration(labelText: 'Kullanıcı adı', isDense: true)),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 TextField(controller: sifre, obscureText: true, decoration: const InputDecoration(labelText: 'Şifre', isDense: true)),
-                if (hata != null) ...[const SizedBox(height: 10), Bant(hata!, renk: Marka.kehribar, ikon: Icons.info_outline_rounded)],
+                if (hata != null) ...[const SizedBox(height: 8), Bant(hata!, renk: Marka.kehribar, ikon: Simgeler.infoOutline)],
               ],
             ),
           ),
@@ -241,7 +242,7 @@ Future<void> yedektenGeriYukle(BuildContext context, PostaKutusu k) async {
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, yenile) => AlertDialog(
-        title: Text('Yedekten geri yükle', style: gosterim(19, agirlik: FontWeight.w700)),
+        title: Text('Yedekten geri yükle', style: gosterim(19, agirlik: FontWeight.w600)),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 460),
           child: gunler.isEmpty

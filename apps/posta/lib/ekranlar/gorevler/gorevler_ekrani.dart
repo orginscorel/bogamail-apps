@@ -115,7 +115,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
     final l = _l;
     Widget govde;
     if (_kapali) {
-      govde = Durum.bos(_hata ?? 'Görevler paketinizde kapalı.', ikon: Icons.task_alt_rounded);
+      govde = Durum.bos(_hata ?? 'Görevler paketinizde kapalı.', ikon: Simge.gorev);
     } else if (l == null) {
       govde = _hata != null ? Durum.hata(_hata!, tekrar: _yukle) : const Durum.yukleniyor();
     } else {
@@ -134,7 +134,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
                         : _tamamlananlar
                         ? 'Tamamlanan görev yok.'
                         : 'Açık görev yok. Harika!\nYeni görev ekleyip kendinize ya da bir iş arkadaşınıza atayabilirsiniz.',
-                    ikon: Icons.task_alt_rounded,
+                    ikon: Simge.gorev,
                   ),
                 ],
               )
@@ -164,12 +164,12 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
                         decoration: InputDecoration(
                           hintText: 'Görevlerde ara',
                           isDense: true,
-                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                          prefixIcon: const Icon(Simge.ara, size: 20),
                           suffixIcon: _ara.text.isEmpty
                               ? null
                               : IconButton(
                                   tooltip: 'Temizle',
-                                  icon: const Icon(Icons.close_rounded, size: 18),
+                                  icon: const Icon(Simge.kapat, size: 18),
                                   onPressed: () {
                                     _ara.clear();
                                     _yukle();
@@ -203,7 +203,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
                             Container(width: 1, margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6), color: r.kenar),
                             FilterChip(
                               label: const Text('Tamamlananlar'),
-                              avatar: const Icon(Icons.done_all_rounded, size: 16),
+                              avatar: const Icon(Simge.hepsiOkundu, size: 16),
                               selected: _tamamlananlar,
                               onSelected: (v) {
                                 setState(() => _tamamlananlar = v);
@@ -220,7 +220,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
       ),
       floatingActionButton: _kapali
           ? null
-          : FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Icons.add_task_rounded), label: const Text('Yeni görev')),
+          : FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Simge.gorevEkle), label: const Text('Yeni görev')),
       body: govde,
     );
   }
@@ -229,7 +229,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
     padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
     child: Text(
       t,
-      style: TextStyle(fontWeight: FontWeight.w800, color: renk ?? context.r.soluk),
+      style: TextStyle(fontWeight: FontWeight.w600, color: renk ?? context.r.soluk),
     ),
   );
 
@@ -269,7 +269,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
                         g.baslik,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: g.bitti ? r.silik : r.metin,
                           decoration: g.bitti ? TextDecoration.lineThrough : null,
                         ),
@@ -282,10 +282,10 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
                         children: [
                           if (g.durum == 'doing') const Rozet('Sürüyor', renk: Marka.zumrut),
                           if (g.oncelik != 'normal') Rozet(gorevOncelikAdlari[g.oncelik] ?? g.oncelik, renk: oncelikRengi(g.oncelik, context)),
-                          if (g.bitis != null) _ufak(Icons.event_outlined, bitisMetni(g.bitis!), renk: g.gecikti ? Marka.gul : null),
-                          if (kime != null) _ufak(Icons.person_outline_rounded, kime),
-                          if (g.yorumSayisi > 0) _ufak(Icons.chat_bubble_outline_rounded, '${g.yorumSayisi}'),
-                          if (g.iletiKonu.isNotEmpty) _ufak(Icons.mail_outline_rounded, g.iletiKonu),
+                          if (g.bitis != null) _ufak(Simge.etkinlik, bitisMetni(g.bitis!), renk: g.gecikti ? Marka.gul : null),
+                          if (kime != null) _ufak(Simge.kisi, kime),
+                          if (g.yorumSayisi > 0) _ufak(Simge.mesaj, '${g.yorumSayisi}'),
+                          if (g.iletiKonu.isNotEmpty) _ufak(Simge.posta, g.iletiKonu),
                         ],
                       ),
                     ],
@@ -311,7 +311,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
           t,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 12.5, color: renk ?? context.r.soluk, fontWeight: renk != null ? FontWeight.w700 : null),
+          style: TextStyle(fontSize: 12.5, color: renk ?? context.r.soluk, fontWeight: renk != null ? FontWeight.w600 : null),
         ),
       ),
     ],
@@ -412,14 +412,14 @@ class _GorevAyrintiState extends State<GorevAyrinti> {
           if (g.duzenleyebilir) ...[
             IconButton(
               tooltip: 'Düzenle',
-              icon: const Icon(Icons.edit_outlined),
+              icon: const Icon(Simge.duzenle),
               onPressed: () async {
                 if (await GorevDuzenleyici.ac(context, gorev: g) == true) _yukle();
               },
             ),
             IconButton(
               tooltip: 'Sil',
-              icon: const Icon(Icons.delete_outline_rounded),
+              icon: const Icon(Simge.sil),
               onPressed: () async {
                 if (!await onayla(context, 'Görev silinsin mi?', mesaj: 'Yorumlarıyla birlikte kalıcı olarak silinir.', evet: 'Sil', tehlikeli: true)) return;
                 final ok = await islem(() async {
@@ -442,7 +442,7 @@ class _GorevAyrintiState extends State<GorevAyrinti> {
                 children: [
                   Text(
                     g.baslik,
-                    style: gosterim(22, agirlik: FontWeight.w700).copyWith(decoration: g.bitti ? TextDecoration.lineThrough : null),
+                    style: gosterim(22, agirlik: FontWeight.w600).copyWith(decoration: g.bitti ? TextDecoration.lineThrough : null),
                   ),
                   const SizedBox(height: 12),
                   SegmentedButton<String>(
@@ -458,18 +458,17 @@ class _GorevAyrintiState extends State<GorevAyrinti> {
                   Kutu(
                     child: Column(
                       children: [
-                        alan(Icons.flag_outlined, 'Öncelik', gorevOncelikAdlari[g.oncelik] ?? g.oncelik, renk: oncelikRengi(g.oncelik, context)),
+                        alan(Simge.bayrak, 'Öncelik', gorevOncelikAdlari[g.oncelik] ?? g.oncelik, renk: oncelikRengi(g.oncelik, context)),
                         alan(
-                          Icons.event_outlined,
+                          Simge.etkinlik,
                           'Bitiş',
                           g.bitis == null ? 'Yok' : DateFormat('d MMMM y EEEE, HH:mm', 'tr_TR').format(g.bitis!),
                           renk: g.gecikti ? Marka.gul : null,
                         ),
-                        alan(Icons.person_outline_rounded, 'Atanan', g.atanan?.gorunen ?? 'Atanmadı'),
-                        alan(Icons.edit_note_rounded, 'Oluşturan', g.olusturan?.gorunen ?? ''),
-                        if (g.tamamlanma != null) alan(Icons.done_all_rounded, 'Tamamlandı', DateFormat('d MMM y HH:mm', 'tr_TR').format(g.tamamlanma!)),
-                        if (g.iletiKonu.isNotEmpty)
-                          alan(Icons.mail_outline_rounded, 'İleti', '${g.iletiKonu}${g.iletiKimden.isNotEmpty ? ' · ${g.iletiKimden}' : ''}'),
+                        alan(Simge.kisi, 'Atanan', g.atanan?.gorunen ?? 'Atanmadı'),
+                        alan(Simge.taslak, 'Oluşturan', g.olusturan?.gorunen ?? ''),
+                        if (g.tamamlanma != null) alan(Simge.hepsiOkundu, 'Tamamlandı', DateFormat('d MMM y HH:mm', 'tr_TR').format(g.tamamlanma!)),
+                        if (g.iletiKonu.isNotEmpty) alan(Simge.posta, 'İleti', '${g.iletiKonu}${g.iletiKimden.isNotEmpty ? ' · ${g.iletiKimden}' : ''}'),
                       ],
                     ),
                   ),
@@ -490,7 +489,7 @@ class _GorevAyrintiState extends State<GorevAyrinti> {
                   const SizedBox(height: 18),
                   Text(
                     'Yorumlar (${_yorumlar.length})',
-                    style: TextStyle(fontWeight: FontWeight.w800, color: r.soluk),
+                    style: TextStyle(fontWeight: FontWeight.w600, color: r.soluk),
                   ),
                   const SizedBox(height: 8),
                   if (_yorumlar.isEmpty)
@@ -514,7 +513,7 @@ class _GorevAyrintiState extends State<GorevAyrinti> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: Text(y.yazar?.gorunen ?? 'Silinmiş kullanıcı', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                          child: Text(y.yazar?.gorunen ?? 'Silinmiş kullanıcı', style: const TextStyle(fontWeight: FontWeight.w600)),
                                         ),
                                         if (y.tarih != null) Text(goreliZaman(y.tarih), style: TextStyle(color: r.silik, fontSize: 11.5)),
                                       ],
@@ -553,7 +552,7 @@ class _GorevAyrintiState extends State<GorevAyrinti> {
                   ),
                   IconButton(
                     tooltip: 'Gönder',
-                    icon: const Icon(Icons.send_rounded),
+                    icon: const Icon(Simge.gonder),
                     color: r.vurgu,
                     onPressed: _yorum.text.trim().isEmpty || _gonderiyor ? null : _yorumGonder,
                   ),
@@ -639,12 +638,12 @@ class _GorevDuzenleyiciState extends State<GorevDuzenleyici> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: TextField(
                       controller: ara,
-                      decoration: const InputDecoration(hintText: 'Kişi ara', prefixIcon: Icon(Icons.search_rounded), isDense: true),
+                      decoration: const InputDecoration(hintText: 'Kişi ara', prefixIcon: Icon(Simge.ara), isDense: true),
                       onChanged: (_) => yenile(() {}),
                     ),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.person_off_outlined),
+                    leading: const Icon(Simge.kisiYok),
                     title: const Text('Atanmamış'),
                     onTap: () => Navigator.pop(c, const GorevKisi(id: '')),
                   ),
@@ -656,7 +655,7 @@ class _GorevDuzenleyiciState extends State<GorevDuzenleyici> {
                             leading: Avatar(k.gorunen, boyut: 34, tohum: k.adres),
                             title: Text(k.gorunen),
                             subtitle: Text(k.adres),
-                            trailing: _atanan?.id == k.id ? Icon(Icons.check_rounded, color: c.r.vurgu) : null,
+                            trailing: _atanan?.id == k.id ? Icon(Simge.onay, color: c.r.vurgu) : null,
                             onTap: () => Navigator.pop(c, k),
                           ),
                       ],
@@ -739,7 +738,7 @@ class _GorevDuzenleyiciState extends State<GorevDuzenleyici> {
               padding: const EdgeInsets.only(top: 6),
               child: Row(
                 children: [
-                  Icon(Icons.link_rounded, size: 16, color: r.silik),
+                  Icon(Simge.baglanti, size: 16, color: r.silik),
                   const SizedBox(width: 6),
                   Text('İletiye bağlı görev', style: TextStyle(color: r.silik, fontSize: 12.5)),
                 ],
@@ -752,19 +751,19 @@ class _GorevDuzenleyiciState extends State<GorevDuzenleyici> {
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: _atanan == null ? const Icon(Icons.person_add_alt_rounded) : Avatar(_atanan!.gorunen, boyut: 32, tohum: _atanan!.adres),
+                  leading: _atanan == null ? const Icon(Simge.kisiEkle) : Avatar(_atanan!.gorunen, boyut: 32, tohum: _atanan!.adres),
                   title: Text(_atanan?.gorunen ?? 'Kişiye ata'),
                   subtitle: Text(_atanan?.adres ?? 'Atanmamış (yalnızca siz)'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
+                  trailing: const Icon(Simge.ileri),
                   onTap: _kisiSec,
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event_outlined),
+                  leading: const Icon(Simge.etkinlik),
                   title: Text(_bitis == null ? 'Bitiş tarihi ekle' : DateFormat('d MMMM y EEEE, HH:mm', 'tr_TR').format(_bitis!)),
                   trailing: _bitis == null
-                      ? const Icon(Icons.chevron_right_rounded)
-                      : IconButton(tooltip: 'Tarihi kaldır', icon: const Icon(Icons.close_rounded), onPressed: () => setState(() => _bitis = null)),
+                      ? const Icon(Simge.ileri)
+                      : IconButton(tooltip: 'Tarihi kaldır', icon: const Icon(Simge.kapat), onPressed: () => setState(() => _bitis = null)),
                   onTap: _tarih,
                 ),
                 const SizedBox(height: 8),

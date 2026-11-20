@@ -11,6 +11,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'mesaj_takibi.dart';
+import '../ortak/simgeler.dart';
 
 const _geriDonusSiniri = 0.05;
 const _sikayetSiniri = 0.001;
@@ -146,16 +147,16 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
   }
 
   List<SatirEylemi> _eylemler(_Kampanya c) => [
-    SatirEylemi(Icons.visibility_outlined, 'İçeriği önizle', () => _onizle(c)),
-    SatirEylemi(Icons.bar_chart_rounded, 'Rapor', () => _rapor(c)),
-    SatirEylemi(Icons.table_view_outlined, 'Raporu CSV olarak indir', () => kampanyaCsvIndir(c.id, c.ad)),
+    SatirEylemi(Simgeler.visibility, 'İçeriği önizle', () => _onizle(c)),
+    SatirEylemi(Simgeler.barChart, 'Rapor', () => _rapor(c)),
+    SatirEylemi(Simgeler.tableView, 'Raporu CSV olarak indir', () => kampanyaCsvIndir(c.id, c.ad)),
     if (c.durum == 'pending_approval') ...[
-      SatirEylemi(Icons.check_circle_outline_rounded, 'Onayla', () => _basit(c, 'approve')),
-      SatirEylemi(Icons.cancel_outlined, 'Reddet', () => _gerekceli(c, 'reject'), tehlikeli: true),
+      SatirEylemi(Simgeler.checkCircleOutline, 'Onayla', () => _basit(c, 'approve')),
+      SatirEylemi(Simgeler.cancel, 'Reddet', () => _gerekceli(c, 'reject'), tehlikeli: true),
     ],
-    if (c.durum == 'sending' || c.durum == 'scheduled') SatirEylemi(Icons.pause_rounded, 'Duraklat', () => _gerekceli(c, 'pause')),
-    if (c.durum == 'paused') SatirEylemi(Icons.play_arrow_rounded, 'Devam ettir', () => _basit(c, 'resume')),
-    if (const ['scheduled', 'sending', 'paused'].contains(c.durum)) SatirEylemi(Icons.block_rounded, 'İptal et', () => _gerekceli(c, 'cancel'), tehlikeli: true),
+    if (c.durum == 'sending' || c.durum == 'scheduled') SatirEylemi(Simgeler.pause, 'Duraklat', () => _gerekceli(c, 'pause')),
+    if (c.durum == 'paused') SatirEylemi(Simgeler.playArrow, 'Devam ettir', () => _basit(c, 'resume')),
+    if (const ['scheduled', 'sending', 'paused'].contains(c.durum)) SatirEylemi(Simgeler.block, 'İptal et', () => _gerekceli(c, 'cancel'), tehlikeli: true),
   ];
 
   void _rapor(_Kampanya c) {
@@ -172,8 +173,8 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
                 title: Text(c.ad, overflow: TextOverflow.ellipsis),
                 automaticallyImplyLeading: false,
                 actions: [
-                  IconButton(tooltip: 'CSV indir', onPressed: () => kampanyaCsvIndir(c.id, c.ad), icon: const Icon(Icons.download_rounded)),
-                  IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(d), icon: const Icon(Icons.close_rounded)),
+                  IconButton(tooltip: 'CSV indir', onPressed: () => kampanyaCsvIndir(c.id, c.ad), icon: const Icon(Simgeler.download)),
+                  IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(d), icon: const Icon(Simgeler.close)),
                 ],
               ),
               body: govde,
@@ -197,12 +198,12 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
         children: [
           TextSpan(
             text: 'geri dönüş %${_oranYaz(k.geriDonus, 1)}',
-            style: TextStyle(color: kotuB ? Marka.gul : null, fontWeight: kotuB ? FontWeight.w700 : null),
+            style: TextStyle(color: kotuB ? Marka.gul : null, fontWeight: kotuB ? FontWeight.w600 : null),
           ),
           const TextSpan(text: ' · '),
           TextSpan(
             text: 'şikâyet %${_oranYaz(k.sikayet, 2)}',
-            style: TextStyle(color: kotuS ? Marka.gul : null, fontWeight: kotuS ? FontWeight.w700 : null),
+            style: TextStyle(color: kotuS ? Marka.gul : null, fontWeight: kotuS ? FontWeight.w600 : null),
           ),
         ],
       ),
@@ -217,12 +218,12 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
       alt: 'Geri dönüş %5\'i ya da şikâyet %0,1\'i geçen kampanyalar vurgulanır',
       yenile: _y.yenile,
       eylemler: [
-        IconButton(tooltip: 'Onay politikası', onPressed: _politika, icon: const Icon(Icons.policy_outlined)),
+        IconButton(tooltip: 'Onay politikası', onPressed: _politika, icon: const Icon(Simgeler.policy)),
       ],
       govde: VeriTablosu<_Kampanya>(
         yukleyici: _y,
         bosMetin: 'Kampanya yok. Bu süzgece uyan toplu gönderim kampanyası bulunmuyor.',
-        bosIkon: Icons.cell_tower_rounded,
+        bosIkon: Simgeler.cellTower,
         vurgulu: (c) => c.riskli,
         onTap: _rapor,
         eylemler: _eylemler,
@@ -237,7 +238,7 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
                 children: [
                   for (final (d, e) in _sekmeler)
                     Padding(
-                      padding: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
                         showCheckmark: false,
                         selected: _durum == d,
@@ -247,7 +248,7 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
                           children: [
                             Text(e),
                             if (d == 'pending_approval' && _onayBekleyen > 0) ...[
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 8),
                               Rozet('$_onayBekleyen', renk: Marka.kehribar),
                             ],
                           ],
@@ -318,7 +319,7 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
             sagaYasla: true,
             hucre: (_, k) => Text(
               '%${_oranYaz(k.geriDonus, 1)}',
-              style: TextStyle(color: k.geriDonus > _geriDonusSiniri ? Marka.gul : null, fontWeight: k.geriDonus > _geriDonusSiniri ? FontWeight.w700 : null),
+              style: TextStyle(color: k.geriDonus > _geriDonusSiniri ? Marka.gul : null, fontWeight: k.geriDonus > _geriDonusSiniri ? FontWeight.w600 : null),
             ),
           ),
           Sutun(
@@ -327,7 +328,7 @@ class _KampanyaIzlemeEkraniState extends State<KampanyaIzlemeEkrani> {
             sagaYasla: true,
             hucre: (_, k) => Text(
               '%${_oranYaz(k.sikayet, 2)}',
-              style: TextStyle(color: k.sikayet > _sikayetSiniri ? Marka.gul : null, fontWeight: k.sikayet > _sikayetSiniri ? FontWeight.w700 : null),
+              style: TextStyle(color: k.sikayet > _sikayetSiniri ? Marka.gul : null, fontWeight: k.sikayet > _sikayetSiniri ? FontWeight.w600 : null),
             ),
           ),
         ],
@@ -399,7 +400,7 @@ class _GerekceDialogState extends State<_GerekceDialog> {
   Widget build(BuildContext context) {
     final t = _gerekceMetinleri[widget.eylem]!;
     return AlertDialog(
-      title: Text(t.$1, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(t.$1, style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 440,
         child: Column(
@@ -499,7 +500,7 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
   Widget build(BuildContext context) {
     final duzenler = Uyg.platformYoneticisi;
     return AlertDialog(
-      title: Text('Onay politikası', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Onay politikası', style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 420,
         child: Column(
@@ -511,7 +512,7 @@ class _PolitikaDialogState extends State<_PolitikaDialog> {
               'Müşteri bazında "Müşteriler → Yönet → Toplu gönderim" ile değiştirilebilir.',
               style: TextStyle(color: context.r.soluk, fontSize: 13),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             if (!_yuklendi && _hata == null)
               const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
             else if (_yuklendi)
@@ -556,8 +557,8 @@ class _OnizlemeDialog extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Text(metinYa(v['subject']) ?? 'Önizleme', style: gosterim(18, agirlik: FontWeight.w700))),
-                IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Icons.close_rounded)),
+                Expanded(child: Text(metinYa(v['subject']) ?? 'Önizleme', style: gosterim(18, agirlik: FontWeight.w600))),
+                IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Simgeler.close)),
               ],
             ),
             Text('Örnek alıcı verisiyle oluşturulan görünüm. Betikler çalışmaz, uzak görseller yüklenmez.', style: TextStyle(color: c.r.silik, fontSize: 12.5)),
@@ -566,10 +567,10 @@ class _OnizlemeDialog extends StatelessWidget {
               HtmlOnizleme(html: metin(v['html']), yukseklik: 460),
               const SizedBox(height: 12),
               Text('Düz metin sürümü', style: TextStyle(color: c.r.soluk, fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
             ],
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: c.r.ic, borderRadius: BorderRadius.circular(12)),
               child: SelectableText(
                 metinYa(v['text']) ?? _htmlden(metin(v['html'])),
@@ -677,7 +678,7 @@ class _KampanyaRaporuState extends State<_KampanyaRaporu> {
     final c = _c;
     if (c == null) {
       return _hata != null
-          ? Padding(padding: const EdgeInsets.all(16), child: Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded))
+          ? Padding(padding: const EdgeInsets.all(16), child: Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline))
           : const Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator());
     }
     final r = context.r;
@@ -686,7 +687,7 @@ class _KampanyaRaporuState extends State<_KampanyaRaporu> {
     final q = n('queued');
     Widget kutu(String e, int d, {String? alt, bool kotu = false}) => Container(
       width: 150,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: kotu ? Marka.gul.withValues(alpha: .08) : r.kart,
         borderRadius: BorderRadius.circular(12),
@@ -696,7 +697,7 @@ class _KampanyaRaporuState extends State<_KampanyaRaporu> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(e, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 11.5)),
-          Text(sayiYaz(d), style: gosterim(18, agirlik: FontWeight.w700, renk: kotu ? Marka.gul : r.metin)),
+          Text(sayiYaz(d), style: gosterim(18, agirlik: FontWeight.w600, renk: kotu ? Marka.gul : r.metin)),
           if (alt != null) Text(alt, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 11)),
         ],
       ),
@@ -718,7 +719,7 @@ class _KampanyaRaporuState extends State<_KampanyaRaporu> {
           ),
           if (gerekce.isNotEmpty || bekleme.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Bant([if (gerekce.isNotEmpty) gerekce, if (bekleme.isNotEmpty) 'Bekleme: $bekleme'].join('\n'), renk: Marka.kehribar, ikon: Icons.info_outline_rounded),
+            Bant([if (gerekce.isNotEmpty) gerekce, if (bekleme.isNotEmpty) 'Bekleme: $bekleme'].join('\n'), renk: Marka.kehribar, ikon: Simgeler.infoOutline),
           ],
           const SizedBox(height: 8),
           if (s == null)
@@ -745,7 +746,7 @@ class _KampanyaRaporuState extends State<_KampanyaRaporu> {
                 ],
               ),
             ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'Açılma/tıklama takibi kapalı (gizlilik). Teslim bilgisi alıcı sunucuların yanıtlarından, şikâyetler geri bildirim döngüsü (FBL) raporlarından gelir.',
             style: TextStyle(color: r.silik, fontSize: 11.5),
@@ -771,7 +772,7 @@ class _KampanyaRaporuState extends State<_KampanyaRaporu> {
   Widget build(BuildContext context) => VeriTablosu<Map<String, dynamic>>(
     yukleyici: _y,
     bosMetin: 'Kayıt yok.',
-    bosIkon: Icons.people_outline_rounded,
+    bosIkon: Simgeler.peopleOutline,
     tabloEnAz: 640,
     onTap: _ac,
     ust: Column(

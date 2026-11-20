@@ -10,6 +10,7 @@ import '../ortak/bilesenler.dart';
 import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import 'bolumler.dart';
+import '../ortak/simgeler.dart';
 
 /// İtibar Merkezim: müşterinin gönderim sağlığı, geri dönme nedenleri, gönderim IP'leri, göndericiler ve alan adları.
 /// Web: admin/reputation-center. Uç noktalar: GET /reputation-center?range=&organization_id=, GET /dedicated-ip/status?org=,
@@ -110,15 +111,15 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
       yenile: org == null ? null : () => _anahtar.currentState?.yenile(),
       eylemler: [
         if (!Uyg.musteri)
-          IconButton(tooltip: 'Müşteri seçin', onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded)),
+          IconButton(tooltip: 'Müşteri seçin', onPressed: _musteriSec, icon: const Icon(Simgeler.apartment)),
       ],
       govde: org == null
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Kapali('Bir müşterinin gönderim sağlığını görmek için müşteri seçin.', ikon: Icons.trending_up_rounded),
-                  FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Icons.apartment_rounded), label: const Text('Müşteri seçin')),
+                  const Kapali('Bir müşterinin gönderim sağlığını görmek için müşteri seçin.', ikon: Simgeler.trendingUp),
+                  FilledButton.icon(onPressed: _musteriSec, icon: const Icon(Simgeler.apartment), label: const Text('Müşteri seçin')),
                 ],
               ),
             )
@@ -152,37 +153,37 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
       Izgara(
         enAz: 170,
         children: [
-          KpiKarti(ikon: Icons.outbox_rounded, etiket: 'Gönderilen (dış)', deger: sayiYaz(tamsayi(t['queued'])), alt: 'alıcı'),
+          KpiKarti(ikon: Simgeler.outbox, etiket: 'Gönderilen (dış)', deger: sayiYaz(tamsayi(t['queued'])), alt: 'alıcı'),
           KpiKarti(
-            ikon: Icons.mark_email_read_rounded,
+            ikon: Simgeler.markEmailRead,
             etiket: 'Teslim edilen',
             deger: sayiYaz(tamsayi(t['delivered'])),
             alt: 'teslim oranı ${_yuzde(o['delivery_rate'])}',
             renk: Marka.zumrut,
           ),
           KpiKarti(
-            ikon: Icons.schedule_rounded,
+            ikon: Simgeler.schedule,
             etiket: 'Ertelenen',
             deger: sayiYaz(tamsayi(t['deferred_rcpts'])),
             alt: '${sayiYaz(tamsayi(t['deferrals']))} deneme',
             renk: Marka.kehribar,
           ),
           KpiKarti(
-            ikon: Icons.block_rounded,
+            ikon: Simgeler.block,
             etiket: 'Kalıcı geri dönme',
             deger: sayiYaz(tamsayi(t['hard_bounces'])),
             alt: _yuzde(o['hard_bounce_rate']),
             renk: hard > 5 ? Marka.gul : (hard > 2 ? Marka.kehribar : Marka.gul),
           ),
           KpiKarti(
-            ikon: Icons.hourglass_bottom_rounded,
+            ikon: Simgeler.hourglassBottom,
             etiket: 'Süresi dolan (yumuşak)',
             deger: sayiYaz(tamsayi(t['soft_bounces'])),
             alt: _yuzde(o['soft_bounce_rate']),
             renk: Marka.lavanta,
           ),
           KpiKarti(
-            ikon: Icons.gpp_bad_outlined,
+            ikon: Simgeler.gppBad,
             etiket: 'Politika reddi',
             deger: sayiYaz(tamsayi(t['refused'])),
             alt: '${sayiYaz(tamsayi(t['refused_messages']))} ileti',
@@ -195,7 +196,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
       if (m.saglik != null) ...[_saglik(c, m.saglik!), const SizedBox(height: 16)],
       BolumKarti(
         baslik: 'Gönderim sonuçları zaman içinde',
-        ikon: Icons.bar_chart_rounded,
+        ikon: Simgeler.barChart,
         altBaslik: 'Şikâyetler: ${tamsayi(sikayet['suppressions'])} bastırma kaydı. ${metin(sikayet['fbl'])}.',
         child: _SonucGrafigi(seri: haritalar(v['series']), aralik: metin(v['range'], _aralik)),
       ),
@@ -222,12 +223,12 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
         : '${modlar[metin(d['mode'])] ?? metin(d['mode'])} üzerinden gönderiyorsunuz.';
     return BolumKarti(
       baslik: 'Gönderim IP\'si',
-      ikon: Icons.dns_outlined,
+      ikon: Simgeler.dns,
       altBaslik: aciklama,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (metinYa(d['warning']) != null) ...[Bant(metin(d['warning']), renk: Marka.kehribar, ikon: Icons.warning_amber_rounded), const SizedBox(height: 8)],
+          if (metinYa(d['warning']) != null) ...[Bant(metin(d['warning']), renk: Marka.kehribar, ikon: Simgeler.warningAmber), const SizedBox(height: 8)],
           for (final ip in ipler) ...[
             Kutu(
               padding: const EdgeInsets.all(12),
@@ -292,7 +293,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(etiket, style: TextStyle(color: r.silik, fontSize: 12)),
-            Text(_yuzde(deger, 2), style: gosterim(20, renk: renk)),
+            Text(_yuzde(deger, 2), style: gosterim(20, agirlik: FontWeight.w600, renk: renk)),
             Text('$alt · sınır ${_yuzde(sinir, 2)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 11.5)),
           ],
         ),
@@ -301,7 +302,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
 
     return BolumKarti(
       baslik: 'Gönderim sağlığı',
-      ikon: Icons.monitor_heart_outlined,
+      ikon: Simgeler.monitorHeart,
       altBaslik:
           'Erteleme, bilinmeyen alıcı ve şikâyet oranı sınırı aşarsa toplu gönderiminiz otomatik olarak bekletilir; ani bir gönderim artışında tüm dış '
           'postalarınız incelemeye alınır. Postalar silinmez, kuyrukta bekler.',
@@ -313,7 +314,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
               '${turler[metin(b['kind'])] ?? metin(b['kind'])} — ${eylemler[metin(b['action'])] ?? metin(b['action'])}'
               '${metinYa(b['mailbox']) != null ? ' (${metin(b['mailbox'])})' : ''}. ${metin(b['reason'])} Destek ekibimiz inceledikten sonra gönderim devam eder.',
               renk: Marka.gul,
-              ikon: Icons.front_hand_outlined,
+              ikon: Simgeler.frontHand,
             ),
             const SizedBox(height: 8),
           ],
@@ -340,7 +341,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Kuyruk', style: TextStyle(color: r.silik, fontSize: 12)),
-                    Text(sayiYaz(tamsayi(d['queued'])), style: gosterim(20, renk: r.metin)),
+                    Text(sayiYaz(tamsayi(d['queued'])), style: gosterim(20, agirlik: FontWeight.w600, renk: r.metin)),
                     Text(
                       'bekletilen ${tamsayi(d['held'])} · frende ${tamsayi(d['held_by_brake'])}',
                       maxLines: 1,
@@ -373,7 +374,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
     const turler = {'hard': 'Kalıcı (5xx)', 'soft': 'Süresi doldu', 'deferred': 'Ertelendi (4xx)'};
     return BolumKarti(
       baslik: 'En sık geri dönme nedenleri',
-      ikon: Icons.report_outlined,
+      ikon: Simgeler.report,
       altBaslik: 'Alıcı sunucuların yanıtları; e-posta adresleri maskelenir.',
       child: l.isEmpty
           ? Text('Bu dönemde geri dönme veya erteleme yok.', style: TextStyle(color: r.silik, fontSize: 13))
@@ -413,7 +414,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
     final r = c.r;
     return BolumKarti(
       baslik: 'Gönderim IP\'leri',
-      ikon: Icons.lan_outlined,
+      ikon: Simgeler.lan,
       altBaslik: 'Postanızın çıktığı IP\'lerin genel itibarı (PTR ve kara listeler). Diğer müşterilerin verisi gösterilmez.',
       child: l.isEmpty
           ? Text('Etkin gönderim IP\'si yok.', style: TextStyle(color: r.silik, fontSize: 13))
@@ -423,7 +424,7 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
                 for (final (i, ip) in l.indexed) ...[
                   if (i > 0) const Divider(height: 16),
                   Wrap(
-                    spacing: 6,
+                    spacing: 8,
                     runSpacing: 4,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
@@ -460,12 +461,12 @@ class _ItibarMerkezimEkraniState extends State<ItibarMerkezimEkrani> {
       final p = tamsayiYa(s);
       if (p == null) return Text('denetlenmedi', style: TextStyle(color: r.silik, fontSize: 12));
       final renk = p >= 85 ? Marka.zumrut : (p >= 60 ? Marka.kehribar : Marka.gul);
-      return Text('$p/100', style: TextStyle(color: renk, fontWeight: FontWeight.w700));
+      return Text('$p/100', style: TextStyle(color: renk, fontWeight: FontWeight.w600));
     }
 
     return BolumKarti(
       baslik: 'Alan adlarınız',
-      ikon: Icons.language_rounded,
+      ikon: Simgeler.language,
       altBaslik: 'Güvenlik puanı ve son 30 günün DMARC özeti. Ayrıntılar DMARC Merkezi\'nde.',
       sag: dmarc && l.isNotEmpty ? TextButton(onPressed: () => bolumeGit(Bolum.dmarc), child: const Text('DMARC Merkezi')) : null,
       child: !dmarc
@@ -509,7 +510,7 @@ class _GondericilerState extends State<_Gondericiler> {
     final genis = context.genis;
     return BolumKarti(
       baslik: 'Göndericiler',
-      ikon: Icons.people_alt_outlined,
+      ikon: Simgeler.peopleAlt,
       altBaslik:
           'Posta kutularınızın gönderim sonuçları; yüksek geri dönme oranlı olanlar üstte. 24 saatte en az ${tamsayi(widget.duraklatma['min_sends'])} '
           'gönderimde kalıcı geri dönme ${_yuzde(widget.duraklatma['rate'])}\'i aşarsa dış gönderim otomatik duraklatılır.',
@@ -520,9 +521,9 @@ class _GondericilerState extends State<_Gondericiler> {
               children: [
                 if (genis)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: DefaultTextStyle(
-                      style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: .4),
+                      style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: .4),
                       child: const Row(
                         children: [
                           Expanded(flex: 4, child: Text('GÖNDERİCİ')),
@@ -548,7 +549,7 @@ class _GondericilerState extends State<_Gondericiler> {
     final r = c.r;
     final yuksek = mantik(s['high_bounce']);
     final oran = _yuzde(harita(s['rates'])['hard_bounce_rate']);
-    final oranStil = TextStyle(fontWeight: yuksek ? FontWeight.w700 : FontWeight.w500, color: yuksek ? Marka.gul : r.metin);
+    final oranStil = TextStyle(fontWeight: yuksek ? FontWeight.w600 : FontWeight.w500, color: yuksek ? Marka.gul : r.metin);
     final adres = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -616,7 +617,7 @@ class _SonucGrafigi extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
-          spacing: 14,
+          spacing: 16,
           runSpacing: 4,
           children: [
             for (final p in _parcalar)
@@ -630,7 +631,7 @@ class _SonucGrafigi extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         SizedBox(
           height: 160,
           child: BarChart(

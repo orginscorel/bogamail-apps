@@ -36,8 +36,30 @@ class Push {
         _acildi.add(v);
       } else if (c.method == 'geldi') {
         _geldi.add(v);
+      } else if (c.method == 'gosterilsinMi') {
+        // Uygulama öndeyken gelen bildirim: o oda/ileti zaten açıksa banner gösterilmez (yerel taraf 300 ms bekler).
+        try {
+          return gosterilsinMi(v);
+        } catch (_) {
+          return true;
+        }
       }
+      return null;
     });
+  }
+
+  /// Öndeyken gelen bildirim gösterilsin mi (uygulama, açık oda/iletiyle karşılaştırır). Varsayılan: göster.
+  static bool Function(Map<String, dynamic> veri) gosterilsinMi = (_) => true;
+
+  /// Bildirim izni: 'verildi' | 'reddedildi' | 'sorulmadi' (desteklenmiyorsa null).
+  static Future<String?> izin() async {
+    if (!destekli) return null;
+    _baslat();
+    try {
+      return await _k.invokeMethod<String>('izin');
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Soğuk açılışta uygulamayı açan bildirim (bir kez döner).

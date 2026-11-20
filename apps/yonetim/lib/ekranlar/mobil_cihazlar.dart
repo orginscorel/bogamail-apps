@@ -7,6 +7,7 @@ import '../ortak/iskelet.dart';
 import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 /// Exchange ActiveSync cihazı (GET /api/v1/activesync/devices → items).
 class EasCihaz {
@@ -156,14 +157,14 @@ class _MobilCihazlarEkraniState extends State<MobilCihazlarEkrani> {
       ? const []
       : [
           if (d.engelli)
-            SatirEylemi(Icons.check_circle_outline_rounded, 'Eşitlemeye izin ver', () => _engelle(d, false))
+            SatirEylemi(Simgeler.checkCircleOutline, 'Eşitlemeye izin ver', () => _engelle(d, false))
           else
-            SatirEylemi(Icons.block_rounded, 'Engelle', () => _engelle(d, true)),
+            SatirEylemi(Simgeler.block, 'Engelle', () => _engelle(d, true)),
           if (d.silmeDurumu == 'pending')
-            SatirEylemi(Icons.undo_rounded, 'Silme isteğini iptal et', () => _silmeIptal(d))
+            SatirEylemi(Simgeler.undo, 'Silme isteğini iptal et', () => _silmeIptal(d))
           else
-            SatirEylemi(Icons.phonelink_erase_rounded, 'Uzaktan sil', () => _uzaktanSil(d), tehlikeli: true),
-          SatirEylemi(Icons.delete_outline_rounded, 'Listeden kaldır', () => _kaldir(d), tehlikeli: true),
+            SatirEylemi(Simgeler.phonelinkErase, 'Uzaktan sil', () => _uzaktanSil(d), tehlikeli: true),
+          SatirEylemi(Simgeler.deleteOutline, 'Listeden kaldır', () => _kaldir(d), tehlikeli: true),
         ];
 
   void _ac(EasCihaz d) {
@@ -239,7 +240,7 @@ class _MobilCihazlarEkraniState extends State<MobilCihazlarEkrani> {
       if (_ayarHata == null) return const SizedBox(height: 4);
       return Padding(
         padding: EdgeInsets.fromLTRB(yatay, 4, yatay, 4),
-        child: Bant(_ayarHata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+        child: Bant(_ayarHata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
       );
     }
     final acik = mantik(a['enabled']);
@@ -254,7 +255,7 @@ class _MobilCihazlarEkraniState extends State<MobilCihazlarEkrani> {
       child: Bant(
         m,
         renk: acik && pakette ? Marka.zumrut : Marka.kehribar,
-        ikon: Icons.verified_user_outlined,
+        ikon: Simgeler.verifiedUser,
         eylem: TextButton(onPressed: _ayarlariAc, child: const Text('Ayrıntılar')),
       ),
     );
@@ -272,7 +273,7 @@ class _MobilCihazlarEkraniState extends State<MobilCihazlarEkrani> {
       govde: VeriTablosu<EasCihaz>(
         yukleyici: _y,
         bosMetin: filtreli ? 'Eşleşen cihaz yok.' : 'Henüz eşitlenen cihaz yok. Bir kullanıcı telefonuna Exchange hesabı eklediğinde cihaz burada görünür.',
-        bosIkon: Icons.smartphone_rounded,
+        bosIkon: Simgeler.smartphone,
         onTap: _ac,
         eylemler: _yonetir ? _eylemler : null,
         ust: Column(
@@ -290,7 +291,7 @@ class _MobilCihazlarEkraniState extends State<MobilCihazlarEkrani> {
               filtreler: [
                 FiltreDugmesi<String>(
                   etiket: 'Durum',
-                  ikon: Icons.filter_list_rounded,
+                  ikon: Simgeler.filterList,
                   secenekler: durumlar,
                   secili: _durum,
                   secildi: (v) {
@@ -316,7 +317,7 @@ class _MobilCihazlarEkraniState extends State<MobilCihazlarEkrani> {
             hucre: (c, d) => IkiSatir(
               d.ad,
               alt: _bosa(d.ayrinti, d.cihazKimligi),
-              sol: Icon(Icons.smartphone_rounded, color: r.soluk),
+              sol: Icon(Simgeler.smartphone, color: r.soluk),
             ),
           ),
           Sutun('Posta kutusu', esnek: 3, hucre: (c, d) => IkiSatir(d.kutu, alt: _ortak ? d.orgAdi : null, kalin: false)),
@@ -330,7 +331,7 @@ class _MobilCihazlarEkraniState extends State<MobilCihazlarEkrani> {
         kart: (c, d) => VeriKarti(
           baslik: d.ad,
           alt: _bosa(d.ayrinti, d.cihazKimligi),
-          sol: Icon(Icons.smartphone_rounded, color: r.soluk),
+          sol: Icon(Simgeler.smartphone, color: r.soluk),
           rozetler: [_CihazRozeti(d)],
           alanlar: [
             ('Posta kutusu', d.kutu),
@@ -405,7 +406,7 @@ class _EasAyarDialogState extends State<_EasAyarDialog> {
                 BilgiSatiri(
                   'Cihaz sınırı',
                   'Posta kutusu başına en fazla $sinir cihaz',
-                  sag: duzenler ? IconButton(tooltip: 'Değiştir', icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () => _sinir(sinir)) : null,
+                  sag: duzenler ? IconButton(tooltip: 'Değiştir', icon: const Icon(Simgeler.edit, size: 18), onPressed: () => _sinir(sinir)) : null,
                 ),
               const SizedBox(height: 8),
               Bant('${_bosa(metin(a['license_note']), 'Ticari kullanım için Microsoft EAS lisansı gerekebilir')}.', renk: Marka.kehribar),
@@ -485,7 +486,7 @@ class _EasSilmeDialogState extends State<EasSilmeDialog> {
     return AlertDialog(
       title: const Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Marka.gul),
+          Icon(Simgeler.warningAmber, color: Marka.gul),
           SizedBox(width: 8),
           Expanded(
             child: Text('Uzaktan silme', style: TextStyle(color: Marka.gul)),

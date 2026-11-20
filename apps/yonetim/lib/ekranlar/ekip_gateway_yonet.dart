@@ -7,6 +7,7 @@ import '../ortak/bilesenler.dart';
 import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import 'ekip_gateway_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Gateway alan adını yönetme: teslim hedefleri, failover ayarları, kesinti modu, bekleyen postayı deneme.
 /// Geniş ekranda iletişim kutusu, telefonda tam sayfa açılır.
@@ -26,7 +27,7 @@ Future<void> gatewayYonetimiAc(BuildContext context, GwAlan alan, VoidCallback d
             appBar: AppBar(
               automaticallyImplyLeading: false,
               title: Text(alan.ad, overflow: TextOverflow.ellipsis),
-              actions: [IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Icons.close_rounded))],
+              actions: [IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Simgeler.close))],
             ),
             body: govde,
           ),
@@ -89,7 +90,7 @@ class _GatewayYonetimState extends State<GatewayYonetim> {
                     style: TextStyle(color: r.soluk),
                   ),
                 ),
-                TextButton.icon(onPressed: _bosalt, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Bekleyen postayı şimdi dene')),
+                TextButton.icon(onPressed: _bosalt, icon: const Icon(Simgeler.refresh, size: 18), label: const Text('Bekleyen postayı şimdi dene')),
               ],
             ),
           ),
@@ -392,18 +393,18 @@ class _HedeflerState extends State<_Hedefler> {
                   if (kayitli != null)
                     OutlinedButton.icon(
                       onPressed: sonda == 'mesgul' ? null : () => _test(kayitli),
-                      icon: const Icon(Icons.wifi_rounded, size: 17),
+                      icon: const Icon(Simgeler.wifi, size: 17),
                       label: Text(sonda == 'mesgul' ? 'Test ediliyor…' : 'Bağlantıyı test et'),
                     ),
                   IconButton(
                     tooltip: 'Hedefi kaldır',
                     onPressed: () => setState(() => _satirlar.removeAt(i).kapat()),
-                    icon: const Icon(Icons.delete_outline_rounded),
+                    icon: const Icon(Simgeler.deleteOutline),
                   ),
                 ],
               ),
             ),
-          if (sonda is Map<String, dynamic>) ...[const SizedBox(height: 6), SondaSonucu(sonda)],
+          if (sonda is Map<String, dynamic>) ...[const SizedBox(height: 8), SondaSonucu(sonda)],
         ],
       ),
     );
@@ -421,17 +422,17 @@ class _HedeflerState extends State<_Hedefler> {
           'bir alıcı için kalıcı (5xx) ret kesindir. Yerel / özel ağ adresleri güvenlik nedeniyle kabul edilmez.',
           style: TextStyle(color: r.soluk, fontSize: 13),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         if (!widget.alan.failover) ...[
           const Bant('Paketinizde Akıllı MX Failover yok: tek teslim hedefi tanımlanabilir.', renk: Marka.kehribar),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
         ],
-        if (_satirlar.isEmpty) const Bant('Teslim hedefi yok: gelen posta 451 ile geri çevrilir.', renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
-        for (var i = 0; i < _satirlar.length; i++) Padding(padding: const EdgeInsets.only(bottom: 10), child: _satir(i, _satirlar[i])),
+        if (_satirlar.isEmpty) const Bant('Teslim hedefi yok: gelen posta 451 ile geri çevrilir.', renk: Marka.kehribar, ikon: Simgeler.warningAmber),
+        for (var i = 0; i < _satirlar.length; i++) Padding(padding: const EdgeInsets.only(bottom: 8), child: _satir(i, _satirlar[i])),
         if (_hata != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+            child: Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline),
           ),
         if (_yonetir)
           Wrap(
@@ -440,13 +441,13 @@ class _HedeflerState extends State<_Hedefler> {
             children: [
               OutlinedButton.icon(
                 onPressed: ekleyebilir ? () => setState(() => _satirlar.add(_Satir(oncelik: (_satirlar.length + 1) * 10))) : null,
-                icon: const Icon(Icons.add_rounded),
+                icon: const Icon(Simgeler.add),
                 label: const Text('Hedef ekle'),
               ),
               FilledButton(onPressed: _mesgul ? null : _kaydet, child: const Text('Kaydet')),
             ],
           ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(
           'Bağlantı testi yalnızca bağlanır, EHLO ve (varsa) STARTTLS dener; ileti göndermez. Kaydedilmemiş hedefi test etmek için önce kaydedin.',
           style: TextStyle(color: r.silik, fontSize: 12),
@@ -541,7 +542,7 @@ class _AyarlarState extends State<_Ayarlar> {
             style: TextStyle(color: context.r.silik, fontSize: 12.5),
           ),
           const SizedBox(height: 12),
-          if (_hata != null) ...[Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded), const SizedBox(height: 8)],
+          if (_hata != null) ...[Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline), const SizedBox(height: 8)],
           Align(
             alignment: Alignment.centerLeft,
             child: FilledButton(onPressed: kapali ? null : _kaydet, child: const Text('Kaydet')),
@@ -697,7 +698,7 @@ class _KesintiState extends State<_Kesinti> {
                     Flexible(child: Rozet(aktif ? 'Kesinti modu açık: kopya saklanıyor' : 'Kapalı', renk: aktif ? Marka.kehribar : r.soluk)),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   'Kesinti modunda gelen her iletinin bir kopyası alıcı adresi başına saklanır; asıl ileti yine kuyrukta bekler ve sunucu düzelince '
                   'müşteri sunucusuna bir kez teslim edilir (kayıp ya da çift kayıt olmaz). Kopyalar ${tamsayi(st['continuity_retention_days'])} gün sonra silinir. '
@@ -724,8 +725,8 @@ class _KesintiState extends State<_Kesinti> {
           ),
           const SizedBox(height: 8),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 8,
+            runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.end,
             children: [
               SizedBox(
@@ -752,7 +753,7 @@ class _KesintiState extends State<_Kesinti> {
             ],
           ),
           if (_gizli != null) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -763,17 +764,17 @@ class _KesintiState extends State<_Kesinti> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(_gizli!.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
+                  Text(_gizli!.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
                   KopyaKutusu(_gizli!.$2),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(_gizli!.$3, style: TextStyle(color: r.soluk, fontSize: 12)),
                 ],
               ),
             ),
           ],
           const SizedBox(height: 16),
-          Text('Kullanıcılar (${kullanicilar.length})', style: gosterim(15, agirlik: FontWeight.w700)),
+          Text('Kullanıcılar (${kullanicilar.length})', style: gosterim(15, agirlik: FontWeight.w600)),
           const SizedBox(height: 8),
           if (_yonetir) ...[
             Row(
@@ -787,7 +788,7 @@ class _KesintiState extends State<_Kesinti> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                OutlinedButton.icon(onPressed: _ekle, icon: const Icon(Icons.add_rounded), label: const Text('Ekle')),
+                OutlinedButton.icon(onPressed: _ekle, icon: const Icon(Simgeler.add), label: const Text('Ekle')),
               ],
             ),
             const SizedBox(height: 4),
@@ -827,23 +828,23 @@ class _KesintiState extends State<_Kesinti> {
                         PopupMenuItem(
                           value: 'link',
                           enabled: erisim,
-                          child: const ListTile(leading: Icon(Icons.link_rounded), title: Text('Tek kullanımlık bağlantı')),
+                          child: const ListTile(leading: Icon(Simgeler.link), title: Text('Tek kullanımlık bağlantı')),
                         ),
                         PopupMenuItem(
                           value: 'password',
                           enabled: erisim,
-                          child: const ListTile(leading: Icon(Icons.key_rounded), title: Text('Geçici şifre')),
+                          child: const ListTile(leading: Icon(Simgeler.key), title: Text('Geçici şifre')),
                         ),
                         const PopupMenuItem(
                           value: 'revoke',
-                          child: ListTile(leading: Icon(Icons.remove_moderator_outlined), title: Text('Erişimi kaldır')),
+                          child: ListTile(leading: Icon(Simgeler.removeModerator), title: Text('Erişimi kaldır')),
                         ),
                       ],
                     ),
             ),
           if (!erisim && kullanicilar.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 8),
               child: Text('Bağlantı/şifre üretmek için önce geçici webmail erişimini açın.', style: TextStyle(color: Marka.kehribar, fontSize: 12.5)),
             ),
         ],

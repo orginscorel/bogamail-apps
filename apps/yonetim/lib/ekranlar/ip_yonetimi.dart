@@ -9,6 +9,7 @@ import '../ortak/secimler.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'altyapi_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// IP Yönetimi (platform): IP envanteri (rol, kullanım, ısınma, PTR/HELO, itibar), IP ekleme / düzenleme / silme,
 /// PTR ve kara liste denetimi, platform SPF kaydı. web: admin/(panel)/ips + platform-spf-card.
@@ -130,7 +131,7 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
           }
 
           return AlertDialog(
-            title: Text('IP ekle', style: gosterim(19, agirlik: FontWeight.w700)),
+            title: Text('IP ekle', style: gosterim(19, agirlik: FontWeight.w600)),
             content: SizedBox(
               width: 440,
               child: Column(
@@ -151,7 +152,7 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
                     onChanged: (_) => yenile(() {}),
                     onSubmitted: (_) => kaydet(),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: havuz,
                     decoration: const InputDecoration(labelText: 'Havuz'),
@@ -215,10 +216,10 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
   List<SatirEylemi> _eylemler(EnvanterIp ip) => !_yonetir
       ? const []
       : [
-          SatirEylemi(Icons.tune_rounded, 'Yönet', () => _yonet(ip)),
-          SatirEylemi(Icons.refresh_rounded, 'PTR ve kara liste denetimi', () => _denetle(ip)),
-          SatirEylemi(Icons.power_settings_new_rounded, ip.etkin ? 'Devre dışı bırak' : 'Etkinleştir', () => _etkinlik(ip)),
-          SatirEylemi(Icons.delete_outline_rounded, 'IP kaydını sil', () => _sil(ip), tehlikeli: true),
+          SatirEylemi(Simgeler.tune, 'Yönet', () => _yonet(ip)),
+          SatirEylemi(Simgeler.refresh, 'PTR ve kara liste denetimi', () => _denetle(ip)),
+          SatirEylemi(Simgeler.powerSettingsNew, ip.etkin ? 'Devre dışı bırak' : 'Etkinleştir', () => _etkinlik(ip)),
+          SatirEylemi(Simgeler.deleteOutline, 'IP kaydını sil', () => _sil(ip), tehlikeli: true),
         ];
 
   List<Widget> _rozetler(EnvanterIp ip) => [
@@ -256,7 +257,7 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
       message: '7 gün: ${ip.teslim7} teslim, ${ip.kalici7} kalıcı, ${ip.gecici7} geçici',
       child: Text(
         '$s/100',
-        style: TextStyle(color: _itibarRengi(s), fontWeight: FontWeight.w700),
+        style: TextStyle(color: _itibarRengi(s), fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -272,10 +273,10 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
           Bant(
             'Sunucudaki genel IP adresleri: ${_yerel.isEmpty ? '—' : _yerel.join(', ')}. Sunucuda tanımlı olmayan bir IP\'ye atanmış müşteriler '
             'uyarıyla paylaşımlı havuzdan gönderir.',
-            ikon: Icons.lan_outlined,
+            ikon: Simgeler.lan,
           ),
           if (_isinmaPlani.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Isınma planı (günlük alıcı sınırı): ${_isinmaPlani.take(8).join(' → ')} → … → ${_isinmaPlani.last}; sonra sınırsız. '
               'Sınır dolunca o müşterinin iletileri ertelenir (paylaşımlı IP\'ye kaydırılmaz).',
@@ -301,7 +302,7 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
           _y.yenile();
           _spf.currentState?.yenile();
         },
-        birincil: _yonetir ? BirincilEylem(Icons.add_rounded, 'IP ekle', _ekle) : null,
+        birincil: _yonetir ? BirincilEylem(Simgeler.add, 'IP ekle', _ekle) : null,
         sekmeler: const TabBar(
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -316,7 +317,7 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
               yukleyici: _y,
               ust: _ust(context),
               bosMetin: 'IP yok. Sunucunun genel IP\'leri açılışta otomatik eklenir.',
-              bosIkon: Icons.lan_outlined,
+              bosIkon: Simgeler.lan,
               tabloEnAz: 900,
               onTap: _yonetir ? _yonet : null,
               eylemler: _yonetir ? _eylemler : null,
@@ -329,13 +330,13 @@ class _IpYonetimiEkraniState extends State<IpYonetimiEkrani> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Wrap(
-                        spacing: 6,
+                        spacing: 8,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             ip.adres,
-                            style: TextStyle(color: c.r.metin, fontWeight: FontWeight.w700, fontFamily: 'monospace', fontSize: 13),
+                            style: TextStyle(color: c.r.metin, fontWeight: FontWeight.w600, fontFamily: 'monospace', fontSize: 13),
                           ),
                           ..._rozetler(ip),
                         ],
@@ -486,7 +487,7 @@ class _IpYonetimiState extends State<_IpYonetimi> {
     return AlertDialog(
       title: Text(
         ip.adres,
-        style: gosterim(19, agirlik: FontWeight.w700).copyWith(fontFamily: 'monospace'),
+        style: gosterim(19, agirlik: FontWeight.w600).copyWith(fontFamily: 'monospace'),
       ),
       content: SizedBox(
         width: 520,
@@ -508,7 +509,7 @@ class _IpYonetimiState extends State<_IpYonetimi> {
                 items: [for (final e in _rolEtiketleri.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
                 onChanged: (v) => setState(() => _rol = v ?? _rol),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _tur,
                 isExpanded: true,
@@ -534,7 +535,7 @@ class _IpYonetimiState extends State<_IpYonetimi> {
                 onChanged: (v) => setState(() => _tur = v ?? _tur),
               ),
               if (_tur == 'dedicated') ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 SecimAlani(
                   etiket: 'Müşteri',
                   deger: _orgAdi,
@@ -553,7 +554,7 @@ class _IpYonetimiState extends State<_IpYonetimi> {
                 Text('Müşterinin paketinde "Özel gönderim IP\'si" özelliği olmalıdır.', style: TextStyle(color: r.silik, fontSize: 12)),
               ],
               if (_tur == 'plan') ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 if (_paketler == null)
                   const LinearProgressIndicator(minHeight: 2)
                 else
@@ -566,16 +567,16 @@ class _IpYonetimiState extends State<_IpYonetimi> {
                   ),
               ],
               if (_tur == 'pool') ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 TextField(
                   controller: _havuz,
                   decoration: InputDecoration(labelText: 'Havuz adı', hintText: 'bulk', errorText: _alan == 'pool' ? _hata : null),
                 ),
                 if (widget.havuzlar.isNotEmpty) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       for (final h in widget.havuzlar)
                         ActionChip(label: Text(h), visualDensity: VisualDensity.compact, onPressed: () => setState(() => _havuz.text = h)),
@@ -583,7 +584,7 @@ class _IpYonetimiState extends State<_IpYonetimi> {
                   ),
                 ],
               ],
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               TextField(
                 controller: _helo,
                 style: const TextStyle(fontFamily: 'monospace'),
@@ -604,24 +605,24 @@ class _IpYonetimiState extends State<_IpYonetimi> {
               if (_hata != null && !const {'role', 'organization_id', 'plan_id', 'pool', 'helo_name'}.contains(_alan))
                 Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13)),
               const SizedBox(height: 8),
-              Divider(height: 1, color: r.kenar),
+              Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
               const SizedBox(height: 8),
-              EylemSatiri(ikon: Icons.refresh_rounded, baslik: 'PTR ve kara liste denetimi', ipucu: 'PTR/FCrDNS ve DNSBL\'leri şimdi sorgula', onTap: _denetle),
+              EylemSatiri(ikon: Simgeler.refresh, baslik: 'PTR ve kara liste denetimi', ipucu: 'PTR/FCrDNS ve DNSBL\'leri şimdi sorgula', onTap: _denetle),
               if (_isinma && ip.isinma)
                 EylemSatiri(
-                  ikon: Icons.restart_alt_rounded,
+                  ikon: Simgeler.restartAlt,
                   baslik: 'Isınmayı baştan başlat',
                   ipucu: 'Günlük sınır 1. günden yeniden başlar',
                   onTap: _mesgul || !_gecerli ? null : () => _kaydet(yeniden: true),
                 ),
               EylemSatiri(
-                ikon: Icons.power_settings_new_rounded,
+                ikon: Simgeler.powerSettingsNew,
                 baslik: ip.etkin ? 'Devre dışı bırak' : 'Etkinleştir',
                 ipucu: ip.etkin ? 'Gönderimde kullanılmaz' : 'Gönderimde yeniden kullanılır',
                 onTap: _etkinlik,
               ),
               EylemSatiri(
-                ikon: Icons.delete_outline_rounded,
+                ikon: Simgeler.deleteOutline,
                 baslik: 'IP kaydını sil',
                 ipucu: 'Envanterden kaldırır; sunucu ağ ayarı değişmez',
                 tehlikeli: true,
@@ -670,7 +671,7 @@ class PlatformSpfKarti extends StatelessWidget {
     final bulunan = metinler(d['found']);
     return BolumKarti(
       baslik: 'Platform SPF kaydı',
-      ikon: Icons.verified_user_outlined,
+      ikon: Simgeler.verifiedUser,
       sag: tanimli ? (ok ? const Rozet('Tüm IP\'ler yetkili', renk: Marka.zumrut) : const Rozet('Güncelleme gerekli', renk: Marka.kehribar)) : null,
       child: !tanimli
           ? Column(
@@ -692,18 +693,18 @@ class PlatformSpfKarti extends StatelessWidget {
                   'kaydı güncellemeniz yeterlidir, müşterilerin DNS\'ine dokunulmaz.',
                   style: TextStyle(color: r.soluk, fontSize: 13),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 KopyaKutusu(metin(d['expected']), etiket: '1) ${metin(d['include'])} için TXT kaydı (sizin DNS\'iniz)'),
                 const SizedBox(height: 8),
                 KopyaKutusu(metin(d['customer_value']), etiket: '2) Müşteri alan adlarının SPF kaydı (panel otomatik önerir)'),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   'Şu an DNS\'te',
                   style: TextStyle(color: r.soluk, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: r.kenar),
@@ -713,10 +714,10 @@ class PlatformSpfKarti extends StatelessWidget {
                     style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: r.metin),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     for (final i in haritalar(d['ips']))
                       Tooltip(
@@ -731,7 +732,7 @@ class PlatformSpfKarti extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                mantik(i['ok']) ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                                mantik(i['ok']) ? Simgeler.checkCircle : Simgeler.cancel,
                                 size: 14,
                                 color: mantik(i['ok']) ? Marka.zumrut : Marka.gul,
                               ),
@@ -750,7 +751,7 @@ class PlatformSpfKarti extends StatelessWidget {
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(onPressed: yenile, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Yeniden kontrol et')),
+                    child: OutlinedButton.icon(onPressed: yenile, icon: const Icon(Simgeler.refresh, size: 18), label: const Text('Yeniden kontrol et')),
                   ),
                 ],
               ],

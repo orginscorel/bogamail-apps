@@ -9,6 +9,7 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/operasyon.dart';
 import 'liste_alarm_kurallari.dart';
+import '../ortak/simgeler.dart';
 
 /// Uyarılar: şu anda eşiği aşan kurallar (GET /alerts/active), uyarı kuralları, bildirim kanalları ve bildirim geçmişi
 /// (GET /alerts/history). Push bildiriminden gelinince [Uyg.vurguluAlarm] olayı geçmişte vurgulanır.
@@ -128,8 +129,8 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
   BirincilEylem? get _birincil {
     if (!alarmYonetebilir) return null;
     return switch (_sekme.index) {
-      1 => _turler == null ? null : BirincilEylem(Icons.add_rounded, 'Yeni kural', () => _kurallar.currentState?.yeni()),
-      2 => BirincilEylem(Icons.add_rounded, 'Yeni kanal', () => _kanallarAnahtar.currentState?.yeni()),
+      1 => _turler == null ? null : BirincilEylem(Simgeler.add, 'Yeni kural', () => _kurallar.currentState?.yeni()),
+      2 => BirincilEylem(Simgeler.add, 'Yeni kanal', () => _kanallarAnahtar.currentState?.yeni()),
       _ => null,
     };
   }
@@ -149,7 +150,7 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
             onPressed: _degerlendiriliyor ? null : _degerlendir,
             icon: _degerlendiriliyor
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2))
-                : const Icon(Icons.notifications_active_outlined),
+                : const Icon(Simgeler.notificationsActive),
           ),
       ],
       sekmeler: TabBar(
@@ -162,7 +163,7 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('Etkin'),
-                if (etkinSay > 0) ...[const SizedBox(width: 6), Badge(label: Text('$etkinSay'))],
+                if (etkinSay > 0) ...[const SizedBox(width: 8), Badge(label: Text('$etkinSay'))],
               ],
             ),
           ),
@@ -203,12 +204,12 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
       onRefresh: _yukle,
       child: l.isEmpty
           ? ListView(
-              children: const [SizedBox(height: 360, child: Durum.bos('Şu anda eşiği aşan kural yok.', ikon: Icons.notifications_off_outlined))],
+              children: const [SizedBox(height: 360, child: Durum.bos('Şu anda eşiği aşan kural yok.', ikon: Simgeler.notificationsOff))],
             )
           : ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: l.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (c, i) {
                 final a = l[i];
                 final renk = a.kritik ? Marka.gul : Marka.kehribar;
@@ -218,15 +219,15 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
                     children: [
                       Row(
                         children: [
-                          Icon(a.kritik ? Icons.error_rounded : Icons.warning_amber_rounded, color: renk),
+                          Icon(a.kritik ? Simgeler.error : Simgeler.warningAmber, color: renk),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(a.ad, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                            child: Text(a.ad, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                           ),
                           Rozet(onemEtiketleri[a.onem] ?? a.onem, renk: renk),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       if (a.etiket.isNotEmpty || a.konu.isNotEmpty) Text(a.etiket.isNotEmpty ? a.etiket : a.konu, style: TextStyle(color: r.soluk)),
                       if (a.ayrinti.isNotEmpty)
                         Padding(
@@ -235,7 +236,7 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
                         ),
                       const SizedBox(height: 8),
                       Wrap(
-                        spacing: 14,
+                        spacing: 16,
                         runSpacing: 4,
                         children: [
                           Text(
@@ -267,7 +268,7 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
           filtreler: [
             FiltreDugmesi<String>(
               etiket: 'Durum',
-              ikon: Icons.flag_outlined,
+              ikon: Simgeler.flag,
               secenekler: [('', 'Tümü'), for (final e in alarmDurumlari.entries) (e.key, e.value)],
               secili: _durum,
               secildi: (v) {
@@ -290,11 +291,11 @@ class _AlarmlarEkraniState extends State<AlarmlarEkrani> with SingleTickerProvid
             onRefresh: _yukle,
             child: l.isEmpty
                 ? ListView(
-                    children: const [SizedBox(height: 320, child: Durum.bos('Henüz alarm bildirimi yok.', ikon: Icons.history_rounded))],
+                    children: const [SizedBox(height: 320, child: Durum.bos('Henüz alarm bildirimi yok.', ikon: Simgeler.history))],
                   )
                 : SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 24),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                     child: Column(
                       children: [
                         for (final o in l)
@@ -340,7 +341,7 @@ class _OlaySatiri extends StatelessWidget {
         shape: const Border(),
         collapsedShape: const Border(),
         leading: Icon(
-          o.durum == 'resolved' ? Icons.check_circle_rounded : (o.durum == 'test' ? Icons.science_rounded : Icons.notifications_active_rounded),
+          o.durum == 'resolved' ? Simgeler.checkCircle : (o.durum == 'test' ? Simgeler.science : Simgeler.notificationsActive),
           color: renk,
         ),
         title: Text(o.kuralAdi, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
@@ -363,7 +364,7 @@ class _OlaySatiri extends StatelessWidget {
           BilgiSatiri('Değer / eşik', '${_sayi(o.deger)} / ${_sayi(o.esik)}'),
           if (o.ayrinti.isNotEmpty) BilgiSatiri('Ayrıntı', o.ayrinti),
           if (o.teslimler.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Bildirim kanalları',
               style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600),
@@ -373,8 +374,8 @@ class _OlaySatiri extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   children: [
-                    Icon(ok ? Icons.check_rounded : Icons.close_rounded, size: 16, color: ok ? Marka.zumrut : Marka.gul),
-                    const SizedBox(width: 6),
+                    Icon(ok ? SimgelerKalin.check : SimgelerKalin.close, size: 16, color: ok ? Marka.zumrut : Marka.gul),
+                    const SizedBox(width: 8),
                     Expanded(child: Text(ok ? kanal : '$kanal — $hata', style: const TextStyle(fontSize: 12.5))),
                   ],
                 ),

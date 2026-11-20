@@ -7,6 +7,7 @@ import '../ortak/iskelet.dart';
 import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 // Toplu Gönderim ortak parçaları (internal/api/campaigns*.go; web: lib/campaigns.ts, components/admin/campaigns/shared.tsx).
 
@@ -98,7 +99,7 @@ Future<T?> ekipPencere<T>(BuildContext context, String baslik, Widget govde, {do
             title: Text(baslik, overflow: TextOverflow.ellipsis),
             actions: [
               ...eylemler,
-              IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Icons.close_rounded)),
+              IconButton(tooltip: 'Kapat', onPressed: () => Navigator.pop(c), icon: const Icon(Simgeler.close)),
             ],
           ),
           body: govde,
@@ -119,7 +120,7 @@ class KucukSayi extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.r;
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: r.kart,
         border: Border.all(color: r.kenar),
@@ -135,7 +136,7 @@ class KucukSayi extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: r.silik, fontSize: 11.5),
           ),
-          Text(sayiYaz(deger), style: gosterim(19, renk: kotu ? Marka.gul : r.metin)),
+          Text(sayiYaz(deger), style: gosterim(19, agirlik: FontWeight.w600, renk: kotu ? Marka.gul : r.metin)),
           if (alt != null)
             Text(
               alt!,
@@ -215,7 +216,7 @@ class _KampanyaRaporuState extends State<KampanyaRaporu> {
     int n(String k) => tamsayi(s[k]);
     final kuyruk = n('queued');
     return Padding(
-      padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 10, context.genis ? 16 : 12, 4),
+      padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 8, context.genis ? 16 : 12, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -232,7 +233,7 @@ class _KampanyaRaporuState extends State<KampanyaRaporu> {
             const SizedBox(height: 8),
             Bant([if (neden.isNotEmpty) neden, if (bekleme.isNotEmpty) 'Bekleme: $bekleme'].join('\n'), renk: Marka.kehribar),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           if (s.isEmpty)
             Text('Taslak kampanyanın raporu yok.', style: TextStyle(color: r.soluk))
           else
@@ -289,7 +290,7 @@ class _KampanyaRaporuState extends State<KampanyaRaporu> {
     return VeriTablosu<Map<String, dynamic>>(
       yukleyici: _y,
       bosMetin: 'Kayıt yok.',
-      bosIkon: Icons.people_outline_rounded,
+      bosIkon: Simgeler.peopleOutline,
       tabloEnAz: 640,
       ust: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -306,7 +307,7 @@ class _KampanyaRaporuState extends State<KampanyaRaporu> {
             filtreler: [
               FiltreDugmesi<String>(
                 etiket: 'Durum',
-                ikon: Icons.filter_list_rounded,
+                ikon: Simgeler.filterList,
                 secenekler: filtreler,
                 secili: _durum,
                 secildi: (v) {

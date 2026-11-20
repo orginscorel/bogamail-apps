@@ -11,6 +11,7 @@ import '../ortak/iskelet.dart';
 import '../ortak/secimler.dart';
 import '../veri/json.dart';
 import 'koruma_ortak.dart';
+import '../ortak/simgeler.dart';
 
 const _modEtiketi = {
   'platform': 'Platform ayarı',
@@ -35,7 +36,7 @@ class PlatformPolitikasiNotu extends StatelessWidget {
   Widget build(BuildContext context) => Bant(
     metin ?? 'Bu ayar platform yöneticisi tarafından belirlenir; değişiklik için hizmet sağlayıcınıza başvurun.',
     renk: Marka.mavi,
-    ikon: Icons.lock_outline_rounded,
+    ikon: Simgeler.lockOutline,
   );
 }
 
@@ -108,7 +109,7 @@ class _GreylistEkraniState extends State<GreylistEkrani> {
           'spam araçlarının çoğu tekrar denemez.',
           style: TextStyle(color: r.silik, fontSize: 12.5),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -124,7 +125,7 @@ class _GreylistEkraniState extends State<GreylistEkrani> {
             ),
             if (!Uyg.musteri)
               InputChip(
-                avatar: const Icon(Icons.business_rounded, size: 17),
+                avatar: const Icon(Simgeler.business, size: 17),
                 label: Text(_orgAdi ?? 'Tüm müşteriler'),
                 selected: _orgId != null,
                 showCheckmark: false,
@@ -136,7 +137,7 @@ class _GreylistEkraniState extends State<GreylistEkrani> {
                 ? Rozet(
                     'Platformda açık · ${metin(ayar['mode']) == 'on' ? 'tümü' : 'şüpheli ≥ ${metin(ayar['score'])}'}',
                     renk: Marka.zumrut,
-                    ikon: Icons.check_circle_outline_rounded,
+                    ikon: Simgeler.checkCircleOutline,
                   )
                 : const Rozet('Platformda kapalı', renk: Marka.kehribar),
           ],
@@ -146,28 +147,28 @@ class _GreylistEkraniState extends State<GreylistEkrani> {
           enAz: 200,
           children: [
             KpiKarti(
-              ikon: Icons.hourglass_top_rounded,
+              ikon: Simgeler.hourglassTop,
               etiket: 'Geciktirilen',
               deger: sayiYaz(tamsayi(s['delayed'])),
               alt: 'geçici ret (451 4.7.1)',
               renk: Marka.mavi,
             ),
             KpiKarti(
-              ikon: Icons.check_circle_outline_rounded,
+              ikon: Simgeler.checkCircleOutline,
               etiket: 'Tekrar deneyip geçen',
               deger: sayiYaz(tamsayi(s['passed'])),
               alt: 'ortanca bekleme ${_sure(s['median_delay_s'])}',
               renk: Marka.zumrut,
             ),
             KpiKarti(
-              ikon: Icons.do_not_disturb_on_outlined,
+              ikon: Simgeler.doNotDisturbOn,
               etiket: 'Hiç tekrar denemeyen',
               deger: sayiYaz(tamsayi(s['never_retried'])),
               alt: '${metin(ayar['pass_hours'])} saatlik pencere doldu',
               renk: Marka.gul,
             ),
             KpiKarti(
-              ikon: Icons.pending_outlined,
+              ikon: Simgeler.pending,
               etiket: 'Beklemede',
               deger: sayiYaz(tamsayi(s['pending'])),
               alt: 'pencere henüz dolmadı',
@@ -182,13 +183,13 @@ class _GreylistEkraniState extends State<GreylistEkrani> {
           children: [
             BolumKarti(
               baslik: 'Saatlik',
-              ikon: Icons.bar_chart_rounded,
+              ikon: Simgeler.barChart,
               altBaslik: 'Geciktirilen (gri) ve sonradan geçen (yeşil) üçlüler.',
               child: _GreylistGrafigi(seri: haritalar(s['timeline'])),
             ),
             BolumKarti(
               baslik: 'Tekrar denemeyen ağlar',
-              ikon: Icons.lan_outlined,
+              ikon: Simgeler.lan,
               altBaslik: 'Büyük olasılıkla spam aracı. Saldırı Haritası\'nda da görünür.',
               child: aglar.isEmpty
                   ? Text('Veri yok.', style: TextStyle(color: r.soluk))
@@ -232,7 +233,7 @@ class _GreylistEkraniState extends State<GreylistEkrani> {
         else if (!Uyg.musteri)
           Bant(
             'Bir müşterinin greylisting modunu değiştirmek için yukarıdan müşteri seçin.',
-            ikon: Icons.touch_app_outlined,
+            ikon: Simgeler.touchApp,
             eylem: TextButton(onPressed: _musteriFiltresi, child: const Text('Müşteri seç')),
           ),
         if (Uyg.platformYoneticisi) ...[const SizedBox(height: 16), const _PlatformAyari()],
@@ -374,7 +375,7 @@ class _MusteriModuState extends State<_MusteriModu> {
           : 'kapalı';
       return BolumKarti(
         baslik: widget.orgAdi == null ? 'Müşteri modu' : 'Müşteri modu · ${widget.orgAdi}',
-        ikon: Icons.tune_rounded,
+        ikon: Simgeler.tune,
         altBaslik:
             'Platform ayarı şu an: $platform. Birden çok müşteriye giden iletide alıcılardan birinin modu gerektiriyorsa ileti geciktirilir. '
             'Gecikme yalnızca ilk iletide olur.',
@@ -385,10 +386,10 @@ class _MusteriModuState extends State<_MusteriModu> {
               'Mod',
               style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 for (final e in _modEtiketi.entries)
                   ChoiceChip(
@@ -411,7 +412,7 @@ class _MusteriModuState extends State<_MusteriModu> {
                 ),
               ),
             ],
-            if (_hata != null) ...[const SizedBox(height: 10), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+            if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
             const SizedBox(height: 12),
             if (_yonetir)
               Align(
@@ -538,7 +539,7 @@ class _PlatformAyariState extends State<_PlatformAyari> {
       final r = c.r;
       return BolumKarti(
         baslik: 'Platform ayarı',
-        ikon: Icons.admin_panel_settings_outlined,
+        ikon: Simgeler.adminPanelSettings,
         altBaslik:
             'İlk kez görülen (IP ağı /24 veya /64, gönderen, alıcı) üçlüsü 451 4.7.1 ile geçici olarak reddedilir. Kimliği doğrulanmış gönderim, izin listeleri, '
             'kendi IP\'lerimiz, iyi itibarlı IP\'ler, SPF/DKIM ile doğrulanmış bilinen gönderenler ve büyük sağlayıcılar (PTR/ASN) atlanır.',
@@ -555,7 +556,7 @@ class _PlatformAyariState extends State<_PlatformAyari> {
               'Mod',
               style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 13),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             SecimCipleri<String>(
               secenekler: const [('suspicious', 'Yalnızca şüpheli iletiler'), ('on', 'Tüm ilk kez görülenler')],
               secili: metin(_g['mode'], 'suspicious'),
@@ -600,7 +601,7 @@ class _PlatformAyariState extends State<_PlatformAyari> {
                 ),
               ],
             ),
-            if (_hata != null) ...[const SizedBox(height: 10), Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded)],
+            if (_hata != null) ...[const SizedBox(height: 8), Bant(_hata!, renk: Marka.gul, ikon: Simgeler.errorOutline)],
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,

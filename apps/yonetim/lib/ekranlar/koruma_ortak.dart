@@ -1,6 +1,8 @@
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
+import '../ortak/simgeler.dart';
+
 /// Koruma / trafik ekranlarının ortak küçük parçaları.
 
 /// Küçük bilgi kutusu: etiket, değer, alt satır (ayrıntı panellerinde ızgara hücresi).
@@ -15,7 +17,7 @@ class KorumaKutusu extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.r;
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: BoxDecoration(
         color: r.kart,
         borderRadius: BorderRadius.circular(14),
@@ -36,7 +38,7 @@ class KorumaKutusu extends StatelessWidget {
             deger,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: kotu ? Marka.gul : (renk ?? r.metin), fontSize: 16, fontWeight: FontWeight.w700),
+            style: TextStyle(color: kotu ? Marka.gul : (renk ?? r.metin), fontSize: 16, fontWeight: FontWeight.w600),
           ),
           if (alt != null && alt!.isNotEmpty)
             Text(
@@ -173,7 +175,7 @@ class _GomuluYuklemeState<T> extends State<GomuluYukleme<T>> {
         decoration: BoxDecoration(color: Marka.gul.withValues(alpha: .08), borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
-            const Icon(Icons.error_outline_rounded, color: Marka.gul, size: 20),
+            const Icon(Simgeler.errorOutline, color: Marka.gul, size: 20),
             const SizedBox(width: 8),
             Expanded(child: Text(_hata!)),
             TextButton(onPressed: _yenile, child: const Text('Tekrar dene')),

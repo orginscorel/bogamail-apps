@@ -33,7 +33,7 @@ class KlasorlerEkrani extends StatelessWidget {
       final kendi = l.where((k) => !k.sistem).toList()..sort((a, b) => a.ad.toLowerCase().compareTo(b.ad.toLowerCase()));
       return [
         AyarKarti(
-          ikon: Icons.create_new_folder_outlined,
+          ikon: Simge.klasorEkle,
           baslik: 'Klasörlerim',
           aciklama: 'İletilerinizi düzenlemek için kendi klasörlerinizi oluşturun; süzgeçlerle postaları otomatik taşıyabilirsiniz.',
           child: Column(
@@ -52,7 +52,7 @@ class KlasorlerEkrani extends StatelessWidget {
           ),
         ),
         AyarKarti(
-          ikon: Icons.folder_special_outlined,
+          ikon: Simge.ozelKlasor,
           baslik: 'Sistem klasörleri',
           aciklama: 'Bu klasörler otomatik oluşturulur; adları değiştirilemez ve silinemez.',
           child: Column(
@@ -76,7 +76,7 @@ class KlasorlerEkrani extends StatelessWidget {
                         key: ValueKey('bosalt-$rol'),
                         style: OutlinedButton.styleFrom(foregroundColor: Marka.gul),
                         onPressed: k.toplam == 0 ? null : () => _bosalt(context, k, sonra),
-                        icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                        icon: const Icon(Simge.bosalt, size: 18),
                         label: Text(rol == 'trash' ? 'Çöp Kutusu\'nu boşalt' : 'Gereksiz\'i boşalt'),
                       ),
                 ],
@@ -93,7 +93,7 @@ class KlasorlerEkrani extends StatelessWidget {
   Widget _klasorSatiri(BuildContext context, Klasor k, Future<void> Function() sonra) => ListTile(
     key: ValueKey('klasor-${k.id}'),
     contentPadding: EdgeInsets.zero,
-    leading: Icon(Icons.folder_outlined, color: context.r.soluk),
+    leading: Icon(Simge.klasor, color: context.r.soluk),
     title: Text(k.ad, maxLines: 1, overflow: TextOverflow.ellipsis),
     subtitle: Text(_sayi(k)),
     trailing: Row(
@@ -101,7 +101,7 @@ class KlasorlerEkrani extends StatelessWidget {
       children: [
         IconButton(
           tooltip: 'Yeniden adlandır',
-          icon: const Icon(Icons.drive_file_rename_outline),
+          icon: const Icon(Simge.yenidenAdlandir),
           onPressed: () async {
             final ad = await metinSor(context, 'Klasörü yeniden adlandır', ilk: k.ad);
             if (ad == null || ad.trim().isEmpty || ad.trim() == k.ad) return;
@@ -111,7 +111,7 @@ class KlasorlerEkrani extends StatelessWidget {
         ),
         IconButton(
           tooltip: 'Sil',
-          icon: const Icon(Icons.delete_outline_rounded, color: Marka.gul),
+          icon: const Icon(Simge.sil, color: Marka.gul),
           onPressed: () async {
             if (!await onayla(
               context,
@@ -221,7 +221,7 @@ class _YeniKlasorState extends State<_YeniKlasor> {
       FilledButton.icon(
         key: const ValueKey('yeni-klasor-olustur'),
         onPressed: _ad.text.trim().isEmpty || _mesgul ? null : _olustur,
-        icon: const Icon(Icons.add_rounded, size: 18),
+        icon: const Icon(Simge.ekle, size: 18),
         label: const Text('Oluştur'),
       ),
     ],

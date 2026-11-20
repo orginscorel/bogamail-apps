@@ -8,6 +8,7 @@ import '../oturum.dart';
 import '../ortak/bilesenler.dart';
 import '../veri/json.dart';
 import '../veri/taklit.dart';
+import '../ortak/simgeler.dart';
 
 /// Dış tarayıcıda adres açar (testlerde değiştirilir).
 Future<bool> Function(Uri) adresAc = (u) => launchUrl(u, mode: LaunchMode.externalApplication);
@@ -28,7 +29,7 @@ Widget _madde(BuildContext c, IconData i, String m) => Padding(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Icon(i, size: 18, color: c.r.soluk),
-      const SizedBox(width: 10),
+      const SizedBox(width: 8),
       Expanded(child: Text(m, style: const TextStyle(fontSize: 13.5, height: 1.35))),
     ],
   ),
@@ -41,28 +42,28 @@ Future<void> postaKutusunaGir(BuildContext context, {required String id, require
     context: context,
     builder: (c) => AlertDialog(
       scrollable: true,
-      icon: Icon(Icons.mark_email_unread_outlined, color: c.r.vurgu, size: 30),
-      title: Text('Posta kutusuna gir', style: gosterim(19, agirlik: FontWeight.w700)),
+      icon: Icon(Simgeler.markEmailUnread, color: c.r.vurgu, size: 30),
+      title: Text('Posta kutusuna gir', style: gosterim(19, agirlik: FontWeight.w600)),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(adres, style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(adres, style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Text('Kutu, şifresi sorulmadan webmail\'de açılır.', style: TextStyle(color: c.r.soluk, fontSize: 13)),
-            const SizedBox(height: 14),
-            _madde(c, Icons.timer_outlined, 'Oturum 30 dakika sürer; giriş bağlantısı tek kullanımlıktır ve 60 saniye içinde açılmalıdır.'),
-            _madde(c, Icons.password_rounded, 'Bu oturumda kutunun şifresi değiştirilemez; gönderilen her ileti "yönetici adına gönderim" olarak kaydedilir.'),
-            _madde(c, Icons.visibility_outlined, 'Kutu sahibi bu erişimi Ayarlar → Güvenlik bölümündeki güvenlik kaydında görür.'),
-            _madde(c, Icons.receipt_long_outlined, 'Erişim; adınız, IP adresiniz ve zamanla denetim kayıtlarına yazılır.'),
+            const SizedBox(height: 16),
+            _madde(c, Simgeler.timer, 'Oturum 30 dakika sürer; giriş bağlantısı tek kullanımlıktır ve 60 saniye içinde açılmalıdır.'),
+            _madde(c, Simgeler.password, 'Bu oturumda kutunun şifresi değiştirilemez; gönderilen her ileti "yönetici adına gönderim" olarak kaydedilir.'),
+            _madde(c, Simgeler.visibility, 'Kutu sahibi bu erişimi Ayarlar → Güvenlik bölümündeki güvenlik kaydında görür.'),
+            _madde(c, Simgeler.receiptLong, 'Erişim; adınız, IP adresiniz ve zamanla denetim kayıtlarına yazılır.'),
           ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
-        FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.open_in_new_rounded, size: 18), label: const Text('Webmail\'i aç')),
+        FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Simgeler.openInNew, size: 18), label: const Text('Webmail\'i aç')),
       ],
     ),
   );
@@ -87,7 +88,7 @@ Future<void> postaKutusunaGir(BuildContext context, {required String id, require
     context: context,
     builder: (c) => AlertDialog(
       scrollable: true,
-      title: Text('Tarayıcı açılamadı', style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text('Tarayıcı açılamadı', style: gosterim(19, agirlik: FontWeight.w600)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -128,8 +129,8 @@ Future<void> musteriPanelineGir(BuildContext context, {required String id, requi
 
         return AlertDialog(
           scrollable: true,
-          icon: Icon(Icons.switch_account_rounded, color: c.r.vurgu, size: 30),
-          title: Text('Müşteri paneline gir', style: gosterim(19, agirlik: FontWeight.w700)),
+          icon: Icon(Simgeler.switchAccount, color: c.r.vurgu, size: 30),
+          title: Text('Müşteri paneline gir', style: gosterim(19, agirlik: FontWeight.w600)),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 440),
             child: Column(
@@ -138,14 +139,14 @@ Future<void> musteriPanelineGir(BuildContext context, {required String id, requi
               children: [
                 Text.rich(TextSpan(children: [
                   const TextSpan(text: 'Paneli '),
-                  TextSpan(text: ad, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  TextSpan(text: ad, style: const TextStyle(fontWeight: FontWeight.w600)),
                   const TextSpan(text: ' yöneticisi olarak görüntüleyeceksiniz.'),
                 ])),
                 const SizedBox(height: 12),
-                _madde(c, Icons.timer_outlined, 'Görünüm 30 dakika sonra kendiliğinden kapanır; üstteki banttan istediğiniz an çıkabilirsiniz.'),
-                _madde(c, Icons.block_rounded, 'Panel kullanıcıları, paketler, bayiler, IP havuzu, kuyruk ve platform ayarları bu görünümde değiştirilemez.'),
-                _madde(c, Icons.receipt_long_outlined, 'Gerekçe, oturum ve IP adresiniz denetim kaydına yazılır.'),
-                const SizedBox(height: 6),
+                _madde(c, Simgeler.timer, 'Görünüm 30 dakika sonra kendiliğinden kapanır; üstteki banttan istediğiniz an çıkabilirsiniz.'),
+                _madde(c, Simgeler.block, 'Panel kullanıcıları, paketler, bayiler, IP havuzu, kuyruk ve platform ayarları bu görünümde değiştirilemez.'),
+                _madde(c, Simgeler.receiptLong, 'Gerekçe, oturum ve IP adresiniz denetim kaydına yazılır.'),
+                const SizedBox(height: 8),
                 TextField(
                   controller: k,
                   autofocus: true,
@@ -261,16 +262,16 @@ class _TaklitBandiState extends State<TaklitBandi> {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
           child: Row(
             children: [
-              const Icon(Icons.visibility_rounded, size: 18, color: Color(0xFF3B2600)),
+              const Icon(Simgeler.visibility, size: 18, color: Color(0xFF3B2600)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text.rich(
                   TextSpan(children: [
                     TextSpan(text: bayi ? 'Bayi panelindesiniz: ' : 'Müşteri panelindesiniz: '),
-                    TextSpan(text: taklitAdi(t), style: const TextStyle(fontWeight: FontWeight.w800)),
+                    TextSpan(text: taklitAdi(t), style: const TextStyle(fontWeight: FontWeight.w600)),
                     if (dk != null) TextSpan(text: ' · $dk dk kaldı'),
                   ]),
                   maxLines: 2,
@@ -283,8 +284,8 @@ class _TaklitBandiState extends State<TaklitBandi> {
                 onPressed: _cikiyor ? null : _cik,
                 icon: _cikiyor
                     ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B2600)))
-                    : const Icon(Icons.logout_rounded, size: 18),
-                label: const Text('Çık', style: TextStyle(fontWeight: FontWeight.w800)),
+                    : const Icon(Simgeler.logout, size: 18),
+                label: const Text('Çık', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ],
           ),

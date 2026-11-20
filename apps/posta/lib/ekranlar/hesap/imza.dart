@@ -286,7 +286,7 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
                 decoration: BoxDecoration(color: r.vurguYumusak, borderRadius: BorderRadius.circular(14)),
                 child: Row(
                   children: [
-                    Icon(kilitli ? Icons.lock_outline_rounded : Icons.apartment_rounded, color: r.vurgu),
+                    Icon(kilitli ? Simge.kilit : Simge.kurum, color: r.vurgu),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -306,8 +306,8 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
               SegmentedButton<bool>(
                 showSelectedIcon: false,
                 segments: const [
-                  ButtonSegment(value: false, icon: Icon(Icons.notes_rounded), label: Text('Düz metin')),
-                  ButtonSegment(value: true, icon: Icon(Icons.format_paint_outlined), label: Text('Biçimli')),
+                  ButtonSegment(value: false, icon: Icon(Simge.notlar), label: Text('Düz metin')),
+                  ButtonSegment(value: true, icon: Icon(Simge.bicim), label: Text('Biçimli')),
                 ],
                 selected: {_bicimli},
                 onSelectionChanged: (v) => setState(() {
@@ -374,10 +374,10 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.badge_outlined),
+              leading: const Icon(Simge.kimlik),
               title: const Text('İmza bilgilerim'),
               subtitle: const Text('Unvan, departman, telefon, web ve sosyal bağlantılar ({{unvan}} gibi değişkenleri doldurur)'),
-              trailing: const Icon(Icons.chevron_right_rounded),
+              trailing: const Icon(Simge.ileri),
               onTap: () async {
                 await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ImzaProfiliEkrani()));
                 _yukle();
@@ -437,7 +437,7 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
                             child: CircleAvatar(
                               radius: 13,
                               backgroundColor: Color(int.parse('ff${h.substring(1)}', radix: 16)),
-                              child: h == renk ? const Icon(Icons.check_rounded, size: 16, color: Colors.white) : null,
+                              child: h == renk ? const Icon(Simge.onay, size: 16, color: Colors.white) : null,
                             ),
                           ),
                       ],
@@ -450,7 +450,7 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
                             final l = await _logoSec();
                             if (l != null) ss(() => logo = l);
                           },
-                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                          icon: const Icon(Simge.gorselEkle, size: 18),
                           label: Text(logo == null ? 'Logo / fotoğraf ekle' : 'Logoyu değiştir'),
                         ),
                         if (logo != null) TextButton(onPressed: () => ss(() => logo = null), child: const Text('Kaldır')),
@@ -531,20 +531,20 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
             decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12)),
             child: Wrap(
               children: [
-                arac(Icons.format_bold_rounded, 'Kalın', () => _ekle('<b>', '</b>')),
-                arac(Icons.format_italic_rounded, 'İtalik', () => _ekle('<i>', '</i>')),
-                arac(Icons.format_underlined_rounded, 'Altı çizili', () => _ekle('<u>', '</u>')),
-                arac(Icons.format_color_text_rounded, 'Marka rengi', () => _ekle('<span style="color:#5443d2">', '</span>')),
-                arac(Icons.link_rounded, 'Bağlantı', _baglanti),
-                arac(Icons.image_outlined, 'Logo / görsel', _gorsel),
-                arac(Icons.keyboard_return_rounded, 'Satır sonu', () => _ekle('<br>')),
+                arac(Simge.kalin, 'Kalın', () => _ekle('<b>', '</b>')),
+                arac(Simge.italik, 'İtalik', () => _ekle('<i>', '</i>')),
+                arac(Simge.altiCizili, 'Altı çizili', () => _ekle('<u>', '</u>')),
+                arac(Simge.yaziRengi, 'Marka rengi', () => _ekle('<span style="color:#5443d2">', '</span>')),
+                arac(Simge.baglanti, 'Bağlantı', _baglanti),
+                arac(Simge.gorsel, 'Logo / görsel', _gorsel),
+                arac(Simge.enter, 'Satır sonu', () => _ekle('<br>')),
                 PopupMenuButton<String>(
                   tooltip: 'Değişken ekle',
-                  icon: const Icon(Icons.data_object_rounded, size: 20),
+                  icon: const Icon(Simge.veri, size: 20),
                   onSelected: (k) => _ekle('{{$k}}'),
                   itemBuilder: (_) => [for (final e in imzaDegiskenleri.entries) PopupMenuItem(value: e.key, child: Text('${e.value}  ·  {{${e.key}}}'))],
                 ),
-                arac(Icons.auto_awesome_outlined, 'Hazır tasarım', _tasarimSec),
+                arac(Simge.parilti, 'Hazır tasarım', _tasarimSec),
               ],
             ),
           ),

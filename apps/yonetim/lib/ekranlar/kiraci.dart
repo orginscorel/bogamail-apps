@@ -9,6 +9,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'altyapi_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Kiracı İzolasyonu (platform): müşteri başına gönderim sınırları, kuyruk payı, IP havuzu, risk; durdur / sürdür /
 /// yavaşlat ve platform varsayılanları. web: admin/(panel)/tenants. API: /tenants/isolation, /tenants/{id}/limits,
@@ -92,11 +93,11 @@ class _KiraciIzolasyonuEkraniState extends State<KiraciIzolasyonuEkrani> {
   bool _riskKotu(Kiraci t) => _varsayilan.isNotEmpty && t.risk >= _v('throttle_risk');
 
   Widget _durumRozeti(Kiraci t) {
-    if (t.durduruldu) return const Rozet('Durduruldu', renk: Marka.gul, ikon: Icons.pause_circle_outline_rounded);
+    if (t.durduruldu) return const Rozet('Durduruldu', renk: Marka.gul, ikon: Simgeler.pauseCircleOutline);
     if (t.yavaslatildi) {
       final oto = mantik(t.ayar['throttle_auto']) ? ' (otomatik)' : '';
       final bitis = tarihOku(t.etkin['throttled_until']);
-      return Rozet('Yavaşlatıldı$oto${bitis == null ? '' : ' · ${goreliZaman(bitis)}'}', renk: Marka.kehribar, ikon: Icons.speed_rounded);
+      return Rozet('Yavaşlatıldı$oto${bitis == null ? '' : ' · ${goreliZaman(bitis)}'}', renk: Marka.kehribar, ikon: Simgeler.speed);
     }
     return const Rozet('Normal', renk: Marka.zumrut);
   }
@@ -125,13 +126,13 @@ class _KiraciIzolasyonuEkraniState extends State<KiraciIzolasyonuEkrani> {
       children: [
         if (d.isNotEmpty)
           Padding(
-            padding: EdgeInsets.fromLTRB(context.genis ? 16 : 0, 4, context.genis ? 16 : 0, 6),
+            padding: EdgeInsets.fromLTRB(context.genis ? 16 : 0, 4, context.genis ? 16 : 0, 8),
             child: Bant(
               'Varsayılan: dakikada ${_sinir(_v('msgs_per_minute'))} ileti, saatte ${_sinir(_v('rcpts_per_hour'))} alıcı, '
               '${_sinir(_v('max_concurrent'))} eşzamanlı teslim. Otomatik yavaşlatma: son 24 saatte en az ${_v('min_finished')} teslimde kalıcı geri '
               'dönme ≥ %${metin(d['throttle_bounce_rate'])} veya risk ≥ ${_v('throttle_risk')}; ${_v('throttle_minutes')} dakika boyunca hız '
               '%${(_carpan * 100).round()}\'e düşer.${_kuyrukVar ? '' : ' Bu düğümde giden kuyruk yok: kuyruk sayıları gösterilemez.'}',
-              ikon: Icons.shield_outlined,
+              ikon: Simgeler.shield,
             ),
           ),
         FiltreCubugu(
@@ -162,15 +163,15 @@ class _KiraciIzolasyonuEkraniState extends State<KiraciIzolasyonuEkrani> {
       baslik: 'Kiracı İzolasyonu',
       alt: 'Müşteri başına gönderim sınırları, kuyruk payı, IP havuzu ve kötüye kullanım riski',
       yenile: _y.yenile,
-      eylemler: [IconButton(tooltip: 'Platform varsayılanları', onPressed: _varsayilanlar, icon: const Icon(Icons.tune_rounded))],
+      eylemler: [IconButton(tooltip: 'Platform varsayılanları', onPressed: _varsayilanlar, icon: const Icon(Simgeler.tune))],
       govde: VeriTablosu<Kiraci>(
         yukleyici: _y,
         ust: _ust(context),
         bosMetin: 'Eşleşen müşteri bulunamadı.',
-        bosIkon: Icons.shield_outlined,
+        bosIkon: Simgeler.shield,
         tabloEnAz: 900,
         onTap: _yonet,
-        eylemler: (t) => [SatirEylemi(Icons.tune_rounded, 'Yönet', () => _yonet(t))],
+        eylemler: (t) => [SatirEylemi(Simgeler.tune, 'Yönet', () => _yonet(t))],
         sutunlar: [
           Sutun('Müşteri', esnek: 4, hucre: (c, t) => IkiSatir(t.ad, alt: t.altSatir)),
           Sutun(
@@ -208,7 +209,7 @@ class _KiraciIzolasyonuEkraniState extends State<KiraciIzolasyonuEkrani> {
           alt: t.altSatir,
           rozetler: [_durumRozeti(t)],
           onTap: () => _yonet(t),
-          eylemler: [SatirEylemi(Icons.tune_rounded, 'Yönet', () => _yonet(t))],
+          eylemler: [SatirEylemi(Simgeler.tune, 'Yönet', () => _yonet(t))],
           alanlar: [
             ('Kuyruk', '${t.kuyruk}${t.bekletilen > 0 ? ' (${t.bekletilen} bekletilen)' : ''}'),
             ('Geri dönme', '${t.geriDonmeMetni} (${t.bitti24})'),
@@ -327,7 +328,7 @@ class _KiraciYonetimiState extends State<_KiraciYonetimi> {
     final durdu = mantik(s['paused']);
     final yavas = _t.yavaslatildi;
     return AlertDialog(
-      title: Text(_t.ad, style: gosterim(19, agirlik: FontWeight.w700)),
+      title: Text(_t.ad, style: gosterim(19, agirlik: FontWeight.w600)),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -343,19 +344,19 @@ class _KiraciYonetimiState extends State<_KiraciYonetimi> {
               Row(
                 children: [
                   Expanded(child: _alanKutusu(_dk, 'Dakikada ileti (vars. ${_sinir(_v('msgs_per_minute'))})', 'msgs_per_minute')),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(child: _alanKutusu(_saat, 'Saatte alıcı (vars. ${_sinir(_v('rcpts_per_hour'))})', 'rcpts_per_hour')),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(child: _alanKutusu(_baglanti, 'Eşzamanlı teslim (vars. ${_sinir(_v('max_concurrent'))})', 'max_concurrent')),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(child: _alanKutusu(_pay, 'Kuyruk payı (1–10)', 'queue_weight')),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               TextField(
                 controller: _havuz,
                 decoration: InputDecoration(
@@ -374,11 +375,11 @@ class _KiraciYonetimiState extends State<_KiraciYonetimi> {
               ),
               FilledButton.icon(
                 onPressed: _mesgul ? null : _sinirlariKaydet,
-                icon: const Icon(Icons.speed_rounded, size: 18),
+                icon: const Icon(Simgeler.speed, size: 18),
                 label: const Text('Sınırları kaydet'),
               ),
-              const SizedBox(height: 14),
-              Divider(height: 1, color: r.kenar),
+              const SizedBox(height: 16),
+              Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -394,21 +395,21 @@ class _KiraciYonetimiState extends State<_KiraciYonetimi> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   SizedBox(width: 100, child: _alanKutusu(_sure, 'Süre (dk)', 'minutes')),
                 ],
               ),
               const SizedBox(height: 8),
               if (durdu)
                 EylemSatiri(
-                  ikon: Icons.play_circle_outline_rounded,
+                  ikon: Simgeler.playCircleOutline,
                   baslik: 'Gönderimi sürdür',
                   ipucu: 'Durduruldu: ${tire(metin(s['paused_reason'], 'gerekçe yok'))} · ${tamZaman(tarihOku(s['paused_at']))}',
                   onTap: _mesgul ? null : () => _calistir(() => _eylem('resume'), 'Gönderim sürdürüldü'),
                 )
               else
                 EylemSatiri(
-                  ikon: Icons.pause_circle_outline_rounded,
+                  ikon: Simgeler.pauseCircleOutline,
                   baslik: 'Gönderimi durdur',
                   ipucu: 'Dış gönderim reddedilir (geçici hata); kuyruktaki iletiler bekletilir',
                   tehlikeli: true,
@@ -429,14 +430,14 @@ class _KiraciYonetimiState extends State<_KiraciYonetimi> {
                 ),
               if (yavas)
                 EylemSatiri(
-                  ikon: Icons.bolt_rounded,
+                  ikon: Simgeler.bolt,
                   baslik: 'Yavaşlatmayı kaldır',
                   ipucu: '${tire(metin(s['throttle_reason'], 'gerekçe yok'))} · bitiş ${tamZaman(tarihOku(s['throttled_until']))}',
                   onTap: _mesgul ? null : () => _calistir(() => _eylem('unthrottle'), 'Yavaşlatma kaldırıldı'),
                 )
               else
                 EylemSatiri(
-                  ikon: Icons.speed_rounded,
+                  ikon: Simgeler.speed,
                   baslik: 'Yavaşlat',
                   ipucu: 'Belirtilen süre boyunca hız %$_carpanYuzde',
                   onTap: _mesgul
@@ -537,7 +538,7 @@ class _VarsayilanFormuState extends State<_VarsayilanFormu> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text('Platform varsayılanları', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Platform varsayılanları', style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 520,
       child: SingleChildScrollView(
@@ -546,7 +547,7 @@ class _VarsayilanFormuState extends State<_VarsayilanFormu> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Kendi sınırı olmayan tüm müşterilere uygulanır.', style: TextStyle(color: context.r.soluk, fontSize: 13)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Izgara(
               enAz: 200,
               bosluk: 10,

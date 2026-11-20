@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -146,21 +147,31 @@ extension RenkX on BuildContext {
 final temaKipi = ValueNotifier<ThemeMode>(ThemeMode.light);
 
 /// Büyük rakam/başlık yazı stili (Plus Jakarta).
-TextStyle gosterim(double boyut, {FontWeight agirlik = FontWeight.w800, Color? renk, double? satir}) => TextStyle(
+/// Ağırlık en çok w600'dür (sakin, okunaklı hiyerarşi); büyük gösterim boyutları küçültülür (32 → 24, en çok 28).
+TextStyle gosterim(double boyut, {FontWeight agirlik = FontWeight.w600, Color? renk, double? satir}) =>
+    _gosterim(boyut > 24 ? (boyut * .75).clamp(22, 28).roundToDouble() : boyut, agirlik.value > 600 ? FontWeight.w600 : agirlik, renk, satir);
+
+TextStyle _gosterim(double boyut, FontWeight agirlik, Color? renk, double? satir) => TextStyle(
   fontFamily: _gosterimFont,
   fontSize: boyut,
   fontWeight: agirlik,
   fontVariations: [FontVariation('wght', agirlik.value.toDouble())],
-  letterSpacing: -0.02 * boyut,
+  letterSpacing: -0.015 * boyut,
   height: satir,
   color: renk,
   fontFeatures: const [FontFeature.tabularFigures()],
 );
 
+/// Masaüstü platformlarda sıkı yoğunluk ve bir tık küçük gövde yazısı (fare hassas; ekranda daha çok satır).
+bool get _masaustuPlatform => const {TargetPlatform.macOS, TargetPlatform.windows, TargetPlatform.linux}.contains(defaultTargetPlatform);
+
 ThemeData temaKur(Brightness parlaklik) {
   final r = parlaklik == Brightness.dark ? Renkler.karanlik : Renkler.acik;
+  final masaustu = _masaustuPlatform;
+  final govde = masaustu ? 13.5 : 14.0;
   final temel = ThemeData(
     useMaterial3: true,
+    visualDensity: masaustu ? VisualDensity.compact : VisualDensity.standard,
     brightness: parlaklik,
     fontFamily: _font,
     scaffoldBackgroundColor: r.zemin,
@@ -181,7 +192,26 @@ ThemeData temaKur(Brightness parlaklik) {
     ),
   );
   return temel.copyWith(
-    textTheme: temel.textTheme.apply(bodyColor: r.metin, displayColor: r.metin),
+    // Yazı ölçeği: gövde 14 (masaüstü 13.5), başlıklar en çok 22/24, ağırlık en çok 600.
+    textTheme: temel.textTheme
+        .copyWith(
+          displayLarge: temel.textTheme.displayLarge?.copyWith(fontSize: 28, fontWeight: FontWeight.w600),
+          displayMedium: temel.textTheme.displayMedium?.copyWith(fontSize: 26, fontWeight: FontWeight.w600),
+          displaySmall: temel.textTheme.displaySmall?.copyWith(fontSize: 24, fontWeight: FontWeight.w600),
+          headlineLarge: temel.textTheme.headlineLarge?.copyWith(fontSize: masaustu ? 24 : 22, fontWeight: FontWeight.w600),
+          headlineMedium: temel.textTheme.headlineMedium?.copyWith(fontSize: masaustu ? 22 : 20, fontWeight: FontWeight.w600),
+          headlineSmall: temel.textTheme.headlineSmall?.copyWith(fontSize: 19, fontWeight: FontWeight.w600),
+          titleLarge: temel.textTheme.titleLarge?.copyWith(fontSize: 17, fontWeight: FontWeight.w600),
+          titleMedium: temel.textTheme.titleMedium?.copyWith(fontSize: govde + 1, fontWeight: FontWeight.w500),
+          titleSmall: temel.textTheme.titleSmall?.copyWith(fontSize: govde - .5, fontWeight: FontWeight.w500),
+          bodyLarge: temel.textTheme.bodyLarge?.copyWith(fontSize: govde, fontWeight: FontWeight.w400),
+          bodyMedium: temel.textTheme.bodyMedium?.copyWith(fontSize: govde - .5, fontWeight: FontWeight.w400),
+          bodySmall: temel.textTheme.bodySmall?.copyWith(fontSize: 12),
+          labelLarge: temel.textTheme.labelLarge?.copyWith(fontSize: govde - .5, fontWeight: FontWeight.w500),
+          labelMedium: temel.textTheme.labelMedium?.copyWith(fontSize: 12),
+          labelSmall: temel.textTheme.labelSmall?.copyWith(fontSize: 11),
+        )
+        .apply(bodyColor: r.metin, displayColor: r.metin),
     appBarTheme: AppBarTheme(
       backgroundColor: r.zemin,
       surfaceTintColor: Colors.transparent,
@@ -189,7 +219,8 @@ ThemeData temaKur(Brightness parlaklik) {
       elevation: 0,
       scrolledUnderElevation: .5,
       centerTitle: false,
-      titleTextStyle: gosterim(20, renk: r.metin, agirlik: FontWeight.w700),
+      titleTextStyle: gosterim(17, renk: r.metin, agirlik: FontWeight.w600),
+      toolbarHeight: masaustu ? 52 : 56,
       systemOverlayStyle: r.koyu ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
     ),
     cardTheme: CardThemeData(
@@ -201,11 +232,11 @@ ThemeData temaKur(Brightness parlaklik) {
         side: BorderSide(color: r.kenar),
       ),
     ),
-    dividerTheme: DividerThemeData(color: r.kenar, space: 1, thickness: 1),
+    dividerTheme: DividerThemeData(color: r.kenar.withValues(alpha: .6), space: 1, thickness: .6),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: r.ic,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: masaustu ? 11 : 13),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
@@ -217,14 +248,14 @@ ThemeData temaKur(Brightness parlaklik) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size(0, 48),
+        minimumSize: Size(0, masaustu ? 40 : 44),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontFamily: _font, fontWeight: FontWeight.w600, fontSize: 15),
+        textStyle: TextStyle(fontFamily: _font, fontWeight: FontWeight.w500, fontSize: govde),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 46),
+        minimumSize: Size(0, masaustu ? 40 : 44),
         side: BorderSide(color: r.kenar),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
@@ -234,8 +265,13 @@ ThemeData temaKur(Brightness parlaklik) {
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       labelStyle: TextStyle(color: r.metin, fontFamily: _font, fontSize: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
     ),
-    listTileTheme: ListTileThemeData(iconColor: r.soluk),
+    listTileTheme: ListTileThemeData(
+      iconColor: r.soluk,
+      titleTextStyle: TextStyle(fontFamily: _font, fontSize: govde, color: r.metin, fontWeight: FontWeight.w400),
+    ),
+    iconTheme: IconThemeData(size: 20, color: r.soluk),
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: r.kart,
@@ -258,7 +294,7 @@ ThemeData temaKur(Brightness parlaklik) {
           fontFamily: _font,
           fontSize: 11.5,
           color: s.contains(WidgetState.selected) ? r.metin : r.soluk,
-          fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+          fontWeight: s.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w500,
         ),
       ),
     ),
@@ -267,7 +303,7 @@ ThemeData temaKur(Brightness parlaklik) {
       indicatorColor: r.vurguYumusak,
       selectedIconTheme: IconThemeData(color: r.vurgu),
       unselectedIconTheme: IconThemeData(color: r.soluk),
-      selectedLabelTextStyle: TextStyle(fontFamily: _font, fontSize: 12, color: r.metin, fontWeight: FontWeight.w700),
+      selectedLabelTextStyle: TextStyle(fontFamily: _font, fontSize: 12, color: r.metin, fontWeight: FontWeight.w600),
       unselectedLabelTextStyle: TextStyle(fontFamily: _font, fontSize: 12, color: r.soluk, fontWeight: FontWeight.w500),
     ),
     drawerTheme: DrawerThemeData(backgroundColor: r.kart, surfaceTintColor: Colors.transparent),

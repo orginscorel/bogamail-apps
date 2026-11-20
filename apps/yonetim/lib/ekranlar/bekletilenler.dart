@@ -10,6 +10,7 @@ import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import '../veri/operasyon.dart';
 import 'liste_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// Gönderilmeden bekletilen giden iletiler (GET /outbound-holds): kötüye kullanım şüphesi ve DLP onayı.
 /// Yalnızca üst bilgi gösterilir (gönderen, alıcı sayısı, maskeli konu önizlemesi, boyut, puan); içerik ve alıcılar asla.
@@ -97,13 +98,13 @@ class _BekletilenlerListesiState extends State<BekletilenlerListesi> with Automa
 
   List<SatirEylemiDugmesi> _dugmeler(Bekletilen b) => [
     if (b.durum == 'held' && _serbestBirakabilir(b))
-      SatirEylemiDugmesi(Icons.check_rounded, _serbestEtiketi(b), () => _karar(b, true), ipucu: 'İleti alıcılarına gönderilir (kayıt altında)'),
+      SatirEylemiDugmesi(Simgeler.check, _serbestEtiketi(b), () => _karar(b, true), ipucu: 'İleti alıcılarına gönderilir (kayıt altında)'),
     if (b.durum == 'held' && _silebilir(b))
-      SatirEylemiDugmesi(Icons.delete_outline_rounded, _silEtiketi(b), () => _karar(b, false), ipucu: 'İleti gönderilmeden kalıcı olarak silinir', tehlikeli: true),
+      SatirEylemiDugmesi(Simgeler.deleteOutline, _silEtiketi(b), () => _karar(b, false), ipucu: 'İleti gönderilmeden kalıcı olarak silinir', tehlikeli: true),
   ];
 
   List<SatirEylemi> _eylemler(Bekletilen b) => [
-    SatirEylemi(Icons.info_outline_rounded, 'Ayrıntı', () => _ayrinti(b)),
+    SatirEylemi(Simgeler.infoOutline, 'Ayrıntı', () => _ayrinti(b)),
     for (final d in _dugmeler(b)) SatirEylemi(d.ikon, d.baslik, d.calistir, tehlikeli: d.tehlikeli),
   ];
 
@@ -127,13 +128,13 @@ class _BekletilenlerListesiState extends State<BekletilenlerListesi> with Automa
           if (b.kaynak == 'abuse') BilgiSatiri('Risk puanı', b.puan.toStringAsFixed(1).replaceAll('.', ',')),
           BilgiSatiri('Neden', b.neden),
           BilgiSatiri('Durum', _durumMetni(b)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'İçerik ve alıcı adresleri gizlilik nedeniyle gösterilmez.${b.durum == 'held' ? ' Bekleyen iletiler ${tamZaman(b.bitis)} tarihinde otomatik silinir.' : ''}',
             style: TextStyle(color: context.r.silik, fontSize: 12),
           ),
           if (b.durum == 'held' && dugmeler.isEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Bant(
               b.kaynak == 'dlp'
                   ? 'DLP nedeniyle bekletilen iletiye yalnızca platform yöneticisi karar verebilir.'
@@ -167,7 +168,7 @@ class _BekletilenlerListesiState extends State<BekletilenlerListesi> with Automa
       yukleyici: _y,
       onTap: _ayrinti,
       eylemler: _eylemler,
-      bosIkon: Icons.verified_user_outlined,
+      bosIkon: Simgeler.verifiedUser,
       bosMetin: _q.isNotEmpty
           ? 'Eşleşen ileti yok.'
           : (abuse ? 'Kötüye kullanım şüphesiyle bekletilen ileti yok.' : 'Onay bekleyen DLP iletisi bulunmuyor.'),
@@ -177,14 +178,14 @@ class _BekletilenlerListesiState extends State<BekletilenlerListesi> with Automa
           if (widget.kaynak == null)
             FiltreDugmesi<String>(
               etiket: 'Kaynak',
-              ikon: Icons.shield_outlined,
+              ikon: Simgeler.shield,
               secenekler: const [('abuse', 'Kötüye kullanım'), ('dlp', 'DLP onayı')],
               secili: _kaynak,
               secildi: (v) => _filtre(() => _kaynak = v),
             ),
           FiltreDugmesi<bool>(
             etiket: 'Durum',
-            ikon: Icons.flag_outlined,
+            ikon: Simgeler.flag,
             secenekler: const [(false, 'Bekleyen'), (true, 'Tümü (geçmiş dahil)')],
             secili: _tumu,
             secildi: (v) => _filtre(() => _tumu = v),
@@ -202,7 +203,7 @@ class _BekletilenlerListesiState extends State<BekletilenlerListesi> with Automa
           hucre: (c, b) => IkiSatir(
             b.gonderen,
             alt: Uyg.musteri ? null : b.orgAdi,
-            sol: Icon(b.kaynak == 'dlp' ? Icons.policy_rounded : Icons.gpp_maybe_rounded, size: 20, color: b.durum == 'held' ? Marka.kehribar : r.silik),
+            sol: Icon(b.kaynak == 'dlp' ? Simgeler.policy : Simgeler.gppMaybe, size: 20, color: b.durum == 'held' ? Marka.kehribar : r.silik),
           ),
         ),
         Sutun('Konu (önizleme)', esnek: 3, hucre: (c, b) => SolukMetin(b.konu.isEmpty ? '(konu yok)' : b.konu)),
@@ -211,14 +212,14 @@ class _BekletilenlerListesiState extends State<BekletilenlerListesi> with Automa
         Sutun(
           abuse ? 'Puan' : 'Durum',
           genislik: 110,
-          hucre: (c, b) => abuse && b.durum == 'held' ? Text(b.puan.toStringAsFixed(1).replaceAll('.', ','), style: const TextStyle(fontWeight: FontWeight.w700)) : Sigdir(_durumRozeti(c, b)),
+          hucre: (c, b) => abuse && b.durum == 'held' ? Text(b.puan.toStringAsFixed(1).replaceAll('.', ','), style: const TextStyle(fontWeight: FontWeight.w600)) : Sigdir(_durumRozeti(c, b)),
         ),
         Sutun('Zaman', genislik: 110, hucre: (c, b) => Tooltip(message: tamZaman(b.olusturma), child: SolukMetin(goreliZaman(b.olusturma)))),
       ],
       kart: (c, b) => VeriKarti(
         baslik: b.gonderen,
         alt: b.konu.isEmpty ? '(konu yok)' : b.konu,
-        sol: Icon(b.kaynak == 'dlp' ? Icons.policy_rounded : Icons.gpp_maybe_rounded, color: b.durum == 'held' ? Marka.kehribar : r.silik),
+        sol: Icon(b.kaynak == 'dlp' ? Simgeler.policy : Simgeler.gppMaybe, color: b.durum == 'held' ? Marka.kehribar : r.silik),
         rozetler: [_durumRozeti(c, b)],
         alanlar: [
           if (!Uyg.musteri && b.orgAdi.isNotEmpty) ('Müşteri', b.orgAdi),

@@ -15,6 +15,7 @@ import 'kutu_formlari.dart';
 import 'kutu_islemleri.dart';
 import 'takma_adlar.dart';
 import 'taklit_islemleri.dart';
+import '../ortak/simgeler.dart';
 
 /// Posta kutuları (web: mailboxes/page.tsx): geniş ekranda sıralanabilir tablo (adres, kullanım, son giriş,
 /// oluşturma), telefonda kartlar; arama, alan adı ve durum filtreleri (etkin filtre çipleriyle), satır menüsünde
@@ -139,17 +140,17 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
   }
 
   List<SatirEylemi> _eylemler(PostaKutusu k) => [
-    SatirEylemi(Icons.open_in_full_rounded, 'Ayrıntılar', () => _ac(k)),
+    SatirEylemi(Simgeler.openInFull, 'Ayrıntılar', () => _ac(k)),
     if (_yonetir) ...[
-      if (k.aktif) SatirEylemi(Icons.mark_email_unread_outlined, 'Posta kutusuna gir', () => postaKutusunaGir(context, id: k.id, adres: k.adres)),
-      SatirEylemi(Icons.edit_rounded, 'Düzenle', () => _duzenle(k)),
-      SatirEylemi(Icons.key_rounded, 'Şifreyi sıfırla', () => sifreSifirla(context, k)),
-      SatirEylemi(Icons.straighten_rounded, 'Boyut limitleri', () => boyutLimitleri(context, k)),
-      SatirEylemi(Icons.move_down_rounded, 'IMAP ile taşı', () => imapTasima(context, k)),
-      SatirEylemi(Icons.history_rounded, 'Yedekten geri yükle', () => yedektenGeriYukle(context, k)),
-      SatirEylemi(Icons.download_rounded, 'Dışa aktar (.zip)', () => kutuyuDisariAktar(context, k)),
-      SatirEylemi(k.aktif ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, k.aktif ? 'Askıya al' : 'Etkinleştir', () => _durumDegistir(k)),
-      SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), tehlikeli: true),
+      if (k.aktif) SatirEylemi(Simgeler.markEmailUnread, 'Posta kutusuna gir', () => postaKutusunaGir(context, id: k.id, adres: k.adres)),
+      SatirEylemi(Simgeler.edit, 'Düzenle', () => _duzenle(k)),
+      SatirEylemi(Simgeler.key, 'Şifreyi sıfırla', () => sifreSifirla(context, k)),
+      SatirEylemi(Simgeler.straighten, 'Boyut limitleri', () => boyutLimitleri(context, k)),
+      SatirEylemi(Simgeler.moveDown, 'IMAP ile taşı', () => imapTasima(context, k)),
+      SatirEylemi(Simgeler.history, 'Yedekten geri yükle', () => yedektenGeriYukle(context, k)),
+      SatirEylemi(Simgeler.download, 'Dışa aktar (.zip)', () => kutuyuDisariAktar(context, k)),
+      SatirEylemi(k.aktif ? Simgeler.pauseCircleOutline : Simgeler.playCircleOutline, k.aktif ? 'Askıya al' : 'Etkinleştir', () => _durumDegistir(k)),
+      SatirEylemi(Simgeler.deleteOutline, 'Sil', () => _sil(k), tehlikeli: true),
     ],
   ];
 
@@ -186,13 +187,13 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
       ),
       filtreler: [
         ActionChip(
-          avatar: Icon(Icons.language_rounded, size: 16, color: _alanId != null ? r.vurgu : r.soluk),
+          avatar: Icon(SimgelerKalin.language, size: 16, color: _alanId != null ? r.vurgu : r.soluk),
           label: Text(_alanAdi ?? 'Alan adı'),
           onPressed: _alanSec,
         ),
         FiltreDugmesi<String>(
           etiket: 'Durum',
-          ikon: Icons.toggle_on_outlined,
+          ikon: Simgeler.toggleOn,
           secenekler: const [('', 'Tümü'), ('active', 'Aktif'), ('suspended', 'Askıda')],
           secili: _durum,
           secildi: (d) {
@@ -204,12 +205,12 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => TakmaAdlarEkrani(orgId: widget.orgId, alanId: _alanId, alanAdi: _alanAdi)),
           ),
-          icon: const Icon(Icons.alternate_email_rounded, size: 18),
+          icon: const Icon(Simgeler.alternateEmail, size: 18),
           label: const Text('Takma adlar'),
         ),
       ],
       etkinler: [
-        if (_alanId != null) EtkinFiltre('Alan: $_alanAdi', _alanKaldir, ikon: Icons.language_rounded),
+        if (_alanId != null) EtkinFiltre('Alan: $_alanAdi', _alanKaldir, ikon: Simgeler.language),
         if (_durum.isNotEmpty)
           EtkinFiltre('Durum: ${durumEtiketi(_durum)}', () {
             setState(() => _durum = '');
@@ -222,7 +223,7 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
       ust: ust,
       tabloEnAz: 640,
       bosMetin: _q.isEmpty && _durum.isEmpty && _alanId == null ? 'Henüz posta kutusu yok.' : 'Eşleşen posta kutusu yok.',
-      bosIkon: Icons.inbox_rounded,
+      bosIkon: Simgeler.inbox,
       siralama: _sirala,
       artan: _artan,
       siralamaDegisti: (a, b) {
@@ -266,20 +267,20 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
       baslik: baslik,
       alt: 'Kullanıcı hesapları, kotalar ve durumları',
       yenile: _y.yenile,
-      birincil: _yonetir ? BirincilEylem(Icons.person_add_alt_rounded, 'Posta kutusu', _yeni) : null,
+      birincil: _yonetir ? BirincilEylem(Simgeler.personAddAlt, 'Posta kutusu', _yeni) : null,
       govde: _secili == null || !_yanPanel
           ? tablo
           : Row(
               children: [
                 Expanded(child: tablo),
-                VerticalDivider(width: 1, color: r.kenar),
+                VerticalDivider(width: 1, color: r.kenar.withValues(alpha: .6)),
                 SizedBox(
                   width: 460,
                   child: Column(
                     children: [
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(tooltip: 'Kapat', onPressed: () => setState(() => _secili = null), icon: const Icon(Icons.close_rounded)),
+                        child: IconButton(tooltip: 'Kapat', onPressed: () => setState(() => _secili = null), icon: const Icon(Simgeler.close)),
                       ),
                       Expanded(
                         child: KutuDetay(key: ValueKey(_secili!.id), kutu: _secili!, degisti: (y) => _degisti(_secili!.id, y)),

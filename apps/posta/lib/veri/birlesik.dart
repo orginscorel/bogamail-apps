@@ -75,11 +75,11 @@ class BirlesikSayfa {
 
 /// Birleşik görünüm klasörleri (sunucudaki folder=).
 const birlesikKlasorler = <(String, String, IconData)>[
-  ('inbox', 'Gelen', Icons.inbox_outlined),
-  ('unread', 'Okunmamış', Icons.mail_outline_rounded),
-  ('flagged', 'Yıldızlı', Icons.star_rounded),
-  ('sent', 'Gönderilen', Icons.send_outlined),
-  ('all', 'Tümü', Icons.all_inbox_outlined),
+  ('inbox', 'Gelen', Simge.gelen),
+  ('unread', 'Okunmamış', Simge.posta),
+  ('flagged', 'Yıldızlı', Simge.yildizDolu),
+  ('sent', 'Gönderilen', Simge.gonder),
+  ('all', 'Tümü', Simge.tumPosta),
 ];
 
 class Birlesik {

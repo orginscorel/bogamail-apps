@@ -106,7 +106,7 @@ class SondaSonucu extends StatelessWidget {
     const kucuk = TextStyle(fontSize: 12.5);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: renk.withValues(alpha: .08),
         border: Border.all(color: renk.withValues(alpha: .4)),
@@ -117,7 +117,7 @@ class SondaSonucu extends StatelessWidget {
         children: [
           Text(
             '${ok ? 'Bağlantı başarılı' : 'Başarısız: ${_asama[asama] ?? asama} aşaması'} · ${tamsayi(r['duration_ms'])} ms',
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
           if (adres.isNotEmpty) Text('Adres: $adres', style: kucuk),
           if (karsilama.isNotEmpty) Text('Karşılama: $karsilama', style: kucuk, maxLines: 2, overflow: TextOverflow.ellipsis),

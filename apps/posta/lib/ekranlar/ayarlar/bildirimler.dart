@@ -103,12 +103,12 @@ class _CihazBildirimleriState extends State<_CihazBildirimleri> {
                         );
                         await _durum();
                       },
-                icon: const Icon(Icons.notifications_active_outlined),
+                icon: const Icon(Simge.hatirlatma),
                 label: const Text('Bildirimleri etkinleştir'),
               ),
               OutlinedButton.icon(
                 onPressed: !acik || cihaz == 0 ? null : () => islem(Posta.pushTest, tamam: 'Test bildirimi gönderildi'),
-                icon: const Icon(Icons.send_outlined),
+                icon: const Icon(Simge.gonder),
                 label: const Text('Test bildirimi gönder'),
               ),
             ],
@@ -122,7 +122,7 @@ class _CihazBildirimleriState extends State<_CihazBildirimleri> {
           if (!_izin)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.notifications_off_outlined, color: Marka.kehribar),
+              leading: const Icon(Simge.bildirimKapali, color: Marka.kehribar),
               title: const Text('Bildirim izni kapalı'),
               subtitle: const Text('Yeni e-postalardan haberdar olmak için izin verin.'),
               trailing: TextButton(
@@ -149,7 +149,7 @@ class _CihazBildirimleriState extends State<_CihazBildirimleri> {
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               onPressed: () => Bildirim.goster(iletiId: '', baslik: 'BogaMail', metin: 'Bildirimler bu cihazda çalışıyor.'),
-              icon: const Icon(Icons.notifications_outlined),
+              icon: const Icon(Simge.bildirimDolu),
               label: const Text('Test bildirimi göster'),
             ),
           ),
@@ -165,7 +165,7 @@ class _CihazBildirimleriState extends State<_CihazBildirimleri> {
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               onPressed: () => Bildirim.goster(iletiId: '', baslik: 'BogaMail', metin: 'Bildirimler bu bilgisayarda çalışıyor.'),
-              icon: const Icon(Icons.notifications_outlined),
+              icon: const Icon(Simge.bildirimDolu),
               label: const Text('Test bildirimi göster'),
             ),
           ),
@@ -174,12 +174,7 @@ class _CihazBildirimleriState extends State<_CihazBildirimleri> {
     } else {
       icerik = Text('Bu platformda bildirim desteklenmiyor.', style: TextStyle(color: r.soluk));
     }
-    return AyarKarti(
-      ikon: Icons.phone_iphone_rounded,
-      baslik: 'Bu cihaz',
-      aciklama: 'Yeni posta geldiğinde bu cihazda nasıl haberdar olacağınız.',
-      child: icerik,
-    );
+    return AyarKarti(ikon: Simge.telefon, baslik: 'Bu cihaz', aciklama: 'Yeni posta geldiğinde bu cihazda nasıl haberdar olacağınız.', child: icerik);
   }
 }
 
@@ -212,7 +207,7 @@ class _TercihFormuState extends State<_TercihFormu> {
     if (!secenekler.containsKey(_esitleme)) secenekler[_esitleme] = '$_esitleme sn';
     final sirali = Map.fromEntries(secenekler.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
     return AyarKarti(
-      ikon: Icons.notifications_none_rounded,
+      ikon: Simge.bildirim,
       baslik: 'Bildirim tercihleri',
       aciklama: 'Hesabınıza kayıtlı; webmail ve bu uygulama birlikte kullanır.',
       alt: KaydetDugmesi(key: const ValueKey('bildirim-kaydet'), etkin: _kirli, mesgul: _mesgul, basildi: _gonder),
@@ -259,7 +254,7 @@ class _CanliKarti extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Canli.ben;
     return AyarKarti(
-      ikon: Icons.wifi_rounded,
+      ikon: Simge.wifi,
       baslik: 'Anlık bağlantı',
       aciklama: 'Sunucuyla canlı bağlantının durumu.',
       child: ValueListenableBuilder<CanliDurumu>(
@@ -297,7 +292,7 @@ class _CanliKarti extends StatelessWidget {
               if (d.tur == CanliTur.yok || d.tur == CanliTur.kapali)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
-                  child: OutlinedButton.icon(onPressed: c.simdiBaglan, icon: const Icon(Icons.sync_rounded, size: 18), label: const Text('Şimdi bağlan')),
+                  child: OutlinedButton.icon(onPressed: c.simdiBaglan, icon: const Icon(Simge.esitle, size: 18), label: const Text('Şimdi bağlan')),
                 ),
             ],
           );
@@ -349,7 +344,7 @@ class _SohbetGizliligiKartiState extends State<SohbetGizliligiKarti> {
   Widget build(BuildContext context) {
     if (_yok) return const SizedBox.shrink();
     return AyarKarti(
-      ikon: Icons.visibility_outlined,
+      ikon: Simge.goster,
       baslik: 'Sohbet gizliliği',
       aciklama: 'Kurum içi sohbette iş arkadaşlarınızın sizi nasıl göreceği.',
       child: SwitchListTile.adaptive(

@@ -148,8 +148,10 @@ void main() {
     await t.tap(find.byKey(const ValueKey('birlesik-hesap-hepsi')));
     await t.pump();
 
+    await t.tap(find.byKey(const ValueKey('birlesik-klasor-sec')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('birlesik-klasor-flagged')));
-    await t.pump();
+    await t.pumpAndSettle();
     await t.pump(const Duration(milliseconds: 50));
     expect(s.bul('GET', '$_u/messages').last.sorgu['folder'], 'flagged');
 

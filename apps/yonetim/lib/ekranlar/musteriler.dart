@@ -11,6 +11,7 @@ import 'musteri_detay.dart';
 import 'musteri_form.dart';
 import 'musteri_islemleri.dart';
 import 'musteri_model.dart';
+import '../ortak/simgeler.dart';
 
 /// Müşteriler (GET /organizations?internal=0): sıralanabilir tablo (ad, oluşturulma, durum), arama, durum ve sektör
 /// filtreleri, satır menüsü; telefonda kartlar. Ayrıntı panelinde müşterinin tüm yönetim işlemleri bulunur.
@@ -71,24 +72,24 @@ class _MusterilerEkraniState extends State<MusterilerEkrani> {
   }
 
   List<SatirEylemi> _eylemler(Musteri m) => [
-    SatirEylemi(Icons.open_in_new_rounded, 'Ayrıntılar', () => _ac(m)),
+    SatirEylemi(Simgeler.openInNew, 'Ayrıntılar', () => _ac(m)),
     if (MusteriYetki.yonetir)
-      SatirEylemi(Icons.edit_outlined, 'Düzenle', () async {
+      SatirEylemi(Simgeler.edit, 'Düzenle', () async {
         final y = await MusteriEylemleri.duzenle(context, m);
         if (y != null) _degisti(m.id, y);
       }),
-    if (MusteriYetki.girer) SatirEylemi(Icons.login_rounded, 'Müşteri paneline gir', () => MusteriEylemleri.paneleGir(context, m)),
-    SatirEylemi(Icons.language_rounded, 'Alan adları', () => MusteriEylemleri.alanAdlari(context, m)),
-    SatirEylemi(Icons.inbox_rounded, 'Posta kutuları', () => MusteriEylemleri.postaKutulari(context, m)),
-    if (Uyg.ortak) SatirEylemi(Icons.toggle_on_outlined, 'Özellikler', () => ozellikleriAc(context, m)),
-    if (MusteriYetki.disaAktarir) SatirEylemi(Icons.inventory_2_outlined, 'Tümünü dışa aktar', () => disaAktarmaAc(context, m)),
+    if (MusteriYetki.girer) SatirEylemi(Simgeler.login, 'Müşteri paneline gir', () => MusteriEylemleri.paneleGir(context, m)),
+    SatirEylemi(Simgeler.language, 'Alan adları', () => MusteriEylemleri.alanAdlari(context, m)),
+    SatirEylemi(Simgeler.inbox, 'Posta kutuları', () => MusteriEylemleri.postaKutulari(context, m)),
+    if (Uyg.ortak) SatirEylemi(Simgeler.toggleOn, 'Özellikler', () => ozellikleriAc(context, m)),
+    if (MusteriYetki.disaAktarir) SatirEylemi(Simgeler.inventory2, 'Tümünü dışa aktar', () => disaAktarmaAc(context, m)),
     if (MusteriYetki.yonetir)
-      SatirEylemi(m.aktif ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, m.aktif ? 'Askıya al' : 'Etkinleştir', () async {
+      SatirEylemi(m.aktif ? Simgeler.pauseCircleOutline : Simgeler.playCircleOutline, m.aktif ? 'Askıya al' : 'Etkinleştir', () async {
         final y = await MusteriEylemleri.durumDegistir(context, m);
         if (y != null) _degisti(m.id, y);
       }, tehlikeli: m.aktif),
     if (MusteriYetki.yonetir && !m.dahili)
-      SatirEylemi(Icons.delete_outline_rounded, 'Sil', () async {
+      SatirEylemi(Simgeler.deleteOutline, 'Sil', () async {
         if (await MusteriEylemleri.sil(context, m)) _degisti(m.id, null);
       }, tehlikeli: true),
   ];
@@ -118,14 +119,14 @@ class _MusterilerEkraniState extends State<MusterilerEkrani> {
       filtreler: [
         FiltreDugmesi<String>(
           etiket: 'Durum',
-          ikon: Icons.toggle_on_outlined,
+          ikon: Simgeler.toggleOn,
           secenekler: const [('', 'Tüm durumlar'), ('active', 'Aktif'), ('suspended', 'Askıda')],
           secili: _durum,
           secildi: (v) => _filtre(() => _durum = v),
         ),
         FiltreDugmesi<String>(
           etiket: 'Sektör',
-          ikon: Icons.category_outlined,
+          ikon: Simgeler.category,
           secenekler: [('', 'Tüm sektörler'), for (final e in sektorler.entries) (e.key, e.value)],
           secili: _sektor,
           secildi: (v) => _filtre(() => _sektor = v),
@@ -140,7 +141,7 @@ class _MusterilerEkraniState extends State<MusterilerEkrani> {
       baslik: 'Müşteriler',
       alt: 'Organizasyonlar, paketleri ve kullanım durumları',
       yenile: _y.yenile,
-      birincil: MusteriYetki.olusturur ? BirincilEylem(Icons.add_business_rounded, 'Yeni müşteri', _yeni) : null,
+      birincil: MusteriYetki.olusturur ? BirincilEylem(Simgeler.addBusiness, 'Yeni müşteri', _yeni) : null,
       govde: VeriTablosu<Musteri>(
         yukleyici: _y,
         ust: ust,
@@ -153,7 +154,7 @@ class _MusterilerEkraniState extends State<MusterilerEkrani> {
         bosMetin: aramaVar
             ? 'Aramanızla eşleşen müşteri yok.'
             : 'Henüz müşteri yok. İlk müşterinizi ekleyin; ardından alan adı ve posta kutuları tanımlayabilirsiniz.',
-        bosIkon: Icons.apartment_rounded,
+        bosIkon: Simgeler.apartment,
         onTap: _ac,
         eylemler: _eylemler,
         tabloEnAz: 820,

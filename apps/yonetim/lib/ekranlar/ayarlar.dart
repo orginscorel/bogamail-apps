@@ -9,14 +9,20 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import '../veri/tercihler.dart';
+import 'bildirim_izni.dart';
 import 'hesap_avatar.dart';
 import 'hesap_mfa.dart';
+import '../ortak/simgeler.dart';
+import '../veri/bildirim.dart';
 import 'liste_ortak.dart' show Sigdir;
 import 'kabuk.dart' show cikisOnayi;
 
 /// Ayarlar ve profil: kullanıcı bilgisi, tema, bildirimler (APNs), açık oturumlar, sunucu ve sürüm, çıkış.
 class AyarlarEkrani extends StatefulWidget {
   const AyarlarEkrani({super.key});
+
+  /// Geniş düzende açılacak kategori (hesap bloğundaki "Profil ve güvenlik" gibi kısayollar ayarlar).
+  static final istenenBolum = ValueNotifier<String?>(null);
   @override
   State<AyarlarEkrani> createState() => _AyarlarEkraniState();
 }
@@ -33,6 +39,15 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
   void initState() {
     super.initState();
     _yukle();
+    final v = AyarlarEkrani.istenenBolum.value;
+    if (v != null) _secili = v;
+    AyarlarEkrani.istenenBolum.addListener(_istenen);
+  }
+
+  @override
+  void dispose() {
+    AyarlarEkrani.istenenBolum.removeListener(_istenen);
+    super.dispose();
   }
 
   Future<void> _yukle() async {
@@ -155,26 +170,26 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       child: Row(
         children: [
           const ProfilResmi(boyut: 56),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad, style: gosterim(18, agirlik: FontWeight.w700)),
+                Text(Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad, style: gosterim(18, agirlik: FontWeight.w600)),
                 if (Uyg.ad.isNotEmpty) Text(Uyg.adres, style: TextStyle(color: r.soluk)),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Wrap(
-                  spacing: 6,
+                  spacing: 8,
                   runSpacing: 4,
                   children: [
-                    Rozet(rolEtiketi(Uyg.rol), ikon: Icons.badge_outlined),
+                    Rozet(rolEtiketi(Uyg.rol), ikon: Simgeler.badge),
                     if (_mfa != null)
                       Rozet(
                         _mfa! ? 'İki adımlı doğrulama açık' : 'İki adımlı doğrulama kapalı',
                         renk: _mfa! ? Marka.zumrut : Marka.kehribar,
-                        ikon: _mfa! ? Icons.verified_user_rounded : Icons.gpp_maybe_rounded,
+                        ikon: _mfa! ? Simgeler.verifiedUser : Simgeler.gppMaybe,
                       ),
-                    if (taklit is Map) Rozet('Müşteri görünümü', renk: Marka.kehribar, ikon: Icons.visibility_rounded),
+                    if (taklit is Map) Rozet('Müşteri görünümü', renk: Marka.kehribar, ikon: Simgeler.visibility),
                   ].map(Sigdir.new).toList(),
                 ),
               ],
@@ -194,7 +209,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                       : 'Hesabınızı korumak için doğrulayıcı uygulamayla iki adımlı doğrulamayı açın.',
                   style: TextStyle(color: r.soluk, fontSize: 13),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -204,13 +219,13 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                         onPressed: () async {
                           if (await mfaAc(context)) _mfaYukle();
                         },
-                        icon: const Icon(Icons.verified_user_rounded, size: 18),
+                        icon: const Icon(Simgeler.verifiedUser, size: 18),
                         label: const Text('İki adımlı doğrulamayı aç'),
                       )
                     else ...[
                       OutlinedButton.icon(
                         onPressed: () => mfaKodlariYenile(context),
-                        icon: const Icon(Icons.key_rounded, size: 18),
+                        icon: const Icon(Simgeler.key, size: 18),
                         label: const Text('Yeni kurtarma kodları'),
                       ),
                       OutlinedButton.icon(
@@ -218,7 +233,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                         onPressed: () async {
                           if (await mfaKapat(context)) _mfaYukle();
                         },
-                        icon: const Icon(Icons.gpp_bad_outlined, size: 18),
+                        icon: const Icon(Simgeler.gppBad, size: 18),
                         label: const Text('Kapat'),
                       ),
                     ],
@@ -241,9 +256,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
             const SizedBox(height: 8),
             SegmentedButton<ThemeMode>(
               segments: const [
-                ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto_rounded), label: Text('Sistem')),
-                ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_rounded), label: Text('Açık')),
-                ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded), label: Text('Koyu')),
+                ButtonSegment(value: ThemeMode.system, icon: Icon(Simgeler.brightnessAuto), label: Text('Sistem')),
+                ButtonSegment(value: ThemeMode.light, icon: Icon(Simgeler.lightMode), label: Text('Açık')),
+                ButtonSegment(value: ThemeMode.dark, icon: Icon(Simgeler.darkMode), label: Text('Koyu')),
               ],
               selected: {m},
               onSelectionChanged: (s) => temaKaydet(s.first),
@@ -270,19 +285,19 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       (
         'hesap',
         'Hesap ve güvenlik',
-        Icons.person_rounded,
+        Simgeler.person,
         [
           profil,
           if (mfa != null) ...[const Baslik('İki adımlı doğrulama'), mfa],
         ],
       ),
-      ('gorunum', 'Görünüm', Icons.palette_outlined, [const Baslik('Görünüm'), gorunum]),
-      ('bildirim', 'Bildirimler', Icons.notifications_none_rounded, [const Baslik('Bildirimler'), _bildirimKarti()]),
-      ('oturum', 'Açık oturumlar', Icons.devices_rounded, [oturumBasligi, _oturumKarti()]),
+      ('gorunum', 'Görünüm', Simgeler.palette, [const Baslik('Görünüm'), gorunum]),
+      ('bildirim', 'Bildirimler', Simgeler.notificationsNone, [const Baslik('Bildirimler'), _bildirimKarti(), const ArkaplanKarti()]),
+      ('oturum', 'Açık oturumlar', Simgeler.devices, [oturumBasligi, _oturumKarti()]),
       (
         'uygulama',
         'Uygulama ve güncelleme',
-        Icons.system_update_alt_rounded,
+        Simgeler.systemUpdateAlt,
         [
           const Baslik('Uygulama sürümü ve güncelleme'),
           GuncellemeKarti(api: Uyg.api),
@@ -303,11 +318,16 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       minimumSize: const Size.fromHeight(48),
     ),
     onPressed: () => cikisOnayi(context),
-    icon: const Icon(Icons.logout_rounded),
+    icon: const Icon(Simgeler.logout),
     label: const Text('Çıkış yap'),
   );
 
   String _secili = 'hesap';
+
+  void _istenen() {
+    final v = AyarlarEkrani.istenenBolum.value;
+    if (v != null && mounted) setState(() => _secili = v);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -350,7 +370,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(secili.$2, style: gosterim(24, agirlik: FontWeight.w700)),
+                              Text(secili.$2, style: gosterim(24, agirlik: FontWeight.w600)),
                               const SizedBox(height: 4),
                               ..._icerik(secili),
                             ],
@@ -380,7 +400,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           i++;
         } else {
           hucreler.add(
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [const SizedBox(height: 18), l[i]]),
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [const SizedBox(height: 16), l[i]]),
           );
         }
       }
@@ -413,7 +433,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                         Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(rolEtiketi(Uyg.rol), style: TextStyle(color: r.soluk, fontSize: 12)),
                     ],
@@ -450,11 +470,13 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       return Kutu(
         child: Row(
           children: [
-            Icon(Icons.notifications_off_outlined, color: r.silik),
+            Icon(Simgeler.notificationsOff, color: r.silik),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Bu platformda anlık bildirim desteklenmiyor. Alarmları iPhone, iPad veya Mac uygulamasından ya da e-posta kanalından alabilirsiniz.',
+                Bildirim.platform.yerel
+                    ? 'Bu cihazda alarmları uygulamanın kendisi denetler (dakikada bir) ve yeni alarmları bildirim olarak gösterir.'
+                    : 'Bu platformda anlık bildirim desteklenmiyor. Alarmları iPhone, iPad veya Mac uygulamasından ya da e-posta kanalından alabilirsiniz.',
                 style: TextStyle(color: r.soluk, fontSize: 13),
               ),
             ),
@@ -468,7 +490,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       return Kutu(
         child: Row(
           children: [
-            Icon(Icons.notifications_off_outlined, color: r.silik),
+            Icon(Simgeler.notificationsOff, color: r.silik),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -488,7 +510,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           Row(
             children: [
               Icon(
-                _buCihazKayitli ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+                _buCihazKayitli ? Simgeler.notificationsActive : Simgeler.notificationsNone,
                 color: _buCihazKayitli ? Marka.zumrut : r.silik,
               ),
               const SizedBox(width: 12),
@@ -514,7 +536,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
               if (_buCihazKayitli)
                 OutlinedButton.icon(
                   onPressed: _pushMesgul ? null : _pushKapat,
-                  icon: const Icon(Icons.notifications_off_outlined, size: 18),
+                  icon: const Icon(Simgeler.notificationsOff, size: 18),
                   label: const Text('Bu cihazda kapat'),
                 )
               else
@@ -522,12 +544,12 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                   onPressed: _pushMesgul ? null : _pushAc,
                   icon: _pushMesgul
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.notifications_active_rounded, size: 18),
+                      : const Icon(Simgeler.notificationsActive, size: 18),
                   label: const Text('Bildirimleri aç'),
                 ),
               OutlinedButton.icon(
                 onPressed: cihaz > 0 ? _pushTest : null,
-                icon: const Icon(Icons.send_rounded, size: 18),
+                icon: const Icon(Simgeler.send, size: 18),
                 label: const Text('Test bildirimi gönder'),
               ),
             ],
@@ -558,7 +580,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       );
     }
     return Kutu(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
           for (final (i, o) in l.indexed) ...[
@@ -582,7 +604,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                                 style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                             ),
-                            if (o.gecerli) ...[const SizedBox(width: 6), const Rozet('bu cihaz', renk: Marka.zumrut)],
+                            if (o.gecerli) ...[const SizedBox(width: 8), const Rozet('bu cihaz', renk: Marka.zumrut)],
                           ],
                         ),
                         Text(
@@ -597,7 +619,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                     ),
                   ),
                   if (!o.gecerli)
-                    IconButton(tooltip: 'Oturumu kapat', onPressed: () => _oturumKapat(o), icon: const Icon(Icons.logout_rounded, size: 20)),
+                    IconButton(tooltip: 'Oturumu kapat', onPressed: () => _oturumKapat(o), icon: const Icon(Simgeler.logout, size: 20)),
                 ],
               ),
             ),
@@ -610,9 +632,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
 
 IconData _cihazIkonu(String ua) {
   final u = ua.toLowerCase();
-  if (u.contains('iphone') || u.contains('android') || u.contains('mobile')) return Icons.smartphone_rounded;
-  if (u.contains('ipad') || u.contains('tablet')) return Icons.tablet_mac_rounded;
-  return Icons.computer_rounded;
+  if (u.contains('iphone') || u.contains('android') || u.contains('mobile')) return Simgeler.smartphone;
+  if (u.contains('ipad') || u.contains('tablet')) return Simgeler.tabletMac;
+  return Simgeler.computer;
 }
 
 /// Başlıklı küçük bilgi kartı.

@@ -12,6 +12,7 @@ import '../veri/bildirim.dart';
 import '../veri/birlesik.dart';
 import '../veri/canli.dart';
 import '../veri/durum.dart';
+import '../veri/push_kaydi.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/sohbet_servisi.dart';
@@ -20,6 +21,9 @@ import 'ileti_listesi.dart';
 import 'ayarlar.dart';
 import 'birlesik_ekrani.dart';
 import 'gorevler/gorevler_ekrani.dart';
+import 'hesap_menusu.dart';
+import '../veri/arkaplan.dart';
+import '../veri/bildirim_izni.dart';
 import 'sohbet/sohbet_ekrani.dart';
 import 'sohbet/sohbet_odasi.dart';
 import 'takvim/takvim_ekrani.dart';
@@ -31,11 +35,11 @@ bool get _mobil => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
 /// Uygulama bölümleri (alt çubuk / kenar rayı).
 enum Modul {
-  posta('Posta', Icons.mail_outline_rounded, Icons.mail_rounded),
-  sohbet('Sohbet', Icons.forum_outlined, Icons.forum_rounded),
-  takvim('Takvim', Icons.calendar_month_outlined, Icons.calendar_month_rounded),
-  gorevler('Görevler', Icons.task_alt_outlined, Icons.task_alt_rounded),
-  ayarlar('Ayarlar', Icons.settings_outlined, Icons.settings_rounded);
+  posta('Posta', Simge.posta, Simge.postaDolu),
+  sohbet('Sohbet', Simge.sohbet, Simge.sohbet),
+  takvim('Takvim', Simge.takvimAy, Simge.takvimAy),
+  gorevler('Görevler', Simge.gorev, Simge.gorev),
+  ayarlar('Ayarlar', Simge.ayarlar, Simge.ayarlar);
 
   const Modul(this.ad, this.ikon, this.seciliIkon);
   final String ad;
@@ -114,7 +118,14 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
-    if (s == AppLifecycleState.resumed) unawaited(Guncelleme.denetle(Uyg.api));
+    if (s == AppLifecycleState.resumed) {
+      unawaited(Guncelleme.denetle(Uyg.api));
+      // İzin açıklaması gösterilmeden sistem izni istenmez; sonra her öne gelişte kayıt ve izin durumu tazelenir.
+      if (BildirimIzni.tanitimYapildi) unawaited(PushKaydi.kaydet());
+      unawaited(BildirimIzni.denetle());
+    }
+    // Android hizmeti uygulama öndeyken bu hesabın yeni postasını bildirmez, açık sohbet odasınınkini de.
+    Arkaplan.durum(onPlanda: s == AppLifecycleState.resumed, acikOda: SohbetDurum.ben.acikOda);
     // Masaüstünde pencere arka plandayken de bağlı kalınır (Windows bildirimleri için).
     if (!_mobil) return;
     if (s == AppLifecycleState.resumed) {
@@ -130,7 +141,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
 
   void _canliOlay(CanliOlay o) {
     _durum.canliOlay(o);
-    if (o.tur == 'new_mail') unawaited(Bildirim.canliOlay(o));
+    if (o.tur == 'new_mail' || o.tur == 'unified_new') unawaited(Bildirim.canliOlay(o));
     if (o.tur == 'chat_message' && '${o.veri['sender_id'] ?? ''}' != SohbetDurum.benId) unawaited(Bildirim.sohbetOlayi(o));
   }
 
@@ -146,11 +157,19 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       Uyg.bekleyenBildirim = null;
       unawaited(_bildirimAcildi(bekleyen));
     }
+    // İlk açılış: izin istenmeden önce neden gerektiği anlatılır (iOS, macOS, Android 13+).
+    final izinIste = await BildirimIzni.tanitimGerekirse(context);
+    if (!mounted) return;
+    // Öndeyken gelen APNs bildirimi: o oda / ileti açıksa banner gösterilmez (yerel taraf sorar).
+    Push.gosterilsinMi = onPlandaGosterilsinMi;
+    unawaited(Arkaplan.oturumAcildi());
+    Arkaplan.durum(onPlanda: true, acikOda: SohbetDurum.ben.acikOda);
     if (Push.destekli) {
       _abonelikler.add(Push.acildi.listen(_bildirimAcildi));
       final ilk = await Push.baslangic();
       if (ilk != null) _bildirimAcildi(ilk);
-      unawaited(Push.kaydet(Uyg.api, yol: Uyg.pushYolu, konu: Uyg.pushKonu));
+      // Her açılışta ve hesap değişince (anahtar hesap+cihaz anahtarıdır); öne gelişte seyreltilmiş.
+      if (izinIste) unawaited(PushKaydi.kaydet());
     }
     if (Bildirim.yerel) {
       await Bildirim.hazirla();
@@ -158,13 +177,24 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       final ilk = await Bildirim.baslangic();
       if (ilk != null) _yerelAcildi(ilk);
       if (Bildirim.android) {
-        await Bildirim.izinIste();
+        if (izinIste) {
+          final ok = await Bildirim.izinIste();
+          BildirimIzni.bildir(izinVar: ok);
+          // İzin verildiyse: pil kısıtlaması muafiyeti ve üretici otomatik başlatma yardımı (bir kez).
+          if (ok && mounted) await BildirimIzni.pilVeOtomatikBaslatma(context);
+        }
         await Bildirim.arkaPlanAyarla(await Bildirim.arkaPlanAcik());
       }
     }
   }
 
   void _yerelAcildi(String yuk) {
+    final h = hesapYukuCoz(yuk);
+    if (h != null) {
+      // Başka hesabın iletisi: önce o hesaba geçilir (yeni kabuk bekleyen bildirimi açar).
+      unawaited(_bildirimAcildi({'account': h.$1, 'message_id': h.$2, 'kind': 'mail'}));
+      return;
+    }
     if (yuk.startsWith(Bildirim.sohbetOneki)) {
       odaAc(yuk.substring(Bildirim.sohbetOneki.length));
     } else {
@@ -273,7 +303,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   }
 
   Widget _yeniDugmesi() =>
-      FloatingActionButton.extended(onPressed: _yeni, tooltip: 'Yeni ileti (C)', icon: const Icon(Icons.edit_rounded), label: const Text('Yeni ileti'));
+      FloatingActionButton.extended(onPressed: _yeni, tooltip: 'Yeni ileti (C)', icon: const Icon(Simge.duzenle), label: const Text('Yeni ileti'));
 
   /// Gelen Kutusu dışındaki klasörlerdeki okunmamışlar (kullanıcı klasörleri + Arşiv).
   int get _digerOkunmamis => _durum.klasorler.where((k) => k.rol == null || k.rol == 'archive').fold(0, (t, k) => t + k.okunmamis);
@@ -311,7 +341,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
               child: _seciliOda == null
                   ? ColoredBox(
                       color: context.r.kart,
-                      child: const Durum.bos('Bir sohbet seçin ya da yeni sohbet başlatın', ikon: Icons.forum_outlined),
+                      child: const Durum.bos('Bir sohbet seçin ya da yeni sohbet başlatın', ikon: Simge.sohbet),
                     )
                   : SohbetOdasiEkrani(key: ValueKey(_seciliOda), odaId: _seciliOda!, sayfa: false, kapat: () => setState(() => _seciliOda = null)),
             ),
@@ -445,13 +475,13 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
               ? (seciliB == null
                     ? ColoredBox(
                         color: r.kart,
-                        child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Icons.layers_outlined),
+                        child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Simge.katmanlar),
                       )
                     : BirlesikOkuyucu(oge: seciliB, hesap: _birlesikHesap, kaldirildi: () => setState(() => _birlesikSecili = null)))
               : _secili == null
               ? ColoredBox(
                   color: r.kart,
-                  child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Icons.mark_email_read_outlined),
+                  child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Simge.okunduYap),
                 )
               : Okuyucu(
                   key: _okuyucu,
@@ -516,6 +546,18 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     return odak != null && (odak.widget is EditableText || odak.findAncestorStateOfType<EditableTextState>() != null);
   }
 
+  static const _rakamlar = [
+    LogicalKeyboardKey.digit1,
+    LogicalKeyboardKey.digit2,
+    LogicalKeyboardKey.digit3,
+    LogicalKeyboardKey.digit4,
+    LogicalKeyboardKey.digit5,
+    LogicalKeyboardKey.digit6,
+    LogicalKeyboardKey.digit7,
+    LogicalKeyboardKey.digit8,
+    LogicalKeyboardKey.digit9,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final genis = context.genis;
@@ -530,6 +572,12 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       const SingleActivator(LogicalKeyboardKey.keyK): _kisayol(() => _gez(-1)),
       const SingleActivator(LogicalKeyboardKey.delete): _kisayol(() => _okuyucu.currentState?.sil()),
       const SingleActivator(LogicalKeyboardKey.backspace, meta: true): _kisayol(() => _okuyucu.currentState?.sil()),
+      // Masaüstü: Ctrl/Cmd+1…9 kayıtlı hesaplar arasında geçiş.
+      if (genis)
+        for (final (i, t) in _rakamlar.indexed) ...{
+          SingleActivator(t, control: true): () => unawaited(siradakiHesabaGec(i + 1)),
+          SingleActivator(t, meta: true): () => unawaited(siradakiHesabaGec(i + 1)),
+        },
     };
 
     Widget icerik;
@@ -543,6 +591,11 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     }
     // CallbackShortcuts tuşu her durumda yutar (yazarken "selam" → "slm" olurdu); metin alanı odaktayken tuşlar
     // hiç ele alınmadan metin alanına bırakılır.
+    // Sistem yazı ölçeğine uyulur ama düzen bozulmasın diye 0.9–1.3 aralığında tutulur.
+    return MediaQuery.withClampedTextScaling(minScaleFactor: .9, maxScaleFactor: 1.3, child: _kisayolOdagi(kisayollar, icerik));
+  }
+
+  Widget _kisayolOdagi(Map<ShortcutActivator, VoidCallback> kisayollar, Widget icerik) {
     return Focus(
       autofocus: true,
       onKeyEvent: (node, olay) {
@@ -559,4 +612,17 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       child: icerik,
     );
   }
+}
+
+/// Öndeyken gelen APNs bildirimi gösterilsin mi: aynı hesapta, açık sohbet odasına ya da açık iletiye aitse hayır.
+bool onPlandaGosterilsinMi(Map<String, dynamic> v) {
+  final hesap = '${v['account'] ?? ''}'.trim().toLowerCase();
+  if (hesap.isNotEmpty && hesap != Uyg.adres.toLowerCase()) return true;
+  final tur = '${v['kind'] ?? 'mail'}';
+  if (tur == 'chat') {
+    final oda = '${v['room_id'] ?? ''}';
+    return oda.isEmpty || oda != SohbetDurum.ben.acikOda;
+  }
+  final id = '${v['message_id'] ?? ''}';
+  return id.isEmpty || id != OkuyucuState.acikIleti;
 }

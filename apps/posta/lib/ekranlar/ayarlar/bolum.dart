@@ -19,6 +19,7 @@ class AyarBolumu {
     this.aciklama = '',
     this.tamSayfa = false,
     this.gorunur,
+    this.grup,
   });
 
   /// Benzersiz kimlik. Yerleşik bir kategoriyle aynı kimlik verilirse onun yerine geçer.
@@ -29,12 +30,40 @@ class AyarBolumu {
   /// Telefon listesinde alt satır.
   final String aciklama;
 
-  /// Sıralama: küçük önce. Yerleşikler: hesaplar 10, genel 20, gorunum 30, imza 40, profil 50, bildirimler 60,
-  /// guvenlik 70, suzgecler 80, otomatik 90, kisiler 100, yonlendirme 110, posta 120, uygulama 900.
+  /// Sıralama (grup içinde): küçük önce. Yerleşikler — Profil ve hesap: profil 5, guvenlik 70, cihazlar 72,
+  /// hesaplar 74, depolama 76; Posta: genel 20, imza 40, suzgecler 80, otomatik 90, kisiler 100, yonlendirme 110,
+  /// engelli 112, posta 120; Uygulama: gorunum 30, bildirimler 60, uygulama 900, hakkinda 950.
   final int sira;
   final bool tamSayfa;
 
   /// Paket özelliğine göre gizlemek için (ör. (a) => a.ozellik('forwarding')).
   final bool Function(PostaAyarlari ayarlar)? gorunur;
   final WidgetBuilder olustur;
+
+  /// Listede hangi başlık altında: verilmezse kimliğe göre ([varsayilanGruplar]), bilinmeyenler Posta'ya.
+  final AyarGrubu? grup;
+
+  AyarGrubu get etkinGrup => grup ?? varsayilanGruplar[id] ?? AyarGrubu.posta;
 }
+
+/// Ayarlar listesinin başlıkları: profil/hesap, postaya özgü ayarlar, uygulama.
+enum AyarGrubu {
+  profil('Profil ve hesap'),
+  posta('Posta'),
+  uygulama('Uygulama');
+
+  const AyarGrubu(this.baslik);
+  final String baslik;
+}
+
+const varsayilanGruplar = <String, AyarGrubu>{
+  'profil': AyarGrubu.profil,
+  'guvenlik': AyarGrubu.profil,
+  'cihazlar': AyarGrubu.profil,
+  'hesaplar': AyarGrubu.profil,
+  'depolama': AyarGrubu.profil,
+  'gorunum': AyarGrubu.uygulama,
+  'bildirimler': AyarGrubu.uygulama,
+  'uygulama': AyarGrubu.uygulama,
+  'hakkinda': AyarGrubu.uygulama,
+};

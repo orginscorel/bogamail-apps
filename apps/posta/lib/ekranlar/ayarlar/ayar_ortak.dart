@@ -45,7 +45,7 @@ class AyarKarti extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(baslik, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
+                        Text(baslik, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
                         if (aciklama != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 3),
@@ -88,10 +88,10 @@ class AyarNotu extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.r;
     final (renk, ikon) = switch (ton) {
-      NotTonu.bilgi => (r.vurgu, Icons.info_outline_rounded),
-      NotTonu.uyari => (Marka.kehribar, Icons.warning_amber_rounded),
-      NotTonu.tehlike => (Marka.gul, Icons.error_outline_rounded),
-      NotTonu.tamam => (Marka.zumrut, Icons.check_circle_outline_rounded),
+      NotTonu.bilgi => (r.vurgu, Simge.bilgi),
+      NotTonu.uyari => (Marka.kehribar, Simge.uyari),
+      NotTonu.tehlike => (Marka.gul, Simge.hata),
+      NotTonu.tamam => (Marka.zumrut, Simge.basari),
     };
     return Container(
       padding: const EdgeInsets.all(12),
@@ -108,7 +108,7 @@ class AyarNotu extends StatelessWidget {
                 if (baslik != null)
                   Text(
                     baslik!,
-                    style: TextStyle(fontWeight: FontWeight.w700, color: r.metin, fontSize: 13.5),
+                    style: TextStyle(fontWeight: FontWeight.w600, color: r.metin, fontSize: 13.5),
                   ),
                 Text(metin, style: TextStyle(color: r.metin, fontSize: 13, height: 1.4)),
                 ?alt,
@@ -305,7 +305,7 @@ class KaydetDugmesi extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FilledButton.icon(
     onPressed: etkin && !mesgul ? basildi : null,
-    icon: mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check_rounded, size: 18),
+    icon: mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Simge.onay, size: 18),
     label: Text(metin),
   );
 }

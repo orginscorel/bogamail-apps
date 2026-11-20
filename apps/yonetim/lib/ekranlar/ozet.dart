@@ -12,6 +12,7 @@ import '../veri/json.dart';
 import '../veri/modeller.dart';
 import '../veri/operasyon.dart';
 import 'bolumler.dart';
+import '../ortak/simgeler.dart';
 
 /// Gösterge paneli (web: admin/(panel)/page.tsx). Her değer canlı bir uç noktadan gelir: gösterge kartları (önceki
 /// 24 saate göre değişimle), trafik grafiği, dikkat gerektirenler, kuyruk ve karantina özeti, sistem sağlığı, son
@@ -132,7 +133,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
         IconButton(
           tooltip: 'Yenile',
           onPressed: _yukleniyor ? null : _yukle,
-          icon: _yukleniyor ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2)) : const Icon(Icons.refresh_rounded),
+          icon: _yukleniyor ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2)) : const Icon(Simgeler.refresh),
         ),
       ],
       govde: _ozet == null && _hata == null
@@ -155,46 +156,45 @@ class _OzetEkraniState extends State<OzetEkrani> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(flex: sol, child: a),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(child: b),
             ],
           )
-        : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [a, const SizedBox(height: 14), b]);
+        : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [a, const SizedBox(height: 16), b]);
     return [
       _karsilama(context),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       if (_hata != null)
         Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Bant('Özet yenilenemedi: $_hata', renk: Marka.gul, ikon: Icons.cloud_off_rounded),
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Bant('Özet yenilenemedi: $_hata', renk: Marka.gul, ikon: Simgeler.cloudOff),
         ),
       _kpiIzgarasi(o),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       ikili(_trafikKarti(o), _dikkatKarti(o)),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       ikili(_kuyrukKarantinaKarti(o), _saglik == null ? null : _saglikKarti(), sol: 1),
       if (_platform && (_sistem != null || _motor != null)) ...[
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         Izgara(enAz: 380, children: [if (_sistem != null) _sunucuKarti(_sistem!), if (_motor != null) _motorKarti(_motor!)]),
       ],
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       Izgara(enAz: 380, children: [if (_alarmGecmisi != null) _sonUyarilarKarti(), if (_islemler != null) _islemlerKarti()]),
     ];
   }
 
   Widget _karsilama(BuildContext context) {
-    final r = context.r;
     final hizli = <(IconData, String, VoidCallback)>[
-      if (Bolum.kutular.gorunur && Uyg.yetki('mailboxes.manage')) (Icons.person_add_alt_rounded, 'Posta kutuları', () => bolumeGit(Bolum.kutular)),
-      if (Bolum.alanlar.gorunur) (Icons.add_link_rounded, 'Alan adları', () => bolumeGit(Bolum.alanlar)),
-      if (Bolum.musteriler.gorunur) (Icons.apartment_rounded, 'Müşteriler', () => bolumeGit(Bolum.musteriler)),
-      if (Bolum.takip.gorunur) (Icons.manage_search_rounded, 'Mesaj takibi', () => bolumeGit(Bolum.takip)),
-      if (Bolum.kuyruk.gorunur) (Icons.format_list_numbered_rounded, 'Kuyruk', () => bolumeGit(Bolum.kuyruk)),
-      if (Bolum.denetim.gorunur) (Icons.receipt_long_rounded, 'Denetim', () => bolumeGit(Bolum.denetim)),
+      if (Bolum.kutular.gorunur && Uyg.yetki('mailboxes.manage')) (Simgeler.personAddAlt, 'Posta kutuları', () => bolumeGit(Bolum.kutular)),
+      if (Bolum.alanlar.gorunur) (Simgeler.addLink, 'Alan adları', () => bolumeGit(Bolum.alanlar)),
+      if (Bolum.musteriler.gorunur) (Simgeler.apartment, 'Müşteriler', () => bolumeGit(Bolum.musteriler)),
+      if (Bolum.takip.gorunur) (Simgeler.manageSearch, 'Mesaj takibi', () => bolumeGit(Bolum.takip)),
+      if (Bolum.kuyruk.gorunur) (Simgeler.formatListNumbered, 'Kuyruk', () => bolumeGit(Bolum.kuyruk)),
+      if (Bolum.denetim.gorunur) (Simgeler.receiptLong, 'Denetim', () => bolumeGit(Bolum.denetim)),
     ];
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(20), boxShadow: r.golge),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -204,20 +204,20 @@ class _OzetEkraniState extends State<OzetEkrani> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_selam(), style: gosterim(22, agirlik: FontWeight.w700, renk: Colors.white)),
+                    Text(_selam(), style: gosterim(22, agirlik: FontWeight.w600, renk: Colors.white)),
                     const SizedBox(height: 2),
                     Text('${Uyg.panelAdi} · canlı veri', style: const TextStyle(color: Colors.white70, fontSize: 13)),
                   ],
                 ),
               ),
               if ((_alarmlar ?? const []).isEmpty)
-                const Rozet('Her şey yolunda', renk: Marka.yesil, ikon: Icons.check_circle_rounded)
+                const Rozet('Her şey yolunda', renk: Marka.yesil, ikon: Simgeler.checkCircle)
               else
-                Rozet('${_alarmlar!.length} etkin uyarı', renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
+                Rozet('${_alarmlar!.length} etkin uyarı', renk: Marka.kehribar, ikon: Simgeler.warningAmber),
             ],
           ),
           if (hizli.isNotEmpty) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -231,7 +231,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
                     child: InkWell(
                       onTap: f,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           Icon(i, size: 17, color: Marka.yesil),
                           const SizedBox(width: 8),
@@ -257,7 +257,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
       children: [
         if (Uyg.ortak)
           KpiKarti(
-            ikon: Icons.apartment_rounded,
+            ikon: Simgeler.apartment,
             etiket: 'Müşteriler',
             deger: sayiYaz(o.musteriler),
             alt: 'kayıtlı müşteri',
@@ -265,7 +265,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
             onTap: Bolum.musteriler.gorunur ? () => bolumeGit(Bolum.musteriler) : null,
           ),
         KpiKarti(
-          ikon: Icons.language_rounded,
+          ikon: Simgeler.language,
           etiket: 'Alan adları',
           deger: sayiYaz(o.alanlar),
           alt: '${o.bekleyenAlanlar} doğrulama bekliyor · ${o.gatewayAlanlari} gateway',
@@ -274,7 +274,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
         ),
         if (Bolum.kutular.gorunur)
           KpiKarti(
-            ikon: Icons.inbox_rounded,
+            ikon: Simgeler.inbox,
             etiket: 'Posta kutuları',
             deger: sayiYaz(o.aktifKutular),
             alt: 'aktif · toplam ${sayiYaz(o.kutular)}',
@@ -282,7 +282,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
             onTap: () => bolumeGit(Bolum.kutular),
           ),
         KpiKarti(
-          ikon: Icons.storage_rounded,
+          ikon: Simgeler.storage,
           etiket: 'Depolama',
           deger: boyutYaz(o.kullanilan),
           ek: KullanimCubugu(kullanilan: o.kullanilan, toplam: o.ayrilan, yazi: false, kalinlik: 5),
@@ -291,7 +291,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
           onTap: Bolum.depolama.gorunur ? () => bolumeGit(Bolum.depolama) : null,
         ),
         KpiKarti(
-          ikon: Icons.move_to_inbox_rounded,
+          ikon: Simgeler.moveToInbox,
           etiket: 'Alınan (24 saat)',
           deger: sayiYaz(o.alinan),
           degisim: _degisim((d) => d.kabul),
@@ -300,7 +300,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
           onTap: Bolum.takip.gorunur ? () => bolumeGit(Bolum.takip) : null,
         ),
         KpiKarti(
-          ikon: Icons.mark_email_read_rounded,
+          ikon: Simgeler.markEmailRead,
           etiket: 'Teslim başarısı',
           deger: oran == null ? '—' : yuzdeYaz(oran),
           degisim: _degisim((d) => d.teslim),
@@ -309,7 +309,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
           onTap: Bolum.teslimatSorunlari.gorunur ? () => bolumeGit(Bolum.teslimatSorunlari) : null,
         ),
         KpiKarti(
-          ikon: Icons.format_list_numbered_rounded,
+          ikon: Simgeler.formatListNumbered,
           etiket: 'Kuyruk',
           deger: o.kuyruk == null ? '—' : sayiYaz(o.kuyruk),
           alt: o.kuyruk == null ? (o.yok['queue_depth'] ?? 'veri yok') : 'teslim bekleyen ileti',
@@ -318,7 +318,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
         ),
         if (karantina != null)
           KpiKarti(
-            ikon: Icons.shield_rounded,
+            ikon: Simgeler.shield,
             etiket: 'Karantina',
             deger: sayiYaz(karantina),
             alt: 'bekleyen ileti',
@@ -326,7 +326,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
             onTap: () => bolumeGit(Bolum.karantina),
           ),
         KpiKarti(
-          ikon: Icons.notifications_active_rounded,
+          ikon: Simgeler.notificationsActive,
           etiket: 'Etkin uyarılar',
           deger: alarmSay == null ? '—' : sayiYaz(alarmSay),
           alt: 'eşiği aşan kural',
@@ -346,13 +346,13 @@ class _OzetEkraniState extends State<OzetEkrani> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(e, style: TextStyle(color: r.silik, fontSize: 11.5)),
-          Text(d, style: gosterim(18, renk: renk)),
+          Text(d, style: gosterim(18, agirlik: FontWeight.w600, renk: renk)),
         ],
       ),
     );
     return BolumKarti(
       baslik: 'Posta trafiği',
-      ikon: Icons.show_chart_rounded,
+      ikon: Simgeler.showChart,
       sag: SegmentedButton<int>(
         showSelectedIcon: false,
         style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -367,8 +367,8 @@ class _OzetEkraniState extends State<OzetEkrani> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: 22,
-            runSpacing: 10,
+            spacing: 24,
+            runSpacing: 8,
             children: [
               stat('Teslim edilen', sayiYaz(o.teslim)),
               stat('Gönderilen', sayiYaz(o.gonderilen), ipucu: 'Kimlik doğrulamalı gönderim (alıcı sayısı)'),
@@ -409,10 +409,10 @@ class _OzetEkraniState extends State<OzetEkrani> {
     final r = context.r;
     return BolumKarti(
       baslik: 'Dikkat gerektirenler',
-      ikon: maddeler.isEmpty ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+      ikon: maddeler.isEmpty ? Simgeler.checkCircle : Simgeler.warningAmber,
       sag: maddeler.isEmpty ? null : Rozet('${maddeler.length}', renk: Marka.kehribar),
       child: maddeler.isEmpty
-          ? const Bant('Her şey yolunda; bekleyen bir iş yok.', renk: Marka.zumrut, ikon: Icons.check_circle_outline_rounded)
+          ? const Bant('Her şey yolunda; bekleyen bir iş yok.', renk: Marka.zumrut, ikon: Simgeler.checkCircleOutline)
           : Column(
               children: [
                 for (final (renk, baslik, ayrinti, bolum) in maddeler.take(8))
@@ -427,9 +427,9 @@ class _OzetEkraniState extends State<OzetEkrani> {
                             width: 30,
                             height: 30,
                             decoration: BoxDecoration(color: renk.withValues(alpha: .12), borderRadius: BorderRadius.circular(9)),
-                            child: Icon(Icons.priority_high_rounded, size: 17, color: renk),
+                            child: Icon(Simgeler.priorityHigh, size: 17, color: renk),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,7 +440,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
                               ],
                             ),
                           ),
-                          Icon(Icons.chevron_right_rounded, color: r.silik, size: 18),
+                          Icon(Simgeler.chevronRight, color: r.silik, size: 18),
                         ],
                       ),
                     ),
@@ -469,7 +469,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
               children: [
                 Icon(ikon, size: 18, color: renk),
                 const SizedBox(height: 8),
-                Text(deger, style: gosterim(20)),
+                Text(deger, style: gosterim(20, agirlik: FontWeight.w600)),
                 Text(etiket, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 11.5)),
               ],
             ),
@@ -479,18 +479,18 @@ class _OzetEkraniState extends State<OzetEkrani> {
     );
     return BolumKarti(
       baslik: 'Kuyruk ve karantina',
-      ikon: Icons.inventory_rounded,
+      ikon: Simgeler.inventory,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              kutu('Kuyrukta', o.kuyruk == null ? '—' : sayiYaz(o.kuyruk), Icons.format_list_numbered_rounded, Marka.mavi, Bolum.kuyruk),
+              kutu('Kuyrukta', o.kuyruk == null ? '—' : sayiYaz(o.kuyruk), Simgeler.formatListNumbered, Marka.mavi, Bolum.kuyruk),
               const SizedBox(width: 8),
-              kutu('Başarısız (bugün)', sayiYaz(o.basarisiz), Icons.error_outline_rounded, (o.basarisiz ?? 0) > 0 ? Marka.gul : Marka.zumrut, Bolum.teslimatSorunlari),
+              kutu('Başarısız (bugün)', sayiYaz(o.basarisiz), Simgeler.errorOutline, (o.basarisiz ?? 0) > 0 ? Marka.gul : Marka.zumrut, Bolum.teslimatSorunlari),
               if (_motor != null) ...[
                 const SizedBox(width: 8),
-                kutu('Bekletilen', sayiYaz(tamsayi(e['held'])), Icons.pause_circle_outline_rounded, Marka.kehribar, Bolum.kuyruk),
+                kutu('Bekletilen', sayiYaz(tamsayi(e['held'])), Simgeler.pauseCircleOutline, Marka.kehribar, Bolum.kuyruk),
               ],
             ],
           ),
@@ -498,11 +498,11 @@ class _OzetEkraniState extends State<OzetEkrani> {
             const SizedBox(height: 8),
             Row(
               children: [
-                kutu('Karantinada', sayiYaz(tamsayi(ks['held'])), Icons.shield_rounded, Marka.kehribar, Bolum.karantina),
+                kutu('Karantinada', sayiYaz(tamsayi(ks['held'])), Simgeler.shield, Marka.kehribar, Bolum.karantina),
                 const SizedBox(width: 8),
-                kutu('Virüs (7 gün)', sayiYaz(tamsayi(ks['virus_7d'])), Icons.coronavirus_outlined, Marka.gul, Bolum.karantina),
+                kutu('Virüs (7 gün)', sayiYaz(tamsayi(ks['virus_7d'])), Simgeler.coronavirus, Marka.gul, Bolum.karantina),
                 const SizedBox(width: 8),
-                kutu('Engellenen ek (7 gün)', sayiYaz(tamsayi(ks['blocked_7d'])), Icons.attach_file_rounded, Marka.gul, Bolum.karantina),
+                kutu('Engellenen ek (7 gün)', sayiYaz(tamsayi(ks['blocked_7d'])), Simgeler.attachFile, Marka.gul, Bolum.karantina),
               ],
             ),
           ],
@@ -516,7 +516,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
     final l = _alarmGecmisi!;
     return BolumKarti(
       baslik: 'Son uyarılar',
-      ikon: Icons.notifications_rounded,
+      ikon: Simgeler.notifications,
       sag: TextButton(onPressed: () => bolumeGit(Bolum.alarmlar), child: const Text('Tümü')),
       child: l.isEmpty
           ? Text('Henüz uyarı yok.', style: TextStyle(color: r.silik))
@@ -524,11 +524,11 @@ class _OzetEkraniState extends State<OzetEkrani> {
               children: [
                 for (final a in l)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
                         DurumNoktasi(a.durum == 'resolved' ? Marka.zumrut : (a.onem == 'critical' ? Marka.gul : Marka.kehribar)),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,7 +585,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
     }
     return BolumKarti(
       baslik: 'Sunucu',
-      ikon: Icons.dns_rounded,
+      ikon: Simgeler.dns,
       altBaslik: '${metin(n['hostname'])} · sürüm ${metin(n['version'], '—')}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -609,13 +609,13 @@ class _OzetEkraniState extends State<OzetEkrani> {
     if (!mantik(m['available']) || m['engine'] is! Map) {
       return BolumKarti(
         baslik: 'Teslimat motoru',
-        ikon: Icons.send_rounded,
+        ikon: Simgeler.send,
         child: Text('Giden posta motoru bu sunucuda çalışmıyor.', style: TextStyle(color: r.silik)),
       );
     }
     final q = harita(e['queued']);
     Widget mini(String a, String d, {Color? renk}) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(10)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -624,7 +624,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
           Text(a, style: TextStyle(color: r.silik, fontSize: 11)),
           Text(
             d,
-            style: TextStyle(fontWeight: FontWeight.w700, color: renk),
+            style: TextStyle(fontWeight: FontWeight.w600, color: renk),
           ),
         ],
       ),
@@ -633,7 +633,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
     final mod = metin(e['mode']);
     return BolumKarti(
       baslik: 'Teslimat motoru',
-      ikon: Icons.send_rounded,
+      ikon: Simgeler.send,
       altBaslik: 'Mod: ${mod == 'direct' ? 'doğrudan teslim' : mod}${mantik(e['bulk_paused']) ? ' · toplu gönderim durdu' : ''}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -641,7 +641,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(sayiYaz(tamsayi(e['delivered_10m'])), style: gosterim(26)),
+              Text(sayiYaz(tamsayi(e['delivered_10m'])), style: gosterim(26, agirlik: FontWeight.w600)),
               const SizedBox(width: 8),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
@@ -649,7 +649,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -671,7 +671,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
     final r = context.r;
     return BolumKarti(
       baslik: 'Sistem sağlığı',
-      ikon: Icons.monitor_heart_outlined,
+      ikon: Simgeler.monitorHeart,
       altBaslik: _saglikZamani == null ? null : 'Son kontrol ${goreliZaman(_saglikZamani)}',
       child: Column(
         children: [
@@ -692,7 +692,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(child: Text(saglikEtiketleri[metin(c['name'])] ?? metin(c['name']), style: const TextStyle(fontSize: 13.5))),
                   Flexible(
                     child: Text(
@@ -722,7 +722,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
     final r = context.r;
     return BolumKarti(
       baslik: 'Son işlemler',
-      ikon: Icons.receipt_long_rounded,
+      ikon: Simgeler.receiptLong,
       sag: TextButton(onPressed: () => bolumeGit(Bolum.denetim), child: const Text('Tümü')),
       child: _islemler!.isEmpty
           ? Text('Henüz kayıt yok.', style: TextStyle(color: r.silik))
@@ -730,7 +730,7 @@ class _OzetEkraniState extends State<OzetEkrani> {
               children: [
                 for (final a in _islemler!)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
                         Expanded(

@@ -15,6 +15,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'arkaplan.dart';
 import 'modeller.dart';
 import 'yardimci.dart';
 
@@ -146,13 +147,13 @@ class Bildirim {
   }
 
   /// Canlı "new_mail" olayından bildirim (Windows'ta pencere odakta değilken).
+  /// Windows'ta pencere odakta değilken (tepsideyken de); diğer hesapların postası ("unified_new") dahil.
   static Future<void> canliOlay(CanliOlay o) async {
-    if (!windows || o.tur != 'new_mail' || o.veri['folder_role'] != 'inbox' || o.veri['snoozed'] == true) return;
-    final durum = WidgetsBinding.instance.lifecycleState;
-    if (durum == AppLifecycleState.resumed) return;
-    final kimden = gorunenAd('${o.veri['from'] ?? ''}');
-    final konu = '${o.veri['subject'] ?? ''}'.trim();
-    await goster(iletiId: '${o.veri['message_id'] ?? ''}', baslik: kimden, metin: konu.isEmpty ? '(konu yok)' : konu);
+    if (!windows || (o.tur != 'new_mail' && o.tur != 'unified_new')) return;
+    final onde = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    final b = olayBildirimi(o.tur, o.veri, onPlanda: onde);
+    if (b == null) return;
+    await goster(iletiId: b.yuk, baslik: b.baslik, metin: b.metin);
   }
 
   /// Bildirim yükü bir sohbet odasıysa `sohbet:<oda>` biçimindedir.

@@ -8,6 +8,7 @@ import '../ortak/secimler.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import 'trafik_ortak.dart';
+import '../ortak/simgeler.dart';
 
 const _donemler = <(String, String)>[('24h', '24 saat'), ('7d', '7 gün'), ('30d', '30 gün')];
 
@@ -121,29 +122,29 @@ class _GeriDonmelerState extends State<_GeriDonmeler> {
             padding: const EdgeInsets.symmetric(vertical: 40),
             child: Durum.bos(
               'Geri dönme yok. Bu dönemde uzak sunuculardan kalıcı veya geçici hata yanıtı kaydedilmedi. (Dış gönderim kapalıyken yazılan ertelemeler sayılmaz.)',
-              ikon: Icons.check_circle_outline_rounded,
+              ikon: Simgeler.checkCircleOutline,
             ),
           )
         else ...[
           Izgara(
             enAz: 160,
             children: [
-              KpiKarti(ikon: Icons.mark_email_unread_outlined, etiket: 'Toplam yanıt', deger: sayiYaz(toplam)),
-              KpiKarti(ikon: Icons.cancel_outlined, etiket: 'Kalıcı (5xx)', deger: sayiYaz(tamsayi(v['hard'])), renk: Marka.gul),
-              KpiKarti(ikon: Icons.schedule_rounded, etiket: 'Geçici (4xx)', deger: sayiYaz(tamsayi(v['soft'])), renk: Marka.kehribar),
+              KpiKarti(ikon: Simgeler.markEmailUnread, etiket: 'Toplam yanıt', deger: sayiYaz(toplam)),
+              KpiKarti(ikon: Simgeler.cancel, etiket: 'Kalıcı (5xx)', deger: sayiYaz(tamsayi(v['hard'])), renk: Marka.gul),
+              KpiKarti(ikon: Simgeler.schedule, etiket: 'Geçici (4xx)', deger: sayiYaz(tamsayi(v['soft'])), renk: Marka.kehribar),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           BolumKarti(
             baslik: 'Eğilim',
-            ikon: Icons.stacked_bar_chart_rounded,
+            ikon: Simgeler.stackedBarChart,
             altBaslik: 'Sınıflara göre hata yanıtları (yanıt sayısı; bir alıcı birden çok deneme alabilir).',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Wrap(
-                  spacing: 14,
-                  runSpacing: 6,
+                  spacing: 16,
+                  runSpacing: 8,
                   children: [
                     for (final c in etkin)
                       Row(
@@ -154,7 +155,7 @@ class _GeriDonmelerState extends State<_GeriDonmeler> {
                             height: 10,
                             decoration: BoxDecoration(color: _sinifRengi(metin(c['key'])), borderRadius: BorderRadius.circular(3)),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 8),
                           Text(metin(c['label']), style: const TextStyle(fontSize: 12)),
                         ],
                       ),
@@ -171,7 +172,7 @@ class _GeriDonmelerState extends State<_GeriDonmeler> {
             children: [
               for (final c in etkin)
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: r.kart, borderRadius: BorderRadius.circular(14), border: Border.all(color: r.kenar)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +186,7 @@ class _GeriDonmelerState extends State<_GeriDonmeler> {
                           ),
                           const SizedBox(width: 8),
                           Expanded(child: Text(metin(c['label']), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
-                          Text(sayiYaz(tamsayi(c['count'])), style: gosterim(18, agirlik: FontWeight.w700)),
+                          Text(sayiYaz(tamsayi(c['count'])), style: gosterim(18, agirlik: FontWeight.w600)),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -201,15 +202,15 @@ class _GeriDonmelerState extends State<_GeriDonmeler> {
                 ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           BolumKarti(
             baslik: 'Alıcı alan adlarına göre',
-            ikon: Icons.language_rounded,
+            ikon: Simgeler.language,
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Column(
               children: [
                 for (final (i, d) in alanlar.take(_alanSayisi).indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   _AlanSatiri(d: d, etiketler: etiketler),
                 ],
                 if (alanlar.length > _alanSayisi)
@@ -217,15 +218,15 @@ class _GeriDonmelerState extends State<_GeriDonmeler> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           BolumKarti(
             baslik: 'En sık uzak sunucu yanıtları',
-            ikon: Icons.forum_outlined,
+            ikon: Simgeler.forum,
             altBaslik: 'Adresler maskelenir (ör. a***@alan.com).',
             child: Column(
               children: [
                 for (final (i, y) in yanitlar.take(_yanitSayisi).indexed) ...[
-                  if (i > 0) Divider(height: 1, color: r.kenar),
+                  if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
@@ -233,7 +234,7 @@ class _GeriDonmelerState extends State<_GeriDonmeler> {
                       children: [
                         SizedBox(
                           width: 44,
-                          child: Text(sayiYaz(tamsayi(y['count'])), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          child: Text(sayiYaz(tamsayi(y['count'])), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -278,7 +279,7 @@ class _AlanSatiri extends StatelessWidget {
     final sayilar = harita(d['counts']).entries.map((e) => (e.key, tamsayi(e.value))).toList()..sort((a, b) => b.$2 - a.$2);
     final siniflar = sayilar.map((e) => '${etiketler[e.$1] ?? e.$1} ${e.$2}').join(' · ');
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -445,7 +446,7 @@ class _OnKontrolState extends State<_OnKontrol> with AutomaticKeepAliveClientMix
     super.build(context);
     final form = BolumKarti(
       baslik: 'Test iletisi',
-      ikon: Icons.edit_note_rounded,
+      ikon: Simgeler.editNote,
       altBaslik: 'İleti gönderilmez: giden içerik denetimi ve DNS kimlik doğrulama kontrolleri gerçek gönderimdeki gibi çalışır.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -470,15 +471,15 @@ class _OnKontrolState extends State<_OnKontrol> with AutomaticKeepAliveClientMix
             controller: _abonelik,
             decoration: const InputDecoration(labelText: 'List-Unsubscribe (bülten ise)', hintText: '<https://ornek.com/abonelik-iptal>'),
           ),
-          if (_hata != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
-          const SizedBox(height: 14),
+          if (_hata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13))),
+          const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerLeft,
             child: FilledButton.icon(
               onPressed: _mesgul || _kutu == null ? null : _calistir,
               icon: _mesgul
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.play_arrow_rounded),
+                  : const Icon(Simgeler.playArrow),
               label: const Text('Ön kontrolü çalıştır'),
             ),
           ),
@@ -508,7 +509,7 @@ class _OnKontrolState extends State<_OnKontrol> with AutomaticKeepAliveClientMix
 
   Widget _seedKarti(BuildContext context) => BolumKarti(
     baslik: 'Dış gelen kutusu testi (seed)',
-    ikon: Icons.inbox_outlined,
+    ikon: Simgeler.inbox,
     sag: const Rozet('Onay bekliyor (dış gönderim)', renk: Marka.kehribar),
     child: Text(
       'Gmail, Outlook gibi dış test kutularına gerçek ileti gönderip gelen kutusu / spam yerleşimini ölçen testler gerçek dış gönderim gerektirir; '
@@ -531,27 +532,27 @@ class _OnKontrolState extends State<_OnKontrol> with AutomaticKeepAliveClientMix
     }
     final hukum = metin(s['verdict']);
     final (baslik, renk, ikon) = switch (hukum) {
-      'ok' => ('Gönderime hazır', Marka.zumrut, Icons.check_circle_outline_rounded),
-      'fail' => ('Gönderilemez / reddedilir', Marka.gul, Icons.cancel_outlined),
-      _ => ('Riskli — iyileştirin', Marka.kehribar, Icons.gpp_maybe_outlined),
+      'ok' => ('Gönderime hazır', Marka.zumrut, Simgeler.checkCircleOutline),
+      'fail' => ('Gönderilemez / reddedilir', Marka.gul, Simgeler.cancel),
+      _ => ('Riskli — iyileştirin', Marka.kehribar, Simgeler.gppMaybe),
     };
     final icerik = s['content'] is Map ? harita(s['content']) : null;
     final bulgular = haritalar(icerik?['findings']);
     final denetimler = haritalar(s['checks']);
     return [
       Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: renk.withValues(alpha: .1), borderRadius: BorderRadius.circular(14), border: Border.all(color: renk.withValues(alpha: .4))),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(ikon, color: renk),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(baslik, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(baslik, style: const TextStyle(fontWeight: FontWeight.w600)),
                   Text(
                     'İçerik puanı ${icerik == null ? '—' : ondalik(icerik['score']).toStringAsFixed(1)} / eşik ${icerik == null ? '—' : metin(icerik['threshold'])}'
                     '${mantik(icerik?['bulk']) ? ' · toplu gönderim' : ''} · ${mantik(s['external']) ? 'dış alıcı var' : 'yalnızca platform içi'} · ileti gönderilmedi',
@@ -568,11 +569,11 @@ class _OnKontrolState extends State<_OnKontrol> with AutomaticKeepAliveClientMix
         const SizedBox(height: 12),
         BolumKarti(
           baslik: 'İçerik bulguları',
-          ikon: Icons.rule_rounded,
+          ikon: Simgeler.rule,
           child: Column(
             children: [
               for (final (i, f) in bulgular.indexed) ...[
-                if (i > 0) Divider(height: 1, color: r.kenar),
+                if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Column(
@@ -602,11 +603,11 @@ class _OnKontrolState extends State<_OnKontrol> with AutomaticKeepAliveClientMix
       const SizedBox(height: 12),
       BolumKarti(
         baslik: 'Kimlik doğrulama, alıcılar ve IP',
-        ikon: Icons.verified_user_outlined,
+        ikon: Simgeler.verifiedUser,
         child: Column(
           children: [
             for (final (i, c) in denetimler.indexed) ...[
-              if (i > 0) Divider(height: 1, color: r.kenar),
+              if (i > 0) Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(

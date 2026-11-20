@@ -89,7 +89,7 @@ class _YukleyiciSayfaState<T> extends State<YukleyiciSayfa<T>> {
 
 /// Listenin boş olduğu durumda kart içinde açıklama.
 class BosKart extends StatelessWidget {
-  const BosKart(this.metin, {super.key, this.ikon = Icons.inbox_outlined});
+  const BosKart(this.metin, {super.key, this.ikon = Simge.gelen});
   final String metin;
   final IconData ikon;
   @override
@@ -136,7 +136,7 @@ class KartListe extends StatelessWidget {
 Future<void> gizliGoster(BuildContext context, String baslik, String aciklama, String deger) => showDialog<void>(
   context: context,
   builder: (c) => AlertDialog(
-    title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text(baslik, style: gosterim(19, agirlik: FontWeight.w600)),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -154,7 +154,7 @@ Future<void> gizliGoster(BuildContext context, String baslik, String aciklama, S
       ],
     ),
     actions: [
-      TextButton.icon(onPressed: () => kopyala(deger), icon: const Icon(Icons.copy_rounded, size: 18), label: const Text('Kopyala')),
+      TextButton.icon(onPressed: () => kopyala(deger), icon: const Icon(Simge.kopyala, size: 18), label: const Text('Kopyala')),
       FilledButton(onPressed: () => Navigator.pop(c), child: const Text('Tamam')),
     ],
   ),

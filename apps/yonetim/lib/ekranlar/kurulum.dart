@@ -9,6 +9,7 @@ import '../ortak/dosya.dart' show baytlariKaydet;
 import '../ortak/iskelet.dart';
 import '../veri/json.dart';
 import 'tehdit_ortak.dart';
+import '../ortak/simgeler.dart';
 
 // Platform kurulum sihirbazı (web: admin/setup, yalnızca süper yönetici): DNS kayıtları ve sunucu ayarlarının canlı
 // doğrulaması, platform alan adı / MTA-STS ayarı, DKIM anahtarı, güvenlik kontrol listesi, durum değişiklikleri, dışa aktarma.
@@ -117,11 +118,11 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
       baslik: 'Kurulum',
       alt: 'Platform posta sisteminin DNS kayıtları ve sunucu ayarları',
       eylemler: [
-        IconButton(tooltip: 'BIND bölge kaydı', onPressed: run == null ? null : () => _disaAktar('bind'), icon: const Icon(Icons.description_outlined)),
-        IconButton(tooltip: 'Kayıt tablosu', onPressed: run == null ? null : () => _disaAktar('table'), icon: const Icon(Icons.table_chart_outlined)),
+        IconButton(tooltip: 'BIND bölge kaydı', onPressed: run == null ? null : () => _disaAktar('bind'), icon: const Icon(Simgeler.description)),
+        IconButton(tooltip: 'Kayıt tablosu', onPressed: run == null ? null : () => _disaAktar('table'), icon: const Icon(Simgeler.tableChart)),
       ],
       yenile: _yukle,
-      birincil: BirincilEylem(Icons.fact_check_outlined, _dogruluyor ? 'Doğrulanıyor…' : 'Tümünü doğrula', _dogruluyor ? () {} : _dogrula),
+      birincil: BirincilEylem(Simgeler.factCheck, _dogruluyor ? 'Doğrulanıyor…' : 'Tümünü doğrula', _dogruluyor ? () {} : _dogrula),
       govde: v == null
           ? (_hata != null ? Durum.hata(_hata!, tekrar: _yukle) : const Durum.yukleniyor())
           : Stack(
@@ -141,11 +142,11 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
     return IcerikListesi(
       children: [
         const SizedBox(height: 12),
-        if (metin(v['dns_note']).isNotEmpty) ...[Bant(metin(v['dns_note']), renk: Marka.kehribar), const SizedBox(height: 14)],
+        if (metin(v['dns_note']).isNotEmpty) ...[Bant(metin(v['dns_note']), renk: Marka.kehribar), const SizedBox(height: 16)],
         BolumKarti(
           baslik: 'Genel ilerleme',
-          ikon: Icons.donut_large_rounded,
-          sag: Text(run == null ? '—' : '$ok/$toplam', style: gosterim(18, renk: r.metin)),
+          ikon: Simgeler.donutLarge,
+          sag: Text(run == null ? '—' : '$ok/$toplam', style: gosterim(18, agirlik: FontWeight.w600, renk: r.metin)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -168,7 +169,7 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
         if (run == null)
           BolumKarti(
             baslik: 'Henüz doğrulama yapılmadı',
-            ikon: Icons.hourglass_empty_rounded,
+            ikon: Simgeler.hourglassEmpty,
             child: const Aciklama('"Tümünü doğrula" ile tüm kayıtları ve sunucu ayarlarını şimdi denetleyin.'),
           )
         else
@@ -185,7 +186,7 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
                         if (mantik(dkim['can_generate'])) {
                           return OutlinedButton.icon(
                             onPressed: _dkimMesgul ? null : _dkim,
-                            icon: const Icon(Icons.key_rounded, size: 18),
+                            icon: const Icon(Simgeler.key, size: 18),
                             label: Text(dkim['key'] is Map ? 'Yeni DKIM anahtarı üret (döndür)' : 'DKIM anahtarı üret'),
                           );
                         }
@@ -200,7 +201,7 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
         const SizedBox(height: 4),
         BolumKarti(
           baslik: 'Güvenlik kontrol listesi — Aşama B',
-          ikon: Icons.checklist_rounded,
+          ikon: Simgeler.checklist,
           altBaslik:
               'Port 25 ve istemci portlarını herkese açmadan önce (${metin(v['checklist_doc'])}). Canlı denetimden gelen maddeler otomatik, diğerleri sahip onayıyla elle işaretlenir.',
           child: Column(
@@ -229,7 +230,7 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
         const SizedBox(height: 16),
         BolumKarti(
           baslik: 'Durum değişiklikleri',
-          ikon: Icons.history_rounded,
+          ikon: Simgeler.history,
           altBaslik: 'Doğrulamalar arasında durumu değişen kalemler (ilk gözlem dahil).',
           child: haritalar(v['changes']).isEmpty
               ? Text('Henüz kayıt yok.', style: TextStyle(color: r.silik))
@@ -246,7 +247,7 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             if (metin(c['from']).isEmpty) const Rozet('ilk', renk: Colors.blueGrey) else KurulumDurumu(metin(c['from'])),
-                            Icon(Icons.arrow_forward_rounded, size: 14, color: r.silik),
+                            Icon(SimgelerKalin.arrowForward, size: 14, color: r.silik),
                             KurulumDurumu(metin(c['to'])),
                           ],
                         ),
@@ -306,7 +307,7 @@ class _AyarKartiState extends State<_AyarKarti> {
     final varsayilan = metin(v['domain_default']);
     return BolumKarti(
       baslik: 'Sunucu ve platform alan adı',
-      ikon: Icons.dns_outlined,
+      ikon: Simgeler.dns,
       altBaslik: 'Kayıtlar bu bilgilere göre üretilir. Sunucu adı ve IP yapılandırmadan gelir.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -357,7 +358,7 @@ class _AyarKartiState extends State<_AyarKarti> {
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
-            child: FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: const Icon(Icons.save_outlined, size: 18), label: const Text('Kaydet')),
+            child: FilledButton.icon(onPressed: _mesgul ? null : _kaydet, icon: const Icon(Simgeler.save, size: 18), label: const Text('Kaydet')),
           ),
         ],
       ),
@@ -391,27 +392,27 @@ class _AdimKartiState extends State<_AdimKarti> {
           InkWell(
             onTap: () => setState(() => _acik = !_acik),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(radius: 14, backgroundColor: r.ic, child: Text('${tamsayi(a['step'])}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+                      CircleAvatar(radius: 14, backgroundColor: r.ic, child: Text('${tamsayi(a['step'])}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(metin(a['title']), maxLines: 2, overflow: TextOverflow.ellipsis, style: gosterim(15, agirlik: FontWeight.w700)),
+                            Text(metin(a['title']), maxLines: 2, overflow: TextOverflow.ellipsis, style: gosterim(15, agirlik: FontWeight.w600)),
                             Text(toplam > 0 ? '$ok/$toplam tamam' : 'Denetim yok', style: TextStyle(color: r.silik, fontSize: 12)),
                           ],
                         ),
                       ),
                       KurulumDurumu(metin(a['status'])),
-                      Icon(_acik ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: r.soluk),
+                      Icon(_acik ? Simgeler.expandLess : Simgeler.expandMore, color: r.soluk),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(value: toplam == 0 ? 0 : ok / toplam, minHeight: 5, backgroundColor: r.ic, color: kurulumDurumRengi(metin(a['status']))),
@@ -452,7 +453,7 @@ class _KontrolSatiriState extends State<_KontrolSatiri> {
     final bulunan = metinler(c['found']);
     final dahaFazla = kayitlar.isNotEmpty || bulunan.isNotEmpty || metinYa(c['cause']) != null || metinYa(c['fix']) != null || metinYa(c['note']) != null || widget.ek != null;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -462,7 +463,7 @@ class _KontrolSatiriState extends State<_KontrolSatiri> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 KurulumDurumu(metin(c['status'])),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,23 +481,23 @@ class _KontrolSatiriState extends State<_KontrolSatiri> {
                     ],
                   ),
                 ),
-                if (dahaFazla) Icon(_acik ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20, color: r.soluk),
+                if (dahaFazla) Icon(_acik ? Simgeler.expandLess : Simgeler.expandMore, size: 20, color: r.soluk),
               ],
             ),
           ),
           if (_acik && dahaFazla)
             Padding(
-              padding: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.only(top: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (metinYa(c['cause']) != null) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('Neden: ${metin(c['cause'])}', style: const TextStyle(fontSize: 13))),
-                  if (metinYa(c['fix']) != null) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('Düzeltme: ${metin(c['fix'])}', style: const TextStyle(fontSize: 13))),
+                  if (metinYa(c['cause']) != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('Neden: ${metin(c['cause'])}', style: const TextStyle(fontSize: 13))),
+                  if (metinYa(c['fix']) != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('Düzeltme: ${metin(c['fix'])}', style: const TextStyle(fontSize: 13))),
                   for (final k in kayitlar) _KayitKutusu(k),
                   if (bulunan.isNotEmpty) ...[
                     Text('Şu an bulunan:', style: TextStyle(color: r.silik, fontSize: 12)),
                     for (final f in bulunan) SelectableText(f, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                   ],
                   if (metinYa(c['note']) != null) Aciklama(metin(c['note'])),
                   if (widget.ek != null) Padding(padding: const EdgeInsets.only(top: 8), child: Align(alignment: Alignment.centerLeft, child: widget.ek)),
@@ -518,7 +519,7 @@ class _KayitKutusu extends StatelessWidget {
     final tur = metin(k['type']);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(10), border: Border.all(color: r.kenar)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -530,8 +531,8 @@ class _KayitKutusu extends StatelessWidget {
           Wrap(
             spacing: 8,
             children: [
-              TextButton.icon(onPressed: () => kopyala(metin(k['value'])), icon: const Icon(Icons.copy_rounded, size: 16), label: const Text('Değeri kopyala')),
-              TextButton.icon(onPressed: () => kopyala(metin(k['host'])), icon: const Icon(Icons.copy_rounded, size: 16), label: const Text('Adı kopyala')),
+              TextButton.icon(onPressed: () => kopyala(metin(k['value'])), icon: const Icon(SimgelerKalin.copy, size: 16), label: const Text('Değeri kopyala')),
+              TextButton.icon(onPressed: () => kopyala(metin(k['host'])), icon: const Icon(SimgelerKalin.copy, size: 16), label: const Text('Adı kopyala')),
             ],
           ),
         ],
@@ -546,7 +547,7 @@ class _DisaAktar extends StatelessWidget {
   final String bicim;
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(bicim == 'bind' ? 'BIND bölge kaydı' : 'Kayıt tablosu', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text(bicim == 'bind' ? 'BIND bölge kaydı' : 'Kayıt tablosu', style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 760,
       height: 420,
@@ -560,10 +561,10 @@ class _DisaAktar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Aciklama('Son doğrulamaya göre eklenmesi gereken kayıtlar. PTR, sunucu sağlayıcısında ayarlanır.'),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(color: c.r.ic, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.r.kenar)),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -576,12 +577,12 @@ class _DisaAktar extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Wrap(
                   spacing: 8,
-                  runSpacing: 6,
+                  runSpacing: 8,
                   children: [
-                    FilledButton.tonalIcon(onPressed: () => kopyala(metinV), icon: const Icon(Icons.copy_rounded, size: 18), label: const Text('Tümünü kopyala')),
+                    FilledButton.tonalIcon(onPressed: () => kopyala(metinV), icon: const Icon(Simgeler.copy, size: 18), label: const Text('Tümünü kopyala')),
                     OutlinedButton.icon(
                       onPressed: () => baytlariKaydet(bicim == 'bind' ? 'bogamail-dns.zone' : 'bogamail-dns-kayitlari.txt', utf8.encode(metinV), tur: 'text/plain'),
-                      icon: const Icon(Icons.download_rounded, size: 18),
+                      icon: const Icon(Simgeler.download, size: 18),
                       label: const Text('Dosya olarak kaydet'),
                     ),
                   ],

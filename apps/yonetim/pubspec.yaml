@@ -1,7 +1,7 @@
 name: yonetim
 description: "BogaMail Yönetim — Bogahost posta sunucusu yönetimi"
 publish_to: 'none'
-version: 1.3.0+1
+version: 1.4.0+1
 resolution: workspace
 
 environment:
@@ -23,7 +23,12 @@ dependencies:
   open_filex: ^5.0.0
   flutter_inappwebview: ^6.2.0-beta.3
   qr: ^3.0.2
-
+  flutter_local_notifications: ^23.0.3
+  flutter_foreground_task: ^11.0.3
+  tray_manager: ^0.5.2
+  window_manager: ^0.5.1
+  app_settings: ^9.0.1
+  win32_registry: ^3.0.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -31,3 +36,17 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # Windows sistem tepsisi simgesi.
+    - assets/tepsi.ico
+  # Phosphor simgeleri (MIT, assets/fonts/phosphor/LICENSE). Eşleme: lib/ortak/simgeler.dart
+  fonts:
+    - family: PhosphorLight
+      fonts:
+        - asset: assets/fonts/phosphor/Phosphor-Light.ttf
+    - family: PhosphorRegular
+      fonts:
+        - asset: assets/fonts/phosphor/Phosphor-Regular.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/phosphor/Phosphor-Fill.ttf

@@ -1,3 +1,5 @@
+import 'simge.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -141,14 +143,14 @@ class _GirisEkraniState extends State<GirisEkrani> {
 
   List<(IconData, String, String)> get _ozellikler => widget.isaret == AcilisIsaret.posta
       ? const [
-          (Icons.mail_rounded, 'Kurumsal e-posta', 'Klasörler, etiketler, süzgeçler ve güçlü arama'),
-          (Icons.forum_rounded, 'Sohbet', 'Kurum içi kanallar, bireysel ve grup mesajları'),
-          (Icons.event_available_rounded, 'Takvim ve görevler', 'Toplantılar, davetler ve iş takibi'),
+          (Simge.postaDolu, 'Kurumsal e-posta', 'Klasörler, etiketler, süzgeçler ve güçlü arama'),
+          (Simge.sohbet, 'Sohbet', 'Kurum içi kanallar, bireysel ve grup mesajları'),
+          (Simge.etkinlikOnay, 'Takvim ve görevler', 'Toplantılar, davetler ve iş takibi'),
         ]
       : const [
-          (Icons.dns_rounded, 'Alan adları ve posta kutuları', 'Tüm müşterileri tek panelden yönetin'),
-          (Icons.shield_rounded, 'Güvenlik', 'Karantina, tehdit koruması ve DLP'),
-          (Icons.monitor_heart_rounded, 'İzleme', 'Kuyruk, teslimat ve anlık uyarılar'),
+          (Simge.sunucu, 'Alan adları ve posta kutuları', 'Tüm müşterileri tek panelden yönetin'),
+          (Simge.kalkan, 'Güvenlik', 'Karantina, tehdit koruması ve DLP'),
+          (Simge.gonderimDurumu, 'İzleme', 'Kuyruk, teslimat ve anlık uyarılar'),
         ];
 
   String get _uygulamaAdi => widget.isaret == AcilisIsaret.posta ? 'BogaMail' : 'BogaMail Yönetim';
@@ -233,7 +235,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
               const Spacer(),
               Text(
                 'BOGAHOST',
-                style: TextStyle(color: Colors.white.withValues(alpha: .5), fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w700),
+                style: TextStyle(color: Colors.white.withValues(alpha: .5), fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -288,7 +290,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
                                   child: IconButton(
                                     tooltip: 'Geri',
                                     onPressed: widget.geri,
-                                    icon: Icon(Icons.arrow_back_rounded, color: r.metin),
+                                    icon: Icon(Simge.geri, color: r.metin),
                                   ),
                                 ),
                               if (!genis)
@@ -302,7 +304,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
                                           _uygulamaAdi,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: gosterim(17, agirlik: FontWeight.w700, renk: r.metin),
+                                          style: gosterim(17, agirlik: FontWeight.w600, renk: r.metin),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -348,7 +350,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.error_outline_rounded, color: Marka.gul, size: 20),
+                                  const Icon(Simge.hata, color: Marka.gul, size: 20),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13.5)),
@@ -361,7 +363,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.lock_outline_rounded, size: 14, color: r.silik),
+                              Icon(Simge.kilit, size: 14, color: r.silik),
                               const SizedBox(width: 6),
                               Text('Güvenli bağlantı (TLS)', style: TextStyle(color: r.silik, fontSize: 12)),
                             ],
@@ -434,7 +436,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
             autocorrect: false,
             textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.email, AutofillHints.username],
-            decoration: InputDecoration(labelText: 'E-posta adresi', hintText: widget.adresIpucu, prefixIcon: const Icon(Icons.alternate_email_rounded)),
+            decoration: InputDecoration(labelText: 'E-posta adresi', hintText: widget.adresIpucu, prefixIcon: const Icon(Simge.eposta)),
             validator: (v) => (v ?? '').contains('@') ? null : 'Geçerli bir e-posta adresi girin',
           ),
           const SizedBox(height: 12),
@@ -446,10 +448,10 @@ class _GirisEkraniState extends State<GirisEkrani> {
             onFieldSubmitted: (_) => _gonder(),
             decoration: InputDecoration(
               labelText: 'Şifre',
-              prefixIcon: const Icon(Icons.lock_rounded),
+              prefixIcon: const Icon(Simge.kilitDolu),
               suffixIcon: IconButton(
                 tooltip: _gizli ? 'Göster' : 'Gizle',
-                icon: Icon(_gizli ? Icons.visibility_rounded : Icons.visibility_off_rounded),
+                icon: Icon(_gizli ? Simge.goster : Simge.gizle),
                 onPressed: () => setState(() => _gizli = !_gizli),
               ),
             ),
@@ -465,7 +467,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
               subtitle: Text('Çıkış yapsanız da hesap listede kalır; şifresiz geri dönebilirsiniz.', style: TextStyle(color: r.silik, fontSize: 12)),
             ),
           SizedBox(height: widget.kaydetSecenegi ? 8 : 20),
-          _dugme('Giriş yap', Icons.login_rounded),
+          _dugme('Giriş yap', Simge.giris),
         ],
       ),
     ),
@@ -481,7 +483,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(color: r.birincilYumusak, borderRadius: BorderRadius.circular(14)),
-            child: Icon(Icons.verified_user_rounded, color: r.birincil),
+            child: Icon(Simge.guvenli, color: r.birincil),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -490,7 +492,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
               children: [
                 Text(
                   'İki adımlı doğrulama',
-                  style: gosterim(17, agirlik: FontWeight.w700, renk: r.metin),
+                  style: gosterim(17, agirlik: FontWeight.w600, renk: r.metin),
                 ),
                 Text('Doğrulama uygulamanızdaki 6 haneli kodu ya da bir kurtarma kodunu girin.', style: TextStyle(color: r.soluk, fontSize: 12.5)),
               ],
@@ -505,7 +507,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
         keyboardType: TextInputType.visiblePassword,
         textAlign: TextAlign.center,
         autofillHints: const [AutofillHints.oneTimeCode],
-        style: gosterim(26, agirlik: FontWeight.w700, renk: r.metin).copyWith(letterSpacing: 6),
+        style: gosterim(26, agirlik: FontWeight.w600, renk: r.metin).copyWith(letterSpacing: 6),
         onSubmitted: (_) => _gonder(),
         decoration: const InputDecoration(hintText: '••••••'),
       ),
@@ -517,7 +519,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
         subtitle: Text('30 gün boyunca kod sorulmaz', style: TextStyle(color: r.silik, fontSize: 12)),
       ),
       const SizedBox(height: 8),
-      _dugme('Doğrula', Icons.check_rounded),
+      _dugme('Doğrula', Simge.onay),
       TextButton(
         onPressed: _bekliyor
             ? null

@@ -8,6 +8,7 @@ import '../ortak/sayfali.dart';
 import '../ortak/secimler.dart';
 import '../ortak/tablo.dart';
 import '../veri/json.dart';
+import '../ortak/simgeler.dart';
 
 const _nedenler = <(String, String)>[
   ('hard_bounce', 'Kalıcı geri dönüş'),
@@ -140,7 +141,7 @@ class _BastirmaListesiEkraniState extends State<BastirmaListesiEkrani> {
             _y.yenile();
             _fbl.yenile();
           },
-          birincil: BirincilEylem(Icons.add_rounded, 'Adres ekle', _ekle),
+          birincil: BirincilEylem(Simgeler.add, 'Adres ekle', _ekle),
           sekmeler: const TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
@@ -155,12 +156,12 @@ class _BastirmaListesiEkraniState extends State<BastirmaListesiEkrani> {
   Widget _adresler(BuildContext context) => VeriTablosu<_Bastirma>(
     yukleyici: _y,
     bosMetin: 'Kayıt yok. Geri dönen, şikâyet eden veya elle eklenen adresler burada görünür.',
-    bosIkon: Icons.block_rounded,
+    bosIkon: Simgeler.block,
     ust: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 10, context.genis ? 16 : 12, 2),
+          padding: EdgeInsets.fromLTRB(context.genis ? 16 : 12, 8, context.genis ? 16 : 12, 2),
           child: Text(
             'Kalıcı geri dönüşler 30 gün sonra kendiliğinden düşer; spam şikâyeti ve abonelikten çıkış yalnızca toplu gönderimi '
             'engeller, elle eklenenler ve kalıcı geri dönüşler her postayı engeller.',
@@ -195,13 +196,13 @@ class _BastirmaListesiEkraniState extends State<BastirmaListesiEkrani> {
             },
           ),
           filtreler: [
-            FiltreDugmesi<String>(etiket: 'Neden', ikon: Icons.filter_list_rounded, secenekler: [('', 'Tüm nedenler'), ..._nedenler], secili: _neden, secildi: _nedenSec),
+            FiltreDugmesi<String>(etiket: 'Neden', ikon: Simgeler.filterList, secenekler: [('', 'Tüm nedenler'), ..._nedenler], secili: _neden, secildi: _nedenSec),
           ],
           etkinler: [if (_neden.isNotEmpty) EtkinFiltre('Neden: ${_nedenEtiketi(_neden)}', () => _nedenSec(''))],
         ),
       ],
     ),
-    eylemler: (s) => [if (_cikarabilir(s)) SatirEylemi(Icons.delete_outline_rounded, 'Listeden çıkar', () => _cikar(s), tehlikeli: true)],
+    eylemler: (s) => [if (_cikarabilir(s)) SatirEylemi(Simgeler.deleteOutline, 'Listeden çıkar', () => _cikar(s), tehlikeli: true)],
     sutunlar: [
       Sutun('Adres', esnek: 4, hucre: (_, s) => IkiSatir(s.adres, alt: s.altSatir, mono: true)),
       Sutun(
@@ -228,14 +229,14 @@ class _BastirmaListesiEkraniState extends State<BastirmaListesiEkrani> {
         ('Eklenme', tamZaman(s.eklenme)),
         if (s.dusme != null) ('Düşme', tamZaman(s.dusme)),
       ],
-      eylemler: [if (_cikarabilir(s)) SatirEylemi(Icons.delete_outline_rounded, 'Listeden çıkar', () => _cikar(s), tehlikeli: true)],
+      eylemler: [if (_cikarabilir(s)) SatirEylemi(Simgeler.deleteOutline, 'Listeden çıkar', () => _cikar(s), tehlikeli: true)],
     ),
   );
 
   Widget _raporlar(BuildContext context) => VeriTablosu<Map<String, dynamic>>(
     yukleyici: _fbl,
     bosMetin: 'Şikâyet raporu yok. Posta sağlayıcılarından gelen spam şikâyetleri (ARF) burada listelenir.',
-    bosIkon: Icons.report_gmailerrorred_rounded,
+    bosIkon: Simgeler.reportGmailerrorred,
     sutunlar: [
       Sutun(
         'Şikâyet eden alıcı',
@@ -281,7 +282,7 @@ class _SayacKutusu extends StatelessWidget {
         onTap: onTap,
         child: Container(
           width: 170,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -289,11 +290,11 @@ class _SayacKutusu extends StatelessWidget {
               Row(
                 children: [
                   DurumNoktasi(renk, boyut: 7),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(child: Text(etiket, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.soluk, fontSize: 12))),
                 ],
               ),
-              Text(sayiYaz(deger), style: gosterim(18, agirlik: FontWeight.w700)),
+              Text(sayiYaz(deger), style: gosterim(18, agirlik: FontWeight.w600)),
             ],
           ),
         ),
@@ -373,7 +374,7 @@ class _EkleDialogState extends State<_EkleDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text('Adres ekle', style: gosterim(19, agirlik: FontWeight.w700)),
+    title: Text('Adres ekle', style: gosterim(19, agirlik: FontWeight.w600)),
     content: SizedBox(
       width: 440,
       child: Form(
@@ -383,7 +384,7 @@ class _EkleDialogState extends State<_EkleDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Elle eklenen adreslere hiçbir posta gönderilmez (kişisel posta dahil).', style: TextStyle(color: context.r.soluk, fontSize: 13)),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             if (_musteriGerekli) ...[SecimAlani(etiket: 'Müşteri', deger: _org?.$2, onTap: _musteriSec), const SizedBox(height: 12)],
             TextFormField(
               controller: _adres,

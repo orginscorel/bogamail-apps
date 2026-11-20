@@ -11,6 +11,7 @@ import '../ortak/tablo.dart';
 import '../veri/json.dart';
 import 'altyapi_itibar_ip.dart';
 import 'altyapi_ortak.dart';
+import '../ortak/simgeler.dart';
 
 /// İtibar (platform ve bayi): IP itibar puanı ve canlı DNS sağlığı (yalnız süper yönetici), teslim istatistikleri,
 /// alıcı sağlayıcılar, müşteriler / göndericiler ve alan adı kimlik doğrulaması. web: admin/(panel)/reputation.
@@ -71,7 +72,7 @@ class _ItibarEkraniState extends State<ItibarEkrani> {
             itemBuilder: (_) => [for (final (k, e) in _donemler) CheckedPopupMenuItem(value: k, checked: k == _donem, child: Text(e))],
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.date_range_rounded, size: 20), const SizedBox(width: 4), Text(etiket)]),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Simgeler.dateRange, size: 20), const SizedBox(width: 4), Text(etiket)]),
             ),
           ),
         ],
@@ -102,7 +103,7 @@ class _IpSekmesi extends StatelessWidget {
       final pol = harita(o['policy']);
       final ozet = Wrap(
         spacing: 8,
-        runSpacing: 6,
+        runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Rozet('giden mod: ${tire(metin(o['outbound_mode']))}', renk: metin(o['outbound_mode']) == 'direct' ? Marka.zumrut : r.soluk),
@@ -127,7 +128,7 @@ class _IpSekmesi extends StatelessWidget {
             const SizedBox(height: 12),
             const SizedBox(
               height: 220,
-              child: Durum.bos('Giden IP yok. IP Yönetimi\'nden rolü "giden" veya "gelen + giden" olan bir IP ekleyin.', ikon: Icons.star_outline_rounded),
+              child: Durum.bos('Giden IP yok. IP Yönetimi\'nden rolü "giden" veya "gelen + giden" olan bir IP ekleyin.', ikon: Simgeler.starOutline),
             ),
             OnerilerKarti(oneriler: oneriler),
           ],
@@ -157,8 +158,8 @@ class _IpSekmesi extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 18),
-          Text('Gönderim IP\'leri', style: gosterim(17, renk: r.metin)),
+          const SizedBox(height: 16),
+          Text('Gönderim IP\'leri', style: gosterim(17, agirlik: FontWeight.w600, renk: r.metin)),
           const SizedBox(height: 8),
           for (final ip in ipler) ...[IpSaglikKarti(ip: ip, denetlendi: yenile), const SizedBox(height: 12)],
         ],
@@ -234,7 +235,7 @@ class _TeslimSekmesi extends StatelessWidget {
             children: [
               BolumKarti(
                 baslik: 'Politika retleri: kural dağılımı',
-                ikon: Icons.rule_rounded,
+                ikon: Simgeler.rule,
                 altBaslik: 'Giden tarayıcının reddettiği iletiler, tetiklenen kurala göre. Toplu gönderim retleri: ${tamsayi(t['bulk_refused'])} alıcı.',
                 child: kurallar.isEmpty
                     ? Text('Bu dönemde politika reddi yok.', style: TextStyle(color: r.soluk))
@@ -276,7 +277,7 @@ class _TeslimSekmesi extends StatelessWidget {
               ),
               BolumKarti(
                 baslik: 'Şikâyet benzeri sinyaller',
-                ikon: Icons.flag_outlined,
+                ikon: Simgeler.flag,
                 altBaslik: 'Bastırma listesine bu dönemde eklenen kayıtlar.',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -348,14 +349,14 @@ class _TeslimGrafigiState extends State<_TeslimGrafigi> {
     }
     return BolumKarti(
       baslik: 'Teslim sonuçları zaman içinde',
-      ikon: Icons.bar_chart_rounded,
+      ikon: Simgeler.barChart,
       altBaslik: 'Her çubuk ${saat >= 24 ? '1 gün' : '${saat.round()} saat'} (UTC aralıkları). Alıcı başına sayılır.',
       sag: TextButton(onPressed: () => setState(() => _tablo = !_tablo), child: Text(_tablo ? 'Grafik' : 'Tablo')),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Wrap(
-            spacing: 14,
+            spacing: 16,
             runSpacing: 4,
             children: [
               for (final s in _seriler)
@@ -373,7 +374,7 @@ class _TeslimGrafigiState extends State<_TeslimGrafigi> {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           if (seri.isEmpty)
             SizedBox(
               height: 120,
@@ -538,7 +539,7 @@ class _AliciSekmesi extends StatelessWidget {
         ),
       ),
       bosMetin: 'Bu dönemde uzak teslim denemesi yok.',
-      bosIkon: Icons.public_rounded,
+      bosIkon: Simgeler.public,
       tabloEnAz: 900,
       sutunlar: [
         Sutun('Alan adı', esnek: 3, hucre: (c, d) => IkiSatir(metin(d['domain']), alt: metinYa(d['provider']), mono: true)),
@@ -616,7 +617,7 @@ class _GondericiSekmesiState extends State<_GondericiSekmesi> {
             secili: _gondericiler,
             secildi: (v) => setState(() => _gondericiler = v),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           if (!_gondericiler)
             Text('Müşteri bazında giden hacim ve oranlar (ilk 100, hacme göre).', style: TextStyle(color: r.soluk, fontSize: 12.5))
           else
@@ -625,7 +626,7 @@ class _GondericiSekmesiState extends State<_GondericiSekmesi> {
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if (esik > 0) Rozet('$esik eşik üstünde', renk: Marka.gul, ikon: Icons.pause_circle_outline_rounded),
+                if (esik > 0) Rozet('$esik eşik üstünde', renk: Marka.gul, ikon: Simgeler.pauseCircleOutline),
                 Text(
                   'Duraklatma eşiği: son 24 saatte en az ${tamsayi(pause['min_sends'])} sonuçlanmış teslimde kalıcı geri dönme ≥ %${metin(pause['rate'])}'
                   '${metinYa(pause['note']) != null ? '. ${metin(pause['note'])}' : ''}.',
@@ -653,7 +654,7 @@ class _GondericiSekmesiState extends State<_GondericiSekmesi> {
             yukleyici: y,
             ust: _ust(context),
             bosMetin: 'Bu dönemde müşteri gönderimi yok.',
-            bosIkon: Icons.apartment_rounded,
+            bosIkon: Simgeler.apartment,
             tabloEnAz: 900,
             sutunlar: [
               Sutun('Müşteri', esnek: 3, hucre: (c, o) => IkiSatir(metin(o['organization_name']), alt: '${tamsayi(o['senders'])} gönderici')),
@@ -692,7 +693,7 @@ class _GondericiSekmesiState extends State<_GondericiSekmesi> {
           yukleyici: y,
           ust: _ust(context),
           bosMetin: 'Bu dönemde gönderici yok.',
-          bosIkon: Icons.person_outline_rounded,
+          bosIkon: Simgeler.personOutline,
           tabloEnAz: 900,
           vurgulu: (s) => mantik(s['over_pause_threshold']),
           sutunlar: [
@@ -823,9 +824,9 @@ class _KimlikSekmesiState extends State<_KimlikSekmesi> {
       ),
     ),
     bosMetin: 'Alan adı yok.',
-    bosIkon: Icons.domain_rounded,
+    bosIkon: Simgeler.domain,
     tabloEnAz: 960,
-    eylemler: _denetler ? (d) => [SatirEylemi(Icons.refresh_rounded, 'DNS denetimi', () => _denetle(d))] : null,
+    eylemler: _denetler ? (d) => [SatirEylemi(Simgeler.refresh, 'DNS denetimi', () => _denetle(d))] : null,
     sutunlar: [
       Sutun(
         'Alan adı',
@@ -848,7 +849,7 @@ class _KimlikSekmesiState extends State<_KimlikSekmesi> {
     kart: (c, d) => VeriKarti(
       baslik: metin(d['name']),
       alt: _alt(d),
-      eylemler: _denetler ? [SatirEylemi(Icons.refresh_rounded, 'DNS denetimi', () => _denetle(d))] : const [],
+      eylemler: _denetler ? [SatirEylemi(Simgeler.refresh, 'DNS denetimi', () => _denetle(d))] : const [],
       ek: Wrap(
         spacing: 12,
         runSpacing: 4,

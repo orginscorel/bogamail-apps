@@ -11,6 +11,7 @@ import 'bolumler.dart';
 import 'ekip_gateway_ortak.dart';
 import 'ekip_gateway_sihirbaz.dart';
 import 'ekip_gateway_yonet.dart';
+import '../ortak/simgeler.dart';
 
 class _GwVeri {
   const _GwVeri(this.alanlar, this.disMod, this.uyarilar);
@@ -73,7 +74,7 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
         Text(e, style: TextStyle(color: r.silik, fontSize: 11.5)),
         Text(
           v,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFeatures: [FontFeature.tabularFigures()]),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFeatures: [FontFeature.tabularFigures()]),
         ),
       ],
     );
@@ -90,15 +91,15 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
                   d.ad,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: gosterim(16, agirlik: FontWeight.w700),
+                  style: gosterim(16, agirlik: FontWeight.w600),
                 ),
               ),
-              if (_yonetir) Icon(Icons.chevron_right_rounded, color: r.silik),
+              if (_yonetir) Icon(Simgeler.chevronRight, color: r.silik),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Wrap(
-            spacing: 6,
+            spacing: 8,
             runSpacing: 4,
             children: [
               DurumRozeti(d.durum),
@@ -113,7 +114,7 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: r.soluk, fontSize: 12.5),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           if (d.hedefler.isEmpty)
             const Text('Teslim hedefi yok: gelen posta 451 ile geri çevrilir.', style: TextStyle(color: Marka.kehribar, fontSize: 12.5))
           else
@@ -142,7 +143,7 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
               ),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 22,
+            spacing: 24,
             runSpacing: 8,
             children: [
               sayi('Kuyrukta', mantik(kuyruk['available']) ? sayiYaz(tamsayi(kuyruk['count'])) : '—'),
@@ -152,12 +153,12 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
             ],
           ),
           if (kesintiSaat != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, size: 16, color: Marka.gul),
-                const SizedBox(width: 6),
+                const Icon(SimgelerKalin.warningAmber, size: 16, color: Marka.gul),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Tüm hedefler ${goreliZaman(kesintiSaat)} erişilemiyor; posta en fazla ${tamsayi(ayar['retention_hours'])} saat kuyrukta tutulur.',
@@ -168,7 +169,7 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
             ),
           ],
           if (d.sonHata.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Son hata: ${d.sonHata}',
               maxLines: 2,
@@ -177,17 +178,17 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
             ),
           ],
           if (tamsayi(kesinti['messages']) > 0) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Kesinti kopyaları: ${tamsayi(kesinti['messages'])} ileti, ${boyutYaz(tamsayi(kesinti['bytes']))} (${tamsayi(kesinti['users'])} adres)',
               style: TextStyle(color: r.silik, fontSize: 12),
             ),
           ],
           if (_yonetir) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(onPressed: () => _yonet(d), icon: const Icon(Icons.settings_outlined, size: 18), label: const Text('Yönet')),
+              child: OutlinedButton.icon(onPressed: () => _yonet(d), icon: const Icon(Simgeler.settings, size: 18), label: const Text('Yönet')),
             ),
           ],
         ],
@@ -199,7 +200,7 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
     final r = context.r;
     return BolumKarti(
       baslik: 'Son durum değişiklikleri',
-      ikon: Icons.history_rounded,
+      ikon: Simgeler.history,
       altBaslik: 'Hedef kapandı/düzeldi, tüm hedefler kapalı, kesinti modu uyarıları (30 sn\'de bir yenilenir).',
       child: l.isEmpty
           ? Text('Henüz uyarı yok.', style: TextStyle(color: r.soluk))
@@ -264,9 +265,9 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
       alt: 'Taranan posta müşterinin kendi sunucusuna iletilir',
       yenile: _yenile,
       eylemler: [
-        if (_yonetir) IconButton(tooltip: 'Gateway alan adı ekle', onPressed: () => bolumeGit(Bolum.alanlar), icon: const Icon(Icons.add_link_rounded)),
+        if (_yonetir) IconButton(tooltip: 'Gateway alan adı ekle', onPressed: () => bolumeGit(Bolum.alanlar), icon: const Icon(Simgeler.addLink)),
       ],
-      birincil: _yonetir ? BirincilEylem(Icons.auto_fix_high_rounded, 'Yeni gateway müşterisi', () => gatewaySihirbaziAc(context, _alanlar, _yenile)) : null,
+      birincil: _yonetir ? BirincilEylem(Simgeler.autoFixHigh, 'Yeni gateway müşterisi', () => gatewaySihirbaziAc(context, _alanlar, _yenile)) : null,
       govde: TekYukleme<_GwVeri>(
         key: _anahtar,
         getir: _getir,
@@ -283,7 +284,7 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
                 'Sunucuda dış teslim modu ${v.disMod}: gateway alan adlarına gelen iletiler şu an 451 geçici hata ile geri çevrilir '
                 '(gönderen sunucu tekrar dener, posta kaybolmaz) ve bağlantı testleri yapılamaz.',
                 renk: Marka.kehribar,
-                ikon: Icons.warning_amber_rounded,
+                ikon: Simgeler.warningAmber,
               ),
               const SizedBox(height: 12),
             ],
@@ -292,7 +293,7 @@ class _GatewayEkraniState extends State<GatewayEkrani> {
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Kapali(
                   'Gateway alan adı yok.\n"Yeni gateway müşterisi" ile kurulumu başlatın veya Alan Adları\'ndan "MX Gateway" modunda alan adı ekleyin.',
-                  ikon: Icons.alt_route_rounded,
+                  ikon: Simgeler.altRoute,
                 ),
               )
             else

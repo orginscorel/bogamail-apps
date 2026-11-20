@@ -105,26 +105,26 @@ class EtkinlikAyrinti extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(e.baslik, style: gosterim(21, agirlik: FontWeight.w700)),
+                  child: Text(e.baslik, style: gosterim(21, agirlik: FontWeight.w600)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             satir(
-              Icons.schedule_rounded,
+              Simge.saat,
               tarih,
               alt: Text(etkinlikSaati(e), style: TextStyle(color: r.soluk)),
             ),
-            if (e.tekrar.isNotEmpty) satir(Icons.repeat_rounded, tekrarAdlari[e.tekrar] ?? e.tekrar),
-            if (e.yer.isNotEmpty) satir(Icons.place_outlined, e.yer),
-            if (e.hatirlatma != null) satir(Icons.notifications_none_rounded, hatirlatmaAdlari[e.hatirlatma] ?? '${e.hatirlatma} dakika önce'),
-            if (takvim != null) satir(Icons.calendar_today_outlined, takvim.ad),
-            if (e.aciklama.trim().isNotEmpty) satir(Icons.notes_rounded, e.aciklama.trim()),
+            if (e.tekrar.isNotEmpty) satir(Simge.tekrar, tekrarAdlari[e.tekrar] ?? e.tekrar),
+            if (e.yer.isNotEmpty) satir(Simge.konum, e.yer),
+            if (e.hatirlatma != null) satir(Simge.bildirim, hatirlatmaAdlari[e.hatirlatma] ?? '${e.hatirlatma} dakika önce'),
+            if (takvim != null) satir(Simge.takvim, takvim.ad),
+            if (e.aciklama.trim().isNotEmpty) satir(Simge.notlar, e.aciklama.trim()),
             if (e.katilimcilar.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 'Katılımcılar (${e.katilimcilar.length})',
-                style: TextStyle(fontWeight: FontWeight.w800, color: r.soluk),
+                style: TextStyle(fontWeight: FontWeight.w600, color: r.soluk),
               ),
               for (final k in e.katilimcilar)
                 ListTile(
@@ -147,7 +147,7 @@ class EtkinlikAyrinti extends StatelessWidget {
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(foregroundColor: Marka.gul),
                     onPressed: () => _sil(context),
-                    icon: const Icon(Icons.delete_outline_rounded),
+                    icon: const Icon(Simge.sil),
                     label: const Text('Sil'),
                   ),
                 ),
@@ -158,7 +158,7 @@ class EtkinlikAyrinti extends StatelessWidget {
                       final ok = await EtkinlikDuzenleyici.ac(context, takvimler: takvimler, etkinlik: e);
                       if (ok == true && context.mounted) Navigator.pop(context, true);
                     },
-                    icon: const Icon(Icons.edit_outlined),
+                    icon: const Icon(Simge.duzenle),
                     label: const Text('Düzenle'),
                   ),
                 ),
@@ -386,14 +386,14 @@ class _EtkinlikDuzenleyiciState extends State<EtkinlikDuzenleyici> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _tekrar,
-                  decoration: const InputDecoration(labelText: 'Tekrar', prefixIcon: Icon(Icons.repeat_rounded)),
+                  decoration: const InputDecoration(labelText: 'Tekrar', prefixIcon: Icon(Simge.tekrar)),
                   items: [for (final e in tekrarAdlari.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
                   onChanged: (v) => setState(() => _tekrar = v ?? ''),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int?>(
                   initialValue: hatirlatmaAdlari.containsKey(_hatirlatma) ? _hatirlatma : null,
-                  decoration: const InputDecoration(labelText: 'Hatırlatma', prefixIcon: Icon(Icons.notifications_none_rounded)),
+                  decoration: const InputDecoration(labelText: 'Hatırlatma', prefixIcon: Icon(Simge.bildirim)),
                   items: [for (final e in hatirlatmaAdlari.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
                   onChanged: (v) => setState(() => _hatirlatma = v),
                 ),
@@ -401,14 +401,14 @@ class _EtkinlikDuzenleyiciState extends State<EtkinlikDuzenleyici> {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: widget.takvimler.any((t) => t.id == _takvim) ? _takvim : null,
-                    decoration: const InputDecoration(labelText: 'Takvim', prefixIcon: Icon(Icons.calendar_today_outlined)),
+                    decoration: const InputDecoration(labelText: 'Takvim', prefixIcon: Icon(Simge.takvim)),
                     items: [
                       for (final t in widget.takvimler)
                         DropdownMenuItem(
                           value: t.id,
                           child: Row(
                             children: [
-                              Icon(Icons.circle, size: 12, color: takvimRengi(t.renk, r.vurgu)),
+                              Icon(Simge.nokta, size: 12, color: takvimRengi(t.renk, r.vurgu)),
                               const SizedBox(width: 8),
                               Text(t.ad),
                             ],
@@ -428,7 +428,7 @@ class _EtkinlikDuzenleyiciState extends State<EtkinlikDuzenleyici> {
                 TextField(
                   controller: _yer,
                   maxLength: 300,
-                  decoration: const InputDecoration(labelText: 'Yer', prefixIcon: Icon(Icons.place_outlined), counterText: ''),
+                  decoration: const InputDecoration(labelText: 'Yer', prefixIcon: Icon(Simge.konum), counterText: ''),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -447,7 +447,7 @@ class _EtkinlikDuzenleyiciState extends State<EtkinlikDuzenleyici> {
               children: [
                 Text(
                   'Katılımcılar',
-                  style: TextStyle(fontWeight: FontWeight.w800, color: r.soluk),
+                  style: TextStyle(fontWeight: FontWeight.w600, color: r.soluk),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -455,8 +455,8 @@ class _EtkinlikDuzenleyiciState extends State<EtkinlikDuzenleyici> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     hintText: 'ad@ornek.com',
-                    prefixIcon: const Icon(Icons.person_add_alt_rounded),
-                    suffixIcon: IconButton(tooltip: 'Ekle', icon: const Icon(Icons.add_rounded), onPressed: _katilimciEkleyin),
+                    prefixIcon: const Icon(Simge.kisiEkle),
+                    suffixIcon: IconButton(tooltip: 'Ekle', icon: const Icon(Simge.ekle), onPressed: _katilimciEkleyin),
                   ),
                   onSubmitted: (_) => _katilimciEkleyin(),
                 ),

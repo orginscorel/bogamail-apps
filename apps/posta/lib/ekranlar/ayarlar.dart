@@ -4,6 +4,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../veri/bildirim_izni.dart';
 import '../oturum.dart';
 import '../veri/bildirim.dart';
 import '../veri/durum.dart';
@@ -17,13 +18,17 @@ import 'ayarlar/bolumler.dart';
 import 'hesap/araclar.dart';
 import 'hesap/imza.dart';
 import 'hesap/otomatik_yanit.dart';
+import 'hesap/guvenlik.dart';
 import 'hesap/posta_yonetimi.dart';
 import 'hesap/profil.dart';
 import 'hesap/suzgecler.dart';
 import 'hesaplar.dart';
 
 class AyarlarEkrani extends StatefulWidget {
-  const AyarlarEkrani({super.key});
+  const AyarlarEkrani({super.key, this.kategori});
+
+  /// Açılışta gösterilecek kategori (masaüstü sağ bölme; telefonda o bölümün sayfası açılır).
+  final String? kategori;
   @override
   State<AyarlarEkrani> createState() => _AyarlarEkraniState();
 }
@@ -69,6 +74,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     for (final c in [_ad, _tatilKonu, _tatilMetin]) {
       c.dispose();
     }
+    _degisim.dispose();
     super.dispose();
   }
 
@@ -202,7 +208,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
   /// Bu genişlikten itibaren (masaüstü/tablet yatay) iki bölmeli düzen: solda kategoriler, sağda içerik.
   static const masaustuGenisligi = 820.0;
 
-  String _kategori = 'hesaplar';
+  late String _kategori = widget.kategori ?? 'hesaplar';
   bool _masaustuKipi = false;
 
   /// Tüm kategoriler: yerleşikler + lib/ekranlar/ayarlar/bolumler.dart'taki eklenenler (aynı id yerleşiğin yerine
@@ -212,23 +218,31 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     AyarBolumu y(String id, IconData ikon, String baslik, int sira, {bool Function(PostaAyarlari)? gorunur}) =>
         AyarBolumu(id: id, ikon: ikon, baslik: baslik, sira: sira, tamSayfa: true, gorunur: gorunur, olustur: (_) => _kategoriIcerigi(id));
     final yerlesik = [
-      y('hesaplar', Icons.manage_accounts_outlined, 'Hesaplar ve oturum', 10),
-      y('genel', Icons.tune_rounded, 'Genel', 20),
-      y('gorunum', Icons.palette_outlined, 'Görünüm', 30),
-      y('imza', Icons.draw_outlined, 'İmza', 40),
-      y('profil', Icons.badge_outlined, 'Profil', 50),
-      y('bildirimler', Icons.notifications_none_rounded, 'Bildirimler', 60),
-      y('guvenlik', Icons.verified_user_outlined, 'Güvenlik', 70),
-      y('suzgecler', Icons.filter_alt_outlined, 'Süzgeçler', 80),
-      y('otomatik', Icons.beach_access_outlined, 'Otomatik yanıt', 90),
-      y('kisiler', Icons.contacts_outlined, 'Kişiler', 100),
-      y('yonlendirme', Icons.forward_to_inbox_outlined, 'Yönlendirme', 110, gorunur: (a) => a.ozellik('forwarding')),
-      y('posta', Icons.inventory_2_outlined, 'Posta yönetimi', 120),
-      y('uygulama', Icons.system_update_alt_rounded, 'Uygulama ve güncelleme', 900),
+      // Profil ve hesap
+      y('profil', Simge.kimlik, 'Profil', 5),
+      y('guvenlik', Simge.guvenli, 'Güvenlik', 70),
+      y('cihazlar', Simge.cihazlar, 'Kayıtlı cihazlar ve oturumlar', 72),
+      y('hesaplar', Simge.hesapYonet, 'Hesaplar', 74),
+      y('depolama', Simge.sunucu, 'Depolama ve kota', 76),
+      // Posta
+      y('genel', Simge.ayarlarInce, 'Genel', 20),
+      y('imza', Simge.imza, 'İmza', 40),
+      y('suzgecler', Simge.suzgec, 'Süzgeçler', 80),
+      y('otomatik', Simge.tatil, 'Otomatik yanıt', 90),
+      y('kisiler', Simge.kisiler, 'Kişiler', 100),
+      y('yonlendirme', Simge.yonlendir, 'Yönlendirme', 110, gorunur: (a) => a.ozellik('forwarding')),
+      y('engelli', Simge.kalkan, 'Engellenen ve güvenli gönderenler', 112),
+      y('posta', Simge.postaYonetimi, 'Posta araçları', 120),
+      // Uygulama
+      y('gorunum', Simge.palet, 'Görünüm', 30),
+      y('bildirimler', Simge.bildirim, 'Bildirimler', 60),
+      y('uygulama', Simge.guncelle, 'Güncelleme ve sürüm', 900),
+      y('hakkinda', Simge.bilgi, 'Hakkında', 950),
     ];
     final ekIdler = ekAyarBolumleri.map((b) => b.id).toSet();
     final l = [...yerlesik.where((b) => !ekIdler.contains(b.id)), ...ekAyarBolumleri].where((b) => b.gorunur?.call(a) ?? true).toList();
-    l.sort((x, z) => x.sira.compareTo(z.sira));
+    // Önce grup (Profil ve hesap, Posta, Uygulama), sonra sıra.
+    l.sort((x, z) => x.etkinGrup.index != z.etkinGrup.index ? x.etkinGrup.index.compareTo(z.etkinGrup.index) : x.sira.compareTo(z.sira));
     return l;
   }
 
@@ -253,7 +267,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                child: Text(b.baslik, style: gosterim(24, agirlik: FontWeight.w700)),
+                child: Text(b.baslik, style: gosterim(24, agirlik: FontWeight.w600)),
               ),
               Expanded(child: govde),
             ],
@@ -276,7 +290,16 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 16),
             children: [
-              for (final AyarBolumu(:id, :ikon, baslik: ad) in l)
+              for (final (i, AyarBolumu(:id, :ikon, baslik: ad, :etkinGrup)) in l.indexed) ...[
+                if (i == 0 || l[i - 1].etkinGrup != etkinGrup)
+                  Padding(
+                    key: ValueKey('ayar-grup-${etkinGrup.name}'),
+                    padding: EdgeInsets.fromLTRB(12, i == 0 ? 8 : 18, 12, 6),
+                    child: Text(
+                      trBuyukHarf(etkinGrup.baslik),
+                      style: TextStyle(color: r.silik, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: .8),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 1),
                   child: Material(
@@ -288,12 +311,14 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                       selected: _kategori == id,
                       selectedColor: r.vurgu,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      leading: Icon(ikon, size: 21),
-                      title: Text(ad, style: TextStyle(fontSize: 14, fontWeight: _kategori == id ? FontWeight.w700 : FontWeight.w500)),
+                      visualDensity: VisualDensity.compact,
+                      leading: Icon(ikon, size: 20),
+                      title: Text(ad, style: TextStyle(fontSize: 13.5, fontWeight: _kategori == id ? FontWeight.w600 : FontWeight.w400)),
                       onTap: () => setState(() => _kategori = id),
                     ),
                   ),
                 ),
+              ],
               const SizedBox(height: 12),
               const SurumEtiketi(ortala: true),
             ],
@@ -321,6 +346,14 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
 
   /// Okunabilir genişlikte, kaydırılabilir içerik; geniş bölmede kartlar iki sütuna yayılır.
   Widget _icerik(String baslik, List<Widget> l) {
+    // Bildirimler bölümünde izin kapalıysa uyarı bandı en üstte.
+    if (_kategori == 'bildirimler') l = [const BildirimIzniBandi(kenar: EdgeInsets.only(bottom: 12)), ...l];
+    if (!_masaustuKipi) {
+      return Scaffold(
+        appBar: AppBar(title: Text(baslik)),
+        body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 40), children: l),
+      );
+    }
     return Scaffold(
       backgroundColor: context.r.zemin,
       body: Align(
@@ -330,7 +363,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
             children: [
-              Text(baslik, style: gosterim(24, agirlik: FontWeight.w700)),
+              Text(baslik, style: gosterim(24, agirlik: FontWeight.w600)),
               const SizedBox(height: 8),
               ...l,
             ],
@@ -364,20 +397,15 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     final a = _a!;
     final liste = _listeKartlari();
     return switch (id) {
-      'hesaplar' => _icerik('Hesaplar ve oturum', [
-        const SizedBox(height: 8),
-        _hesap(),
+      'hesaplar' => _icerik('Hesaplar', [
         const Baslik('Bu cihazdaki hesaplar'),
         const Kutu(padding: EdgeInsets.symmetric(vertical: 6), child: HesapSecici(gomulu: true)),
       ]),
-      'genel' => _icerik('Genel', [
-        const Baslik('Görünen ad'),
-        _profilKarti(),
-        const Baslik('Liste ve gönderim'),
-        _ikiSutun(liste.first, liste.last),
-        const Baslik('Hakkında'),
-        _hakkindaKarti(),
-      ]),
+      'depolama' => _icerik('Depolama ve kota', [const SizedBox(height: 8), _hesap()]),
+      'cihazlar' => _sayfa(const KayitliCihazlarEkrani()),
+      'engelli' => _sayfa(const GondericiListeleriEkrani()),
+      'hakkinda' => _icerik('Hakkında', [const SizedBox(height: 8), _hakkindaKarti(), const SizedBox(height: 16), const SurumEtiketi(ortala: true)]),
+      'genel' => _icerik('Genel', [const Baslik('Görünen ad'), _profilKarti(), const Baslik('Liste ve gönderim'), _ikiSutun(liste.first, liste.last)]),
       'gorunum' => _icerik('Görünüm', [const SizedBox(height: 8), _gorunumKarti()]),
       'imza' => _sayfa(const ImzaEkrani()),
       'profil' => _sayfa(const ImzaProfiliEkrani()),
@@ -395,10 +423,10 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Builder(
               builder: (context) => ListTile(
-                leading: const Icon(Icons.auto_mode_rounded),
+                leading: const Icon(Simge.otomatik),
                 title: const Text('Otomatik yanıt kuralları'),
                 subtitle: const Text('Mesai dışı, belirli günler, iç/dış gönderen'),
-                trailing: const Icon(Icons.chevron_right_rounded),
+                trailing: const Icon(Simge.ileri),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const OtomatikYanitKurallariEkrani())),
               ),
             ),
@@ -414,63 +442,99 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     };
   }
 
-  /// Telefonda satır içi kartı olan yerleşik bölümler.
-  static const _satirIciBolumler = {'genel', 'gorunum', 'bildirimler', 'otomatik'};
-
   Widget _bolumSatiri(AyarBolumu b) => ListTile(
     key: ValueKey('ayar-satir-${b.id}'),
-    leading: Icon(b.ikon, color: context.r.vurgu),
-    title: Text(b.baslik),
-    subtitle: b.aciklama.isEmpty ? null : Text(b.aciklama, maxLines: 2, overflow: TextOverflow.ellipsis),
-    trailing: const Icon(Icons.chevron_right_rounded),
-    onTap: () async {
-      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (c) => _bolumSayfasi(b, c, masaustu: false)));
-      if (mounted) _yukle();
-    },
+    leading: Icon(b.ikon, size: 20, color: context.r.soluk),
+    title: Text(b.baslik, style: const TextStyle(fontSize: 14)),
+    subtitle: b.aciklama.isEmpty ? null : Text(b.aciklama, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+    trailing: Icon(Simge.ileri, size: 18, color: context.r.silik),
+    visualDensity: VisualDensity.compact,
+    onTap: () => _bolumAc(b),
   );
 
+  /// Telefonda bölüm sayfası. Yerleşik sayfalar bu durumun alanlarını kullanır: değişince sayfa da yenilenir.
+  Future<void> _bolumAc(AyarBolumu b) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (c) => ListenableBuilder(listenable: _degisim, builder: (c, _) => _bolumSayfasi(b, c, masaustu: false)),
+      ),
+    );
+    if (mounted) _yukle();
+  }
+
+  final _degisim = ValueNotifier<int>(0);
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _degisim.value++;
+  }
+
+  /// Telefon: üstte profil kartı (dokununca Profil), altında gruplanmış kategoriler (Profil ve hesap, Posta,
+  /// Uygulama). Her kategori kendi sayfasında açılır; aynı ayar iki yerde görünmez.
   List<Widget> _bolumler() {
-    final a = _a!;
-    final gorunen = ekAyarBolumleri.where((b) => b.gorunur?.call(a) ?? true).toList();
-    final ek = {for (final b in gorunen.where((b) => _satirIciBolumler.contains(b.id))) b.id: b};
-    final diger = gorunen.where((b) => !_satirIciBolumler.contains(b.id)).toList();
+    final l = _tumBolumler;
+    final profil = l.where((b) => b.id == 'profil').firstOrNull;
     return [
-      const Baslik('Hesap'),
-      _hesap(),
-      const Baslik('Hesaplar ve oturum'),
-      const Kutu(padding: EdgeInsets.symmetric(vertical: 6), child: HesapSecici(gomulu: true)),
-      const Baslik('Uygulama'),
-      GuncellemeKarti(api: Uyg.api),
-      AraclarBolumleri(ayarlar: a),
-      // Eklenen bölüm yerleşik bir satır içi kartın yerine geçiyorsa (aynı id) kart gizlenir ve bölüm aynı yerde
-      // satır olarak açılır; "Diğer ayarlar"da yalnız yerleşik karşılığı olmayanlar kalır.
-      const Baslik('Profil ve imza'),
-      if (ek['genel'] case final b?)
-        Kutu(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(children: [_bolumSatiri(b), _imzaSatiri()]),
-        )
-      else
-        _profilKarti(),
-      const Baslik('Görünüm'),
-      if (ek['gorunum'] case final b?) Kutu(padding: const EdgeInsets.symmetric(vertical: 4), child: _bolumSatiri(b)) else _gorunumKarti(),
-      const Baslik('Bildirimler'),
-      if (ek['bildirimler'] case final b?) Kutu(padding: const EdgeInsets.symmetric(vertical: 4), child: _bolumSatiri(b)) else _bildirimler(),
-      if (!ek.containsKey('genel')) ...[const Baslik('Liste ve gönderim'), ..._listeKartlari()],
-      const Baslik('Otomatik yanıt'),
-      if (ek['otomatik'] case final b?) Kutu(padding: const EdgeInsets.symmetric(vertical: 4), child: _bolumSatiri(b)) else _tatilBolumu(),
-      if (diger.isNotEmpty) ...[
-        const Baslik('Diğer ayarlar'),
-        Kutu(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(children: [for (final b in diger) _bolumSatiri(b)]),
-        ),
-      ],
-      const Baslik('Hakkında'),
-      _hakkindaKarti(),
+      const SizedBox(height: 8),
+      _profilBasligi(profil),
+      const BildirimIzniBandi(kenar: EdgeInsets.only(top: 4, bottom: 4)),
+      for (final g in AyarGrubu.values)
+        if (l.any((b) => b.etkinGrup == g && b.id != 'profil')) ...[
+          Baslik(g.baslik, key: ValueKey('ayar-grup-${g.name}')),
+          Kutu(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(children: [for (final b in l.where((b) => b.etkinGrup == g && b.id != 'profil')) _bolumSatiri(b)]),
+          ),
+        ],
       const SizedBox(height: 16),
       const SurumEtiketi(ortala: true),
     ];
+  }
+
+  Widget _profilBasligi(AyarBolumu? profil) {
+    final r = context.r;
+    return ValueListenableBuilder<Map<String, dynamic>?>(
+      valueListenable: Uyg.kutu,
+      builder: (_, _, _) => Kutu(
+        padding: EdgeInsets.zero,
+        child: InkWell(
+          key: const ValueKey('profil-karti'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: profil == null ? null : () => _bolumAc(profil),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Avatar(Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad, boyut: 48, tohum: Uyg.adres),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: r.metin),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        Uyg.adres,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: r.soluk, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Simge.ileri, size: 18, color: r.silik),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _profilKarti() {
@@ -501,7 +565,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     return ListTile(
       key: const ValueKey('imza-ac'),
       contentPadding: EdgeInsets.zero,
-      leading: Icon(Icons.draw_outlined, color: r.vurgu),
+      leading: Icon(Simge.imza, color: r.vurgu),
       title: const Text('İmza'),
       subtitle: Text(
         a.imzaKilitli
@@ -510,7 +574,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: const Icon(Simge.ileri),
       onTap: () async {
         if (_masaustuKipi) return setState(() => _kategori = 'imza');
         await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ImzaEkrani()));
@@ -534,9 +598,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
             valueListenable: temaKipi,
             builder: (_, k, _) => SegmentedButton<ThemeMode>(
               segments: const [
-                ButtonSegment(value: ThemeMode.system, label: Text('Sistem'), icon: Icon(Icons.brightness_auto_outlined)),
-                ButtonSegment(value: ThemeMode.light, label: Text('Açık'), icon: Icon(Icons.light_mode_outlined)),
-                ButtonSegment(value: ThemeMode.dark, label: Text('Koyu'), icon: Icon(Icons.dark_mode_outlined)),
+                ButtonSegment(value: ThemeMode.system, label: Text('Sistem'), icon: Icon(Simge.sistemTema)),
+                ButtonSegment(value: ThemeMode.light, label: Text('Açık'), icon: Icon(Simge.acikTema)),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Koyu'), icon: Icon(Simge.koyuTema)),
               ],
               selected: {k},
               onSelectionChanged: (s) => Tercihler.temaAyarla(s.first),
@@ -609,13 +673,12 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       child: Column(
         children: [
           ListTile(
-            leading: const Icon(Icons.dns_outlined),
+            leading: const Icon(Simge.sunucu),
             title: const Text('Sunucu'),
             subtitle: Text(Uyg.api.sunucu),
             onTap: () => kopyala(Uyg.api.sunucu, mesaj: 'Sunucu adresi kopyalandı'),
           ),
-          if (a.sunucu.isNotEmpty)
-            ListTile(leading: const Icon(Icons.settings_ethernet_rounded), title: const Text('IMAP/SMTP sunucusu'), subtitle: Text(a.sunucu)),
+          if (a.sunucu.isNotEmpty) ListTile(leading: const Icon(Simge.kurulum), title: const Text('IMAP/SMTP sunucusu'), subtitle: Text(a.sunucu)),
         ],
       ),
     );
@@ -642,7 +705,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad, style: gosterim(17, agirlik: FontWeight.w700)),
+                        Text(Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad, style: gosterim(17, agirlik: FontWeight.w600)),
                         Text(Uyg.adres, style: TextStyle(color: r.silik, fontSize: 13)),
                       ],
                     ),
@@ -709,12 +772,12 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                           );
                           await _bildirimDurumu();
                         },
-                  icon: const Icon(Icons.notifications_active_outlined),
+                  icon: const Icon(Simge.hatirlatma),
                   label: const Text('Bildirimleri etkinleştir'),
                 ),
                 OutlinedButton.icon(
                   onPressed: !acik || cihaz == 0 ? null : () => islem(Posta.pushTest, tamam: 'Test bildirimi gönderildi'),
-                  icon: const Icon(Icons.send_outlined),
+                  icon: const Icon(Simge.gonder),
                   label: const Text('Test bildirimi gönder'),
                 ),
               ],
@@ -731,7 +794,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           children: [
             if (!_izin)
               ListTile(
-                leading: const Icon(Icons.notifications_off_outlined, color: Marka.kehribar),
+                leading: const Icon(Simge.bildirimKapali, color: Marka.kehribar),
                 title: const Text('Bildirim izni kapalı'),
                 subtitle: const Text('Yeni e-postalardan haberdar olmak için izin verin.'),
                 trailing: TextButton(
@@ -754,7 +817,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.notifications_outlined),
+              leading: const Icon(Simge.bildirimDolu),
               title: const Text('Test bildirimi göster'),
               onTap: () => Bildirim.goster(iletiId: '', baslik: 'BogaMail', metin: 'Bildirimler bu cihazda çalışıyor.'),
             ),
@@ -773,7 +836,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
               alignment: Alignment.centerLeft,
               child: OutlinedButton.icon(
                 onPressed: () => Bildirim.goster(iletiId: '', baslik: 'BogaMail', metin: 'Bildirimler bu bilgisayarda çalışıyor.'),
-                icon: const Icon(Icons.notifications_outlined),
+                icon: const Icon(Simge.bildirimDolu),
                 label: const Text('Test bildirimi göster'),
               ),
             ),
@@ -830,7 +893,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _tarihSec(true),
-                    icon: const Icon(Icons.event_outlined, size: 18),
+                    icon: const Icon(Simge.etkinlik, size: 18),
                     label: Text('Başlangıç: ${tarih(_tatilBas)}', overflow: TextOverflow.ellipsis),
                   ),
                 ),
@@ -838,7 +901,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _tarihSec(false),
-                    icon: const Icon(Icons.event_available_outlined, size: 18),
+                    icon: const Icon(Simge.etkinlikOnay, size: 18),
                     label: Text('Bitiş: ${tarih(_tatilBit)}', overflow: TextOverflow.ellipsis),
                   ),
                 ),

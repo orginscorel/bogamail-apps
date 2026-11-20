@@ -2,6 +2,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import '../veri/json.dart';
+import 'simgeler.dart';
 
 /// Sayfalı liste yükleyicisi: ilk sayfa, sonsuz kaydırma, yenileme. Hatalar [hata] alanında tutulur.
 class SayfaYukleyici<T> extends ChangeNotifier {
@@ -149,7 +150,7 @@ class SayfaliListe<T> extends StatefulWidget {
     required this.yukleyici,
     required this.oge,
     required this.bosMetin,
-    this.bosIkon = Icons.inbox_rounded,
+    this.bosIkon = Simgeler.inbox,
     this.ust,
     this.ayrac = true,
     this.dolgu = const EdgeInsets.fromLTRB(12, 4, 12, 24),
@@ -221,7 +222,7 @@ class _SayfaliListeState<T> extends State<SayfaliListe<T>> {
                     itemBuilder: (c, i) {
                       if (i == n) {
                         return Padding(
-                          padding: const EdgeInsets.all(18),
+                          padding: const EdgeInsets.all(16),
                           child: Center(
                             child: y.dahaVar
                                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))

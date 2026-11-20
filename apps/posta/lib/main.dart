@@ -6,14 +6,17 @@ import 'package:intl/intl.dart';
 
 import 'ekranlar/kabuk.dart';
 import 'oturum.dart';
+import 'veri/arkaplan.dart';
 import 'veri/tercihler.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   kimlikAyarla(Kimlik.posta);
   await initializeDateFormatting('tr_TR');
   Intl.defaultLocale = 'tr_TR';
   await Tercihler.yukle();
+  // Arka plan: Windows tepsisi / "--arkaplan" ile gizli başlama, Android hizmet iletişimi.
+  await Arkaplan.uygulamaAcildi(args);
   await Uyg.api.baslat();
   Uyg.api.oturumDustu = Uyg.oturumDustu;
   runApp(const PostaUygulamasi());

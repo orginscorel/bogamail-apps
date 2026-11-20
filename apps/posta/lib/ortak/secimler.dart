@@ -21,7 +21,7 @@ Future<Klasor?> klasorSec(BuildContext context, {String? haricId}) {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('Taşınacak klasör', style: gosterim(17, agirlik: FontWeight.w700)),
+              child: Text('Taşınacak klasör', style: gosterim(17, agirlik: FontWeight.w600)),
             ),
             if (hedefler.isEmpty)
               const Padding(padding: EdgeInsets.all(24), child: Text('Taşınabilecek başka klasör yok. Kenar menüsünden klasör oluşturabilirsiniz.')),
@@ -62,7 +62,7 @@ Future<({Set<String> ekle, Set<String> cikar})?> etiketSec(BuildContext context,
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text('Etiketler', style: gosterim(17, agirlik: FontWeight.w700)),
+                child: Text('Etiketler', style: gosterim(17, agirlik: FontWeight.w600)),
               ),
               if (etiketler.isEmpty)
                 const Padding(padding: EdgeInsets.all(24), child: Text('Henüz etiketiniz yok. Kenar menüsünden etiket oluşturabilirsiniz.')),
@@ -73,7 +73,7 @@ Future<({Set<String> ekle, Set<String> cikar})?> etiketSec(BuildContext context,
                     for (final e in etiketler)
                       CheckboxListTile(
                         value: secili.contains(e.id),
-                        secondary: Icon(Icons.label_rounded, color: etiketRengi(e.renk)),
+                        secondary: Icon(Simge.etiket, color: etiketRengi(e.renk)),
                         title: Text(e.ad),
                         onChanged: (v) => yenile(() => v == true ? secili.add(e.id) : secili.remove(e.id)),
                       ),
@@ -117,16 +117,16 @@ Future<DateTime?> ertelemeSec(BuildContext context) async {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Ertele', style: gosterim(17, agirlik: FontWeight.w700)),
+            child: Text('Ertele', style: gosterim(17, agirlik: FontWeight.w600)),
           ),
           for (final s in secenekler)
             ListTile(
-              leading: const Icon(Icons.schedule_rounded),
+              leading: const Icon(Simge.saat),
               title: Text(s.$1),
               trailing: Text(bicim.format(s.$2), style: TextStyle(color: context.r.silik, fontSize: 12.5)),
               onTap: () => Navigator.pop(c, s.$2),
             ),
-          ListTile(leading: const Icon(Icons.edit_calendar_rounded), title: const Text('Tarih ve saat seç…'), onTap: () => Navigator.pop(c, 'ozel')),
+          ListTile(leading: const Icon(Simge.takvimDuzenle), title: const Text('Tarih ve saat seç…'), onTap: () => Navigator.pop(c, 'ozel')),
           const SizedBox(height: 8),
         ],
       ),

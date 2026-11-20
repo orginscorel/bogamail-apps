@@ -114,7 +114,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
           benim ? '${k.gorunen} (Siz)' : k.gorunen,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontWeight: n > 0 ? FontWeight.w800 : FontWeight.w600, color: r.metin),
+          style: TextStyle(fontWeight: n > 0 ? FontWeight.w600 : FontWeight.w600, color: r.metin),
         ),
         subtitle: Text(
           [if (alt.isNotEmpty) alt else k.adres, if (!benim && v.metin.isNotEmpty) v.metin].join(' · '),
@@ -122,9 +122,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(color: r.soluk, fontSize: 12.5),
         ),
-        trailing: benim
-            ? TextButton(onPressed: _durumum, child: const Text('Durumum'))
-            : (n > 0 ? SayiHapi(n) : Icon(Icons.chat_bubble_outline_rounded, size: 20, color: r.silik)),
+        trailing: benim ? TextButton(onPressed: _durumum, child: const Text('Durumum')) : (n > 0 ? SayiHapi(n) : Icon(Simge.mesaj, size: 20, color: r.silik)),
         onTap: benim ? _durumum : () => _kisiyeYaz(k),
       );
     }
@@ -140,7 +138,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: Text(
               'İŞ ARKADAŞLARI · ${digerleri.length}',
-              style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: .8),
+              style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: .8),
             ),
           ),
           if (digerleri.isEmpty)
@@ -194,22 +192,22 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('Yeni sohbet', style: gosterim(17, agirlik: FontWeight.w700)),
+              child: Text('Yeni sohbet', style: gosterim(17, agirlik: FontWeight.w600)),
             ),
             ListTile(
-              leading: const Icon(Icons.person_outline_rounded),
+              leading: const Icon(Simge.kisi),
               title: const Text('Bir kişiyle'),
               subtitle: const Text('Birebir, yalnızca ikiniz'),
               onTap: () => Navigator.pop(c, 0),
             ),
             ListTile(
-              leading: const Icon(Icons.groups_outlined),
+              leading: const Icon(Simge.gruplar),
               title: const Text('Grup'),
               subtitle: const Text('Seçtiğiniz kişilerle özel grup'),
               onTap: () => Navigator.pop(c, 1),
             ),
             ListTile(
-              leading: const Icon(Icons.tag_rounded),
+              leading: const Icon(Simge.diyez),
               title: const Text('Kanallar'),
               subtitle: const Text('Kurumun açık kanallarına göz atın, katılın veya kanal oluşturun'),
               onTap: () => Navigator.pop(c, 2),
@@ -247,7 +245,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Durumum', style: gosterim(18, agirlik: FontWeight.w700)),
+                Text('Durumum', style: gosterim(18, agirlik: FontWeight.w600)),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
@@ -294,11 +292,11 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
   }
 
   static IconData _durumSimgesi(String d) => switch (d) {
-    'available' => Icons.check_circle_outline_rounded,
-    'busy' => Icons.do_not_disturb_on_outlined,
-    'meeting' => Icons.groups_outlined,
-    'out' => Icons.directions_walk_rounded,
-    _ => Icons.circle_outlined,
+    'available' => Simge.basari,
+    'busy' => Simge.rahatsizEtme,
+    'meeting' => Simge.gruplar,
+    'out' => Simge.yuru,
+    _ => Simge.nokta,
   };
 
   @override
@@ -310,7 +308,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
     final odalar = d.odalar.where((o) => _sekme.uygun(o) && (q.isEmpty || o.baslik(benId).toLowerCase().contains(q))).toList();
     Widget govde;
     if (d.kapali) {
-      govde = Durum.bos(d.hata ?? 'Kurum içi mesajlaşma paketinizde kapalı.', ikon: Icons.speaker_notes_off_outlined);
+      govde = Durum.bos(d.hata ?? 'Kurum içi mesajlaşma paketinizde kapalı.', ikon: Simge.notYok);
     } else if (!d.yuklendi) {
       govde = const Durum.yukleniyor();
     } else if (d.hata != null && d.odalar.isEmpty) {
@@ -334,7 +332,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
                             SohbetSekmesi.kanallar => 'Katıldığınız kanal yok.',
                             SohbetSekmesi.tumu => 'Henüz sohbet yok.',
                           },
-                    ikon: Icons.forum_outlined,
+                    ikon: Simge.sohbet,
                   ),
                 ],
               )
@@ -356,7 +354,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
                 decoration: InputDecoration(
                   hintText: _sekme == SohbetSekmesi.kisiler ? 'Kişilerde ara' : 'Sohbetlerde ara',
                   isDense: true,
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  prefixIcon: const Icon(Simge.ara, size: 20),
                 ),
                 onChanged: (_) => setState(() {}),
               )
@@ -369,7 +367,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
         actions: [
           IconButton(
             tooltip: _aramaAcik ? 'Aramayı kapat' : 'Sohbetlerde ara',
-            icon: Icon(_aramaAcik ? Icons.close_rounded : Icons.search_rounded),
+            icon: Icon(_aramaAcik ? Simge.kapat : Simge.ara),
             onPressed: () => setState(() {
               _aramaAcik = !_aramaAcik;
               if (!_aramaAcik) _ara.clear();
@@ -378,13 +376,13 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
           if (!d.kapali) ...[
             IconButton(
               tooltip: 'Kanallar',
-              icon: const Icon(Icons.tag_rounded),
+              icon: const Icon(Simge.diyez),
               onPressed: () async {
                 final id = await KanallarEkrani.ac(context);
                 if (id != null && mounted) _ac(id);
               },
             ),
-            IconButton(tooltip: 'Durumum', icon: const Icon(Icons.emoji_people_rounded), onPressed: _durumum),
+            IconButton(tooltip: 'Durumum', icon: const Icon(Simge.katilimci), onPressed: _durumum),
           ],
         ],
         bottom: d.kapali
@@ -419,7 +417,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
       ),
       floatingActionButton: d.kapali
           ? null
-          : FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Icons.add_comment_rounded), label: const Text('Yeni sohbet')),
+          : FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Simge.yorumEkle), label: const Text('Yeni sohbet')),
       body: govde,
     );
   }
@@ -460,13 +458,13 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
                             o.baslik(benId),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 15, fontWeight: okunmamis ? FontWeight.w800 : FontWeight.w600, color: r.metin),
+                            style: TextStyle(fontSize: 15, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w600, color: r.metin),
                           ),
                         ),
                         if (zaman != null)
                           Text(
                             _zaman(zaman),
-                            style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w800 : FontWeight.w500),
+                            style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w500),
                           ),
                       ],
                     ),
