@@ -10,6 +10,7 @@ import 'veri/tercihler.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  kimlikAyarla(Kimlik.yonetim);
   await initializeDateFormatting('tr_TR');
   Intl.defaultLocale = 'tr_TR';
   await temaYukle();
@@ -36,7 +37,7 @@ class YonetimUygulamasi extends StatelessWidget {
         locale: const Locale('tr', 'TR'),
         supportedLocales: const [Locale('tr', 'TR')],
         localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
-        home: AcilisEkrani(alt: 'YÖNETİM', isaret: AcilisIsaret.yonetim, hazirla: () async => await Uyg.yukle() ? const Kabuk() : Uyg.girisEkrani()),
+        home: AcilisEkrani(alt: 'YÖNETİM', isaret: AcilisIsaret.yonetim, api: Uyg.api, hazirla: () async => await Uyg.yukle() ? const Kabuk() : Uyg.girisEkrani()),
       ),
     );
   }

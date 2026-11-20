@@ -5,33 +5,46 @@ import 'package:flutter/services.dart';
 const _font = 'packages/boga_ortak/Poppins';
 const _gosterimFont = 'packages/boga_ortak/Jakarta';
 
-/// Bogahost görsel kimliği: marka moru #5443D2, indigo, gök mavisi; gece laciverti açılış zemini.
+/// Hangi uygulama: renk kimliği buna göre ayrılır (posta → Bogahost indigosu, yönetim → grafit + yeşil).
+enum Kimlik { posta, yonetim }
+
+/// Uygulama açılırken bir kez ayarlanır ([kimlikAyarla]).
+Kimlik kimlik = Kimlik.posta;
+void kimlikAyarla(Kimlik k) => kimlik = k;
+
+/// Bogahost görsel kimliği (bogahost.com): indigo #5443D2, grafit #1D2233, yeşil #00CC69, lavanta zemin #EFEDFB.
 class Marka {
   static const mor = Color(0xFF5443D2);
-  static const morAcik = Color(0xFF6D5EF2);
+  static const morAcik = Color(0xFF7B6DF0);
+  static const morKoyu = Color(0xFF3B2DA8);
   static const indigo = Color(0xFF4F46E5);
   static const mavi = Color(0xFF2563EB);
   static const gok = Color(0xFF38BDF8);
-  static const lacivert0 = Color(0xFF0B0A24);
-  static const lacivert1 = Color(0xFF1A1760);
-  static const lacivert2 = Color(0xFF2E3A9E);
+  static const grafit = Color(0xFF1D2233);
+  static const grafitAcik = Color(0xFF2C3350);
+  static const yesil = Color(0xFF00CC69);
+  static const yesilKoyu = Color(0xFF00A656);
+  static const lavanta0 = Color(0xFFEFEDFB);
   static const zumrut = Color(0xFF10B981);
   static const lavanta = Color(0xFFA78BFA);
   static const gul = Color(0xFFE11D48);
   static const kehribar = Color(0xFFF59E0B);
 
-  static const grad = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [morAcik, mor, mavi],
-    stops: [0, .5, 1],
-  );
-  static const gece = LinearGradient(
-    begin: Alignment(-0.6, -1),
-    end: Alignment(0.6, 1),
-    colors: [lacivert0, lacivert1, lacivert2],
-    stops: [0, .6, 1],
-  );
+  /// Eski adlar (geriye uyum).
+  static const lacivert0 = grafit;
+  static const lacivert1 = grafitAcik;
+  static const lacivert2 = morKoyu;
+
+  /// Uygulamanın ana vurgu rengi.
+  static Color get aksan => kimlik == Kimlik.posta ? mor : yesil;
+
+  /// Uygulamanın imza degradesi (simge, açılış, başlık şeritleri).
+  static LinearGradient get grad => kimlik == Kimlik.posta
+      ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [morAcik, mor, morKoyu], stops: [0, .55, 1])
+      : const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [grafitAcik, grafit, Color(0xFF121522)], stops: [0, .55, 1]);
+
+  /// Giriş ekranı üst şeridi.
+  static LinearGradient get gece => grad;
 }
 
 /// Açık/koyu temaya göre yüzey renkleri: `context.r.kart` gibi.
@@ -46,40 +59,83 @@ class Renkler {
     required this.silik,
     required this.birincil,
     required this.birincilYumusak,
+    required this.vurgu,
+    required this.vurguYumusak,
     required this.koyu,
   });
 
-  final Color zemin, kart, kenar, ic, metin, soluk, silik, birincil, birincilYumusak;
+  /// [birincil]: düğmeler ve bağlantılar. [vurgu]: seçili gezinme, okunmamış işaretleri, canlı göstergeler.
+  final Color zemin, kart, kenar, ic, metin, soluk, silik, birincil, birincilYumusak, vurgu, vurguYumusak;
   final bool koyu;
 
-  static const acik = Renkler(
-    zemin: Color(0xFFF5F6FB),
+  static const _postaAcik = Renkler(
+    zemin: Color(0xFFF6F7FB),
     kart: Colors.white,
-    kenar: Color(0xFFE6E8F2),
-    ic: Color(0xFFEEF0F8),
-    metin: Color(0xFF0F172A),
-    soluk: Color(0xFF475569),
-    silik: Color(0xFF64748B),
+    kenar: Color(0xFFE5E7F0),
+    ic: Color(0xFFF0F1F7),
+    metin: Color(0xFF111427),
+    soluk: Color(0xFF4A5068),
+    silik: Color(0xFF6B7189),
     birincil: Marka.mor,
-    birincilYumusak: Color(0xFFEEECFC),
+    birincilYumusak: Marka.lavanta0,
+    vurgu: Marka.mor,
+    vurguYumusak: Marka.lavanta0,
     koyu: false,
   );
-  static const karanlik = Renkler(
-    zemin: Color(0xFF0B0A1F),
-    kart: Color(0xFF15142E),
-    kenar: Color(0xFF26244A),
-    ic: Color(0xFF1E1C44),
-    metin: Color(0xFFF1F5F9),
-    soluk: Color(0xFFB4BCD0),
-    silik: Color(0xFF8B93AB),
+  static const _yonetimAcik = Renkler(
+    zemin: Color(0xFFF4F6F8),
+    kart: Colors.white,
+    kenar: Color(0xFFE2E6EC),
+    ic: Color(0xFFEEF1F4),
+    metin: Color(0xFF111827),
+    soluk: Color(0xFF475166),
+    silik: Color(0xFF687287),
+    birincil: Marka.grafit,
+    birincilYumusak: Color(0xFFE6E9F0),
+    vurgu: Marka.yesilKoyu,
+    vurguYumusak: Color(0xFFDDF7EA),
+    koyu: false,
+  );
+  static const _postaKoyu = Renkler(
+    zemin: Color(0xFF0E0F1A),
+    kart: Color(0xFF171827),
+    kenar: Color(0xFF272A3D),
+    ic: Color(0xFF1F2133),
+    metin: Color(0xFFF1F3F9),
+    soluk: Color(0xFFB5BACB),
+    silik: Color(0xFF8C92A8),
     birincil: Color(0xFFA59CF7),
-    birincilYumusak: Color(0x425443D2),
+    birincilYumusak: Color(0x405443D2),
+    vurgu: Color(0xFFA59CF7),
+    vurguYumusak: Color(0x405443D2),
+    koyu: true,
+  );
+  static const _yonetimKoyu = Renkler(
+    zemin: Color(0xFF0D1016),
+    kart: Color(0xFF161A24),
+    kenar: Color(0xFF262C3A),
+    ic: Color(0xFF1D2230),
+    metin: Color(0xFFF1F4F8),
+    soluk: Color(0xFFB3BAC8),
+    silik: Color(0xFF8A92A3),
+    birincil: Color(0xFF3DDC91),
+    birincilYumusak: Color(0x3300CC69),
+    vurgu: Color(0xFF3DDC91),
+    vurguYumusak: Color(0x3300CC69),
     koyu: true,
   );
 
+  static Renkler get acik => kimlik == Kimlik.posta ? _postaAcik : _yonetimAcik;
+  static Renkler get karanlik => kimlik == Kimlik.posta ? _postaKoyu : _yonetimKoyu;
+
   List<BoxShadow> get golge => koyu
-      ? const [BoxShadow(color: Color(0xB3000000), blurRadius: 28, offset: Offset(0, 10), spreadRadius: -16)]
-      : const [BoxShadow(color: Color(0x401C1863), blurRadius: 28, offset: Offset(0, 10), spreadRadius: -18)];
+      ? const [BoxShadow(color: Color(0x99000000), blurRadius: 24, offset: Offset(0, 8), spreadRadius: -14)]
+      : const [BoxShadow(color: Color(0x1A111427), blurRadius: 24, offset: Offset(0, 8), spreadRadius: -12)];
+
+  /// Hafif kart gölgesi (listeler, tablolar).
+  List<BoxShadow> get hafifGolge => koyu
+      ? const []
+      : const [BoxShadow(color: Color(0x0F111427), blurRadius: 10, offset: Offset(0, 2), spreadRadius: -2)];
 }
 
 extension RenkX on BuildContext {
@@ -88,7 +144,8 @@ extension RenkX on BuildContext {
 }
 
 /// Kullanıcının tema seçimi (sistem / açık / koyu).
-final temaKipi = ValueNotifier<ThemeMode>(ThemeMode.system);
+/// Varsayılan açık tema; kullanıcı Ayarlar'dan sistem/koyu seçebilir.
+final temaKipi = ValueNotifier<ThemeMode>(ThemeMode.light);
 
 /// Büyük rakam/başlık yazı stili (Plus Jakarta).
 TextStyle gosterim(double boyut, {FontWeight agirlik = FontWeight.w800, Color? renk, double? satir}) => TextStyle(
@@ -109,11 +166,13 @@ ThemeData temaKur(Brightness parlaklik) {
     brightness: parlaklik,
     fontFamily: _font,
     scaffoldBackgroundColor: r.zemin,
-    colorScheme: ColorScheme.fromSeed(seedColor: Marka.mor, brightness: parlaklik).copyWith(
-      primary: r.koyu ? Marka.morAcik : Marka.mor,
+    colorScheme: ColorScheme.fromSeed(seedColor: Marka.aksan, brightness: parlaklik).copyWith(
+      primary: r.birincil,
+      onPrimary: r.koyu && kimlik == Kimlik.yonetim ? const Color(0xFF06140C) : Colors.white,
+      secondary: r.vurgu,
       surface: r.kart,
     ),
-    splashFactory: InkSparkle.splashFactory,
+    splashFactory: InkRipple.splashFactory,
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.android: CupertinoPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
@@ -137,7 +196,7 @@ ThemeData temaKur(Brightness parlaklik) {
       color: r.kart,
       elevation: 0,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: r.kenar)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: r.kenar)),
     ),
     dividerTheme: DividerThemeData(color: r.kenar, space: 1, thickness: 1),
     inputDecorationTheme: InputDecorationTheme(
@@ -189,18 +248,23 @@ ThemeData temaKur(Brightness parlaklik) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: r.kart,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: r.birincilYumusak,
-      labelTextStyle: WidgetStatePropertyAll(TextStyle(fontFamily: _font, fontSize: 11.5, color: r.soluk, fontWeight: FontWeight.w500)),
+      indicatorColor: r.vurguYumusak,
+      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(color: s.contains(WidgetState.selected) ? r.vurgu : r.soluk)),
+      labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(fontFamily: _font, fontSize: 11.5, color: s.contains(WidgetState.selected) ? r.metin : r.soluk, fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500)),
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: r.kart,
-      indicatorColor: r.birincilYumusak,
+      indicatorColor: r.vurguYumusak,
+      selectedIconTheme: IconThemeData(color: r.vurgu),
+      unselectedIconTheme: IconThemeData(color: r.soluk),
+      selectedLabelTextStyle: TextStyle(fontFamily: _font, fontSize: 12, color: r.metin, fontWeight: FontWeight.w700),
+      unselectedLabelTextStyle: TextStyle(fontFamily: _font, fontSize: 12, color: r.soluk, fontWeight: FontWeight.w500),
     ),
     drawerTheme: DrawerThemeData(backgroundColor: r.kart, surfaceTintColor: Colors.transparent),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: Marka.mor,
-      foregroundColor: Colors.white,
-      shape: StadiumBorder(),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: r.birincil,
+      foregroundColor: r.koyu && kimlik == Kimlik.yonetim ? const Color(0xFF06140C) : Colors.white,
+      shape: const StadiumBorder(),
     ),
   );
 }

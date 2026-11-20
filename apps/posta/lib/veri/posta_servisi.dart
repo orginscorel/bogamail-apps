@@ -83,19 +83,29 @@ class Posta {
 
   // ---- liste ----
 
-  /// [klasorId] verilirse klasör listesi; yoksa görünüm (view=all|starred|important|unread) veya etiket.
+  /// [klasorId] verilirse klasör listesi; yoksa görünüm (view=all|starred|important|unread|attachments|followup) veya etiket.
+  /// [filtre]: unread | flagged | attachments | important. [alan]: from | to | subject (aramayı bu alanla sınırlar).
+  /// [baslangic]/[bitis]: YYYY-AA-GG (since/before).
   static Future<Sayfa> liste({
     String? klasorId,
     String gorunum = 'all',
     String? etiketId,
     int sayfa = 1,
     int boyut = 50,
-    bool okunmamis = false,
+    String? filtre,
     String? arama,
+    String? alan,
+    String? baslangic,
+    String? bitis,
   }) async {
     final q = <String, dynamic>{'page': sayfa, 'page_size': boyut, 'sort': 'date', 'order': 'desc'};
-    if (okunmamis) q['filter'] = 'unread';
-    if (arama != null && arama.trim().isNotEmpty) q['q'] = arama.trim();
+    if (filtre != null) q['filter'] = filtre;
+    if (arama != null && arama.trim().isNotEmpty) {
+      q['q'] = arama.trim();
+      if (alan != null) q['in'] = alan;
+    }
+    if (baslangic != null) q['since'] = baslangic;
+    if (bitis != null) q['before'] = bitis;
     final dynamic v;
     if (klasorId != null) {
       v = await _api.get('/api/v1/mail/folders/$klasorId/messages', q: q);

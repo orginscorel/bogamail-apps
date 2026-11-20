@@ -7,6 +7,18 @@ import '../veri/json.dart';
 class SayfaYukleyici<T> extends ChangeNotifier {
   SayfaYukleyici(this._getir, {this.sayfaBoyu = 25});
 
+  /// Sayfalamayı desteklemeyen (tüm listeyi döndüren) uç noktalar için: listeyi bir kez alır, yerelde sayfalar.
+  /// [yenile] ve 1. sayfa yeniden ister; diğer sayfalar bellekteki listeden gelir.
+  static SayfaYukleyici<T> yerel<T>(Future<List<T>> Function() getir, {int sayfaBoyu = 50}) {
+    List<T>? hepsi;
+    return SayfaYukleyici<T>((s, b) async {
+      if (s == 1 || hepsi == null) hepsi = await getir();
+      final l = hepsi!;
+      final a = ((s - 1) * b).clamp(0, l.length), z = (s * b).clamp(0, l.length);
+      return Sayfa(l.sublist(a, z), l.length);
+    }, sayfaBoyu: sayfaBoyu);
+  }
+
   final Future<Sayfa<T>> Function(int sayfa, int boy) _getir;
   final int sayfaBoyu;
 
@@ -19,7 +31,43 @@ class SayfaYukleyici<T> extends ChangeNotifier {
   int _nesil = 0;
   bool _kapandi = false;
 
-  bool get dahaVar => ogeler.length < toplam;
+  bool get dahaVar => _ilk + ogeler.length < toplam;
+
+  /// Yüklü son sayfa (1'den başlar). Tablo görünümü sayfa sayfa gezinir ([sayfaGit]), liste görünümü ekler ([devam]).
+  int get sayfa => _sayfa;
+  int get sayfaSayisi => toplam <= 0 ? 1 : ((toplam + sayfaBoyu - 1) ~/ sayfaBoyu);
+
+  /// Tablo kipinde gösterilen ilk kaydın sırası (0'dan).
+  int _ilk = 0;
+  int get ilkSira => _ilk;
+
+  /// Belirli bir sayfayı yükler ve listeyi onunla değiştirir (tablo sayfalaması).
+  Future<void> sayfaGit(int n) async {
+    if (n < 1) n = 1;
+    final g = ++_nesil;
+    yukleniyor = true;
+    hata = null;
+    _bildir();
+    try {
+      final s = await _getir(n, sayfaBoyu);
+      if (g != _nesil) return;
+      ogeler
+        ..clear()
+        ..addAll(s.ogeler);
+      toplam = s.toplam;
+      _sayfa = n;
+      _ilk = (n - 1) * sayfaBoyu;
+    } catch (e) {
+      if (g != _nesil) return;
+      hata = hataMetni(e);
+    } finally {
+      if (g == _nesil) {
+        yukleniyor = false;
+        ilkYukleme = false;
+        _bildir();
+      }
+    }
+  }
 
   Future<void> yenile() async {
     final n = ++_nesil;
@@ -34,6 +82,7 @@ class SayfaYukleyici<T> extends ChangeNotifier {
         ..addAll(s.ogeler);
       toplam = s.toplam;
       _sayfa = 1;
+      _ilk = 0;
     } catch (e) {
       if (n != _nesil) return;
       hata = hataMetni(e);

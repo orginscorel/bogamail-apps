@@ -7,6 +7,8 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import 'kutu_formlari.dart';
+import 'kutu_islemleri.dart';
+import 'taklit_islemleri.dart';
 
 /// Posta kutusu ayrıntısı: kota, durum, son giriş, yönlendirme, güvenlik, takma adlar ve işlemler.
 class KutuDetay extends StatefulWidget {
@@ -23,6 +25,7 @@ class _KutuDetayState extends State<KutuDetay> {
   Yonlendirme? _yon;
   Map<String, dynamic>? _guvenlik;
   List<TakmaAd>? _takmaAdlar;
+  List<Map<String, dynamic>>? _tasimalar;
   String? _hata;
 
   bool get _yonetir => Uyg.yetki('mailboxes.manage');
@@ -42,6 +45,7 @@ class _KutuDetayState extends State<KutuDetay> {
         dene(Uyg.api.get('/api/v1/mailboxes/$id/forwarding')),
         dene(Uyg.api.get('/api/v1/mailboxes/$id/security')),
         dene(Uyg.api.get('/api/v1/aliases', q: {'q': _k.adresAscii, 'domain_id': _k.alanId})),
+        dene(Uyg.api.get('/api/v1/migrations', q: {'mailbox_id': id, 'page_size': '5'})),
       ]);
       if (!mounted) return;
       final yeni = PostaKutusu.coz(harita(s[0]));
@@ -54,6 +58,7 @@ class _KutuDetayState extends State<KutuDetay> {
         _takmaAdlar = s[3] == null
             ? null
             : haritalar(harita(s[3])['items']).map(TakmaAd.coz).where((t) => t.hedefler.any((h) => h.toLowerCase() == adres)).toList();
+        _tasimalar = s[4] == null ? null : haritalar(harita(s[4])['items']);
       });
     } catch (e) {
       if (mounted) setState(() => _hata = hataMetni(e));
@@ -112,6 +117,70 @@ class _KutuDetayState extends State<KutuDetay> {
     if (y == null) return;
     final yeni = await yonlendirmeDuzenle(context, _k, y);
     if (yeni != null && mounted) setState(() => _yon = yeni);
+  }
+
+  Widget _tasimaSatiri(Map<String, dynamic> j) {
+    final r = context.r;
+    final durum = metin(j['status']);
+    final top = tamsayi(j['messages_total']), bitti = tamsayi(j['messages_done']);
+    final id = metin(j['id']);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('${metin(j['source_username'])} @ ${metin(j['source_host'])}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+              ),
+              Rozet(tasimaDurumlari[durum] ?? durum, renk: switch (durum) {
+                'done' => Marka.zumrut,
+                'failed' || 'cancelled' => Marka.gul,
+                _ => Marka.kehribar,
+              }),
+              if (_yonetir && const {'queued', 'running', 'paused'}.contains(durum) && !mantik(j['cancel_requested']))
+                IconButton(
+                  tooltip: 'İptal et',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.stop_circle_outlined, size: 20),
+                  onPressed: () async {
+                    if (await islem(() => Uyg.api.post('/api/v1/migrations/$id/cancel'), tamam: 'Taşıma iptal edildi') != null) _yukle();
+                  },
+                ),
+              if (_yonetir && const {'failed', 'paused', 'cancelled'}.contains(durum))
+                IconButton(
+                  tooltip: 'Sürdür',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
+                  onPressed: () async {
+                    if (await islem(() => Uyg.api.post('/api/v1/migrations/$id/resume'), tamam: 'Taşıma yeniden sıraya alındı') != null) _yukle();
+                  },
+                ),
+            ],
+          ),
+          if (top > 0) ...[
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(value: (bitti / top).clamp(0, 1).toDouble(), minHeight: 6, backgroundColor: r.ic, color: r.vurgu),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            [
+              '${sayiYaz(bitti)} / ${sayiYaz(top)} ileti',
+              if (tamsayi(j['messages_failed']) > 0) '${sayiYaz(tamsayi(j['messages_failed']))} hata',
+              goreliZaman(tarihOku(j['created_at'])),
+              ?metinYa(j['last_error']),
+            ].join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: r.silik, fontSize: 12),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -187,6 +256,34 @@ class _KutuDetayState extends State<KutuDetay> {
                         : (mantik(mfa['required']) ? 'Kapalı (politika zorunlu kılıyor)' : 'Kapalı'),
                   ),
                   if (uygSifre != null) BilgiSatiri('Uygulama şifreleri', uygSifre == 0 ? 'Yok' : '$uygSifre etkin şifre'),
+                  for (final a in haritalar(_guvenlik!['app_passwords']))
+                    BilgiSatiri(
+                      '  · ${metin(a['name'], 'şifre')}',
+                      a['last_used_at'] == null
+                          ? 'Hiç kullanılmadı'
+                          : 'Son kullanım ${goreliZaman(tarihOku(a['last_used_at']))}${metinYa(a['last_used_proto']) != null ? ' (${a['last_used_proto']})' : ''}',
+                      sag: _yonetir
+                          ? IconButton(
+                              tooltip: 'Sil',
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Marka.gul),
+                              onPressed: () async {
+                                if (await uygulamaSifresiSil(context, k, a)) _yukle();
+                              },
+                            )
+                          : null,
+                    ),
+                  if (_yonetir && mantik(mfa['enabled']))
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          if (await kutuMfaSifirla(context, k)) _yukle();
+                        },
+                        icon: const Icon(Icons.phonelink_erase_rounded, size: 18),
+                        label: const Text('İki adımlı doğrulamayı sıfırla'),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -229,11 +326,40 @@ class _KutuDetayState extends State<KutuDetay> {
               ),
             ),
           ],
+          if (_tasimalar != null && _tasimalar!.isNotEmpty) ...[
+            const Baslik('IMAP taşımaları'),
+            Kutu(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Column(children: [for (final j in _tasimalar!) _tasimaSatiri(j)]),
+            ),
+          ],
           if (_yonetir) ...[
             const Baslik('İşlemler'),
+            EylemSatiri(
+              ikon: Icons.mark_email_unread_outlined,
+              baslik: 'Posta kutusuna gir',
+              ipucu: k.aktif ? 'Webmail\'i şifresiz, kayıt altında aç (30 dk)' : 'Askıdaki kutu açılamaz',
+              onTap: k.aktif ? () => postaKutusunaGir(context, id: k.id, adres: k.adres) : null,
+            ),
+            const SizedBox(height: 8),
             EylemSatiri(ikon: Icons.edit_rounded, baslik: 'Düzenle', ipucu: 'Görünen ad, kota, gönderim sınırı', onTap: _duzenle),
             const SizedBox(height: 8),
             EylemSatiri(ikon: Icons.key_rounded, baslik: 'Şifreyi sıfırla', ipucu: 'Güçlü şifre üret, oturumları kapat', onTap: () => sifreSifirla(context, k)),
+            const SizedBox(height: 8),
+            EylemSatiri(ikon: Icons.straighten_rounded, baslik: 'Boyut limitleri', ipucu: 'İleti, ek ve imza boyutu', onTap: () => boyutLimitleri(context, k)),
+            const SizedBox(height: 8),
+            EylemSatiri(
+              ikon: Icons.move_down_rounded,
+              baslik: 'IMAP ile taşı',
+              ipucu: 'Eski sunucudan postaları aktar',
+              onTap: () async {
+                if (await imapTasima(context, k)) _yukle();
+              },
+            ),
+            const SizedBox(height: 8),
+            EylemSatiri(ikon: Icons.history_rounded, baslik: 'Yedekten geri yükle', ipucu: 'Günlük yedekten silinen postaları geri getir', onTap: () => yedektenGeriYukle(context, k)),
+            const SizedBox(height: 8),
+            EylemSatiri(ikon: Icons.download_rounded, baslik: 'Dışa aktar', ipucu: 'Tüm postalar (.zip / EML)', onTap: () => kutuyuDisariAktar(context, k)),
             const SizedBox(height: 8),
             EylemSatiri(
               ikon: k.aktif ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,

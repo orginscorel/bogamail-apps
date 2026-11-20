@@ -46,3 +46,5 @@ Name: "{autodesktop}\{#Ad}"; Filename: "{app}\{#Exe}"; Tasks: masaustu
 
 [Run]
 Filename: "{app}\{#Exe}"; Description: "{#Ad} uygulamasını başlat"; Flags: nowait postinstall skipifsilent
+; Uygulama içinden sessiz güncellemede kurulum bitince yeniden aç.
+Filename: "{app}\{#Exe}"; Flags: nowait; Check: WizardSilent

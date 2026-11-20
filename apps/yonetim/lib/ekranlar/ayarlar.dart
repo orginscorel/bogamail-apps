@@ -8,6 +8,8 @@ import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import '../veri/tercihler.dart';
+import 'hesap_avatar.dart';
+import 'hesap_mfa.dart';
 import 'kabuk.dart' show cikisOnayi;
 
 /// Ayarlar ve profil: kullanıcı bilgisi, tema, bildirimler (APNs), açık oturumlar, sunucu ve sürüm, çıkış.
@@ -145,7 +147,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     final ben = Uyg.ben.value ?? const {};
     final taklit = ben['impersonation'];
     return Scaffold(
-      appBar: AppBar(title: const Text('Ayarlar')),
+      appBar: AppBar(title: const Text('Ayarlar ve Profil')),
       body: RefreshIndicator.adaptive(
         onRefresh: _yukle,
         child: Center(
@@ -157,7 +159,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                 Kutu(
                   child: Row(
                     children: [
-                      Avatar(Uyg.ad.isEmpty ? Uyg.adres : Uyg.ad, tohum: Uyg.adres, boyut: 56),
+                      const ProfilResmi(boyut: 56),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -186,15 +188,54 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                     ],
                   ),
                 ),
-                if (_mfa == false)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Bant(
-                      'Hesabınızı korumak için web panelindeki Hesabım sayfasından iki adımlı doğrulamayı açın.',
-                      renk: Marka.kehribar,
-                      ikon: Icons.shield_outlined,
+                if (_mfa != null && taklit is! Map) ...[
+                  const Baslik('İki adımlı doğrulama'),
+                  Kutu(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          _mfa!
+                              ? 'Girişte şifrenize ek olarak doğrulayıcı uygulamadaki kod istenir.'
+                              : 'Hesabınızı korumak için doğrulayıcı uygulamayla iki adımlı doğrulamayı açın.',
+                          style: TextStyle(color: r.soluk, fontSize: 13),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (!_mfa!)
+                              FilledButton.icon(
+                                onPressed: () async {
+                                  if (await mfaAc(context)) _mfaYukle();
+                                },
+                                icon: const Icon(Icons.verified_user_rounded, size: 18),
+                                label: const Text('İki adımlı doğrulamayı aç'),
+                              )
+                            else ...[
+                              OutlinedButton.icon(
+                                onPressed: () => mfaKodlariYenile(context),
+                                icon: const Icon(Icons.key_rounded, size: 18),
+                                label: const Text('Yeni kurtarma kodları'),
+                              ),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(foregroundColor: Marka.gul),
+                                onPressed: () async {
+                                  if (await mfaKapat(context)) _mfaYukle();
+                                },
+                                icon: const Icon(Icons.gpp_bad_outlined, size: 18),
+                                label: const Text('Kapat'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ),
                   ),
+                ],
+                const Baslik('Uygulama sürümü ve güncelleme'),
+                GuncellemeKarti(api: Uyg.api),
                 BilgiSatiriListesi(baslik: 'Panel', satirlar: [('Panel', Uyg.panelAdi), if (Uyg.panelAlt.isNotEmpty) ('Kapsam', Uyg.panelAlt)]),
                 const Baslik('Görünüm'),
                 Kutu(
@@ -239,6 +280,8 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                const SurumEtiketi(ortala: true),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
@@ -346,7 +389,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Hangi alarmların bildirim göndereceği web panelindeki İzleme › Alarm kuralları sayfasından (Panel kanalı) ayarlanır.',
+            'Hangi alarmların bildirim göndereceği Uyarılar › Kurallar sekmesinden (Panel kanalı) ayarlanır.',
             style: TextStyle(color: r.silik, fontSize: 12),
           ),
         ],

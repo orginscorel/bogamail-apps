@@ -7,7 +7,8 @@ const _temaAnahtari = 'yonetim.tema';
 ThemeMode temaCoz(String? s) => switch (s) {
   'light' => ThemeMode.light,
   'dark' => ThemeMode.dark,
-  _ => ThemeMode.system,
+  'system' => ThemeMode.system,
+  _ => ThemeMode.light,
 };
 
 String temaAdi(ThemeMode m) => switch (m) {

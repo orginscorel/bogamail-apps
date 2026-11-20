@@ -1,41 +1,210 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_drawing/path_drawing.dart';
 
 import 'api.dart';
+import 'guncelleme.dart';
 import 'tema.dart';
 
-/// Açılıştaki işaretin rozeti: posta → yeni ileti noktası, yönetim → kalkan.
+/// Hangi uygulamanın işareti: posta → indigo zemin + zarf rozeti, yönetim → grafit zemin + yeşil kontrol rozeti.
 enum AcilisIsaret { posta, yonetim }
 
 bool hareketAzalt(BuildContext c) => MediaQuery.maybeDisableAnimationsOf(c) ?? false;
 
-/// Marka açılışı: gece laciverti zemin üzerinde parçacıklar toplanır, mor kutu açılır, zarf çizilir, kapağı kapanır,
-/// rozet yerine oturur, parıltı geçer. Bu sırada [hazirla] çalışır (oturum kontrolü); bitince sonraki ekran ortadan
-/// büyüyen daireyle açılır. Ağ beklerken işaretin çevresinde yörünge yayı döner.
-class AcilisEkrani extends StatefulWidget {
-  const AcilisEkrani({super.key, required this.alt, required this.isaret, required this.hazirla});
+// ---------------------------------------------------------------------------------------------------------------
+// Bogahost logosu (bogahost.com/templates/bogahost/img/logo-new.svg, işaret kısmı): boynuzlu taç + üç sunucu sütunu.
+// Özgün koordinatlar 47 × 55.75 birimlik alandadır.
 
-  /// İşaretin altındaki aralıklı yazı ("POSTA", "YÖNETİM").
+const _sutunYollari = [
+  'M5.11,22.74V46.22c0,2.07,2,3.76,4.46,3.76h2.62c2.46,0,4.46-1.69,4.46-3.76V22.74c0-2.07-2-3.76-4.46-3.76H9.57C7.11,19,5.11,20.67,5.11,22.74ZM12.19,21a2,2,0,0,1,2.09,1.76V46.22A2,2,0,0,1,12.19,48H9.57a1.94,1.94,0,0,1-2.09-1.76V22.74A1.94,1.94,0,0,1,9.57,21Z',
+  'M17.72,23.44V51.29a4.46,4.46,0,0,0,4.46,4.46H24.8a4.46,4.46,0,0,0,4.46-4.46V23.44A4.46,4.46,0,0,0,24.8,19H22.18A4.46,4.46,0,0,0,17.72,23.44Zm7.08-2.09a2.1,2.1,0,0,1,2.09,2.09V51.29a2.1,2.1,0,0,1-2.09,2.09H22.18a2.1,2.1,0,0,1-2.09-2.09V23.44a2.1,2.1,0,0,1,2.09-2.09Z',
+  'M30.33,22.74V46.22c0,2.07,2,3.76,4.46,3.76h2.62c2.46,0,4.47-1.69,4.47-3.76V22.74c0-2.07-2-3.76-4.47-3.76H34.79C32.33,19,30.33,20.67,30.33,22.74ZM37.41,21a1.94,1.94,0,0,1,2.09,1.76V46.22A1.94,1.94,0,0,1,37.41,48H34.79a2,2,0,0,1-2.09-1.76V22.74A2,2,0,0,1,34.79,21Z',
+];
+const _cubukYollari = [
+  'M9.69,33.38V43.7a1.19,1.19,0,0,0,2.37,0V33.38a1.19,1.19,0,1,0-2.37,0Z',
+  'M22.31,39.66V50a1.19,1.19,0,0,0,2.37,0V39.66a1.19,1.19,0,1,0-2.37,0Z',
+  'M34.92,33.38V43.7a1.19,1.19,0,0,0,2.37,0V33.38a1.19,1.19,0,1,0-2.37,0Z',
+];
+const _tacYolu =
+    'M29.51,16.66H42.9A4.08,4.08,0,0,0,47,12.58V.9a.9.9,0,0,0-.9-.9.91.91,0,0,0-.74.38l-4,5.68a.87.87,0,0,0-.16.52v4.3H26.49l-2.61,3.75-.38.53,3-4.28H5.79V6.58a.87.87,0,0,0-.17-.52L1.65.38A.88.88,0,0,0,.92,0h0A.9.9,0,0,0,0,.9V12.59a4.07,4.07,0,0,0,4.08,4.07H17.49Z';
+
+const _logoG = 47.0;
+const _logoY = 55.75;
+
+class _Logo {
+  _Logo._();
+  static final sutunlar = [for (final d in _sutunYollari) parseSvgPathData(d)];
+  static final cubuklar = [for (final d in _cubukYollari) parseSvgPathData(d)];
+  static final tac = parseSvgPathData(_tacYolu);
+}
+
+/// Uygulamanın imza degradesi (açılış/simge). [Marka.grad]'dan bağımsızdır: simge üretiminde kimlik ayarlı olmayabilir.
+LinearGradient isaretDegradesi(AcilisIsaret i) => i == AcilisIsaret.posta
+    ? const LinearGradient(
+        begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF7B6DF0), Marka.mor, Color(0xFF3624A6)], stops: [0, .5, 1])
+    : const LinearGradient(
+        begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF353D5C), Marka.grafit, Color(0xFF10131E)], stops: [0, .55, 1]);
+
+/// [a, b] aralığını 0..1'e eşler ve eğriyi uygular.
+double _aralik(double t, double a, double b, [Curve e = Curves.linear]) {
+  if (t <= a) return 0;
+  if (t >= b) return 1;
+  return e.transform((t - a) / (b - a));
+}
+
+/// Logoyu (ilerlemeye göre) [alan]a çizer. [t]: 0..1 koreografi; 1 = tam logo.
+/// Sunucu sütunları alttan sırayla yükselir, iç göstergeleri dolar; taç önce çizgiyle çizilir sonra dolar.
+void _logoCiz(Canvas c, Rect alan, Color renk, double t) {
+  final olcek = alan.height / _logoY;
+  c.save();
+  c.translate(alan.center.dx - _logoG * olcek / 2, alan.top);
+  c.scale(olcek);
+  for (var i = 0; i < 3; i++) {
+    final a = _aralik(t, .08 + i * .09, .42 + i * .09, Curves.easeOutBack);
+    if (a <= 0) continue;
+    c.save();
+    c.translate(0, (1 - a) * 18);
+    final p = Paint()..color = renk.withValues(alpha: renk.a * a.clamp(0.0, 1.0));
+    c.drawPath(_Logo.sutunlar[i], p);
+    final b = _aralik(t, .40 + i * .07, .62 + i * .07, Curves.easeOutCubic);
+    if (b > 0) {
+      final cb = _Logo.cubuklar[i].getBounds();
+      c.save();
+      c.clipRect(Rect.fromLTRB(cb.left - 1, cb.bottom - cb.height * b, cb.right + 1, cb.bottom + 1));
+      c.drawPath(_Logo.cubuklar[i], p);
+      c.restore();
+    }
+    c.restore();
+  }
+  final ciz = _aralik(t, .30, .70, Curves.easeInOutCubic);
+  if (ciz > 0) {
+    final kalem = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .9
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = renk;
+    final dol = _aralik(t, .58, .80, Curves.easeOut);
+    if (dol < 1) {
+      for (final m in _Logo.tac.computeMetrics()) {
+        c.drawPath(m.extractPath(0, m.length * ciz), kalem);
+      }
+    }
+    if (dol > 0) c.drawPath(_Logo.tac, Paint()..color = renk.withValues(alpha: renk.a * dol));
+  }
+  c.restore();
+}
+
+/// Rozet: posta → zarf, yönetim → kontrol sürgüleri (yeşil). Merkez [m], yarıçap [y]; [halka] zeminden ayıran kenar.
+void _rozetCiz(Canvas c, Offset m, double y, AcilisIsaret i, {required Color halka, double olcek = 1}) {
+  if (olcek <= 0) return;
+  c.save();
+  c.translate(m.dx, m.dy);
+  c.scale(olcek);
+  c.drawCircle(Offset.zero, y * 1.22, Paint()..color = halka);
+  if (i == AcilisIsaret.posta) {
+    c.drawCircle(Offset.zero, y, Paint()..color = Colors.white);
+    final r = Rect.fromCenter(center: Offset(0, y * .02), width: y * 1.08, height: y * .78);
+    final kalem = Paint()
+      ..color = Marka.mor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = y * .14
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    c.drawRRect(RRect.fromRectAndRadius(r, Radius.circular(y * .12)), kalem);
+    c.drawPath(
+        Path()
+          ..moveTo(r.left + y * .06, r.top + y * .08)
+          ..lineTo(0, r.center.dy + y * .1)
+          ..lineTo(r.right - y * .06, r.top + y * .08),
+        kalem);
+  } else {
+    c.drawCircle(Offset.zero, y, Paint()..color = Marka.yesil);
+    final kalem = Paint()
+      ..color = Colors.white
+      ..strokeWidth = y * .13
+      ..strokeCap = StrokeCap.round;
+    final dugme = Paint()..color = Colors.white;
+    final ic = Paint()..color = Marka.yesil;
+    for (final (sira, konum) in const [(-1, -.28), (0, .3), (1, -.05)]) {
+      final yy = sira * y * .42;
+      c.drawLine(Offset(-y * .52, yy), Offset(y * .52, yy), kalem);
+      final k = Offset(konum * y, yy);
+      c.drawCircle(k, y * .2, dugme);
+      c.drawCircle(k, y * .09, ic);
+    }
+  }
+  c.restore();
+}
+
+/// Simge üretimi ve küçük işaretler için: işaretin son karesini 64 birimlik alana çizer.
+/// [zemin]: yuvarlatılmış kare degrade zemin de çizilsin mi.
+void isaretCiz(Canvas c, AcilisIsaret isaret, {bool zemin = true}) {
+  if (zemin) {
+    const r = Rect.fromLTWH(0, 0, 64, 64);
+    c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(14.5)), Paint()..shader = isaretDegradesi(isaret).createShader(r));
+  }
+  _logoCiz(c, const Rect.fromLTWH(10.5, 10, 34, 36.4), Colors.white, 1);
+  _rozetCiz(c, const Offset(46.5, 46.5), 9.6, isaret, halka: isaret == AcilisIsaret.posta ? const Color(0xFF4532BD) : const Color(0xFF181C2B));
+}
+
+/// Uygulama işareti (yuvarlatılmış kare). Giriş ekranı, yan menü başlığı.
+class BogaIsaret extends StatelessWidget {
+  const BogaIsaret({super.key, this.boyut = 56, this.isaret = AcilisIsaret.posta});
+  final double boyut;
+  final AcilisIsaret isaret;
+  @override
+  Widget build(BuildContext context) => SizedBox(width: boyut, height: boyut, child: CustomPaint(painter: _IsaretBoyayici(isaret)));
+}
+
+class _IsaretBoyayici extends CustomPainter {
+  _IsaretBoyayici(this.isaret);
+  final AcilisIsaret isaret;
+  @override
+  void paint(Canvas c, Size s) {
+    c.scale(s.width / 64, s.height / 64);
+    isaretCiz(c, isaret);
+  }
+
+  @override
+  bool shouldRepaint(_IsaretBoyayici o) => o.isaret != isaret;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+
+/// Marka açılışı. Posta: beyaz zemin, indigo logo. Yönetim: grafit zemin, beyaz logo + yeşil vurgu.
+/// Bogahost logosunun sunucu sütunları alttan sırayla yükselir, iç göstergeleri dolar, taç çizilip dolar; rozet
+/// yerine oturur, uygulama adı belirir. Bu sırada [hazirla] çalışır; bekleme uzarsa altta ince ilerleme çizgisi
+/// akar. Bitince sonraki ekran yumuşak bir yakınlaşmayla açılır.
+class AcilisEkrani extends StatefulWidget {
+  const AcilisEkrani({super.key, required this.alt, required this.isaret, required this.hazirla, this.api});
+
+  /// Uygulama adının altındaki aralıklı yazı ("POSTA", "YÖNETİM").
   final String alt;
   final AcilisIsaret isaret;
 
   /// Sonraki ekranı hazırlar. Hata fırlatırsa mesaj ve "Tekrar dene" gösterilir.
   final Future<Widget> Function() hazirla;
 
+  /// Verilirse açılışta güncelleme denetlenir; zorunlu güncellemede uygulama yerine güncelleme ekranı açılır.
+  final BogaApi? api;
+
   @override
   State<AcilisEkrani> createState() => _AcilisEkraniState();
 }
 
 class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMixin {
-  static const _sure = 1800;
+  static const _sure = 1900;
   late final _giris = AnimationController(vsync: this, duration: const Duration(milliseconds: _sure))..forward();
-  late final _yorunge = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
-  late final _aurora = AnimationController(vsync: this, duration: const Duration(seconds: 9))..repeat();
-  late final _cikis = AnimationController(vsync: this, duration: const Duration(milliseconds: 320));
+  late final _akis = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300))..repeat();
+  late final _cikis = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
   String? _hata;
+
+  bool get _koyuZemin => widget.isaret == AcilisIsaret.yonetim;
 
   @override
   void initState() {
@@ -43,19 +212,22 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
     _basla();
   }
 
-  /// Hazırlık bitince koreografinin kalanını hızlandırarak bitirir; açılış veriden uzun sürmez.
   Future<void> _girisiBitir() async {
     if (hareketAzalt(context)) {
       _giris.value = 1;
       return;
     }
     if (!_giris.isAnimating) return;
-    final ms = ((1 - _giris.value) * _sure * .45).round();
+    final ms = ((1 - _giris.value) * _sure * .5).round();
     await _giris.animateTo(1, duration: Duration(milliseconds: ms)).orCancel.catchError((_) {});
   }
 
   Future<void> _basla() async {
     setState(() => _hata = null);
+    final api = widget.api;
+    final denetim = api == null
+        ? Future<void>.value()
+        : Guncelleme.denetle(api, zorla: true).timeout(const Duration(seconds: 4), onTimeout: () => null).then((_) {});
     Widget? sonraki;
     try {
       sonraki = await widget.hazirla();
@@ -64,81 +236,137 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
       setState(() => _hata = e is ApiHata ? e.mesaj : 'Uygulama başlatılamadı. Tekrar deneyin.');
       return;
     }
+    await denetim;
     if (!mounted) return;
+    if (api != null && Guncelleme.zorunlu.value) sonraki = ZorunluGuncellemeEkrani(api: api);
     await _girisiBitir();
     if (!mounted) return;
     await _cikis.forward();
     if (!mounted) return;
     final hedef = sonraki;
     Navigator.of(context).pushReplacement(PageRouteBuilder(
-      transitionDuration: Duration(milliseconds: hareketAzalt(context) ? 0 : 420),
+      transitionDuration: Duration(milliseconds: hareketAzalt(context) ? 0 : 380),
       pageBuilder: (_, _, _) => hedef,
-      transitionsBuilder: (_, a, _, child) => ClipPath(clipper: _DaireAcilim(Curves.easeInOutCubic.transform(a.value)), child: child),
+      transitionsBuilder: (_, a, _, child) {
+        final e = Curves.easeOutCubic.transform(a.value);
+        return Opacity(opacity: e, child: Transform.scale(scale: .965 + .035 * e, child: child));
+      },
     ));
   }
 
   @override
   void dispose() {
     _giris.dispose();
-    _yorunge.dispose();
-    _aurora.dispose();
+    _akis.dispose();
     _cikis.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final koyu = _koyuZemin;
+    final zemin = koyu ? Marka.grafit : Colors.white;
+    final yazi = koyu ? Colors.white : const Color(0xFF111427);
+    final soluk = koyu ? Colors.white.withValues(alpha: .55) : const Color(0xFF6B7189);
+    final aksan = koyu ? Marka.yesil : Marka.mor;
+    if (hareketAzalt(context) && _giris.value < 1) _giris.value = 1;
     return AnnotatedRegion(
-      value: SystemUiOverlayStyle.light,
+      value: koyu ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: Marka.lacivert0,
+        backgroundColor: zemin,
         body: AnimatedBuilder(
-          animation: Listenable.merge([_giris, _yorunge, _aurora, _cikis]),
-          builder: (_, _) {
-            final c = Curves.easeInCubic.transform(_cikis.value);
-            return CustomPaint(
-              painter: _AuroraCizer(t: _aurora.value, gir: _ara(_giris.value, 0, .4)),
-              child: Center(
+          animation: Listenable.merge([_giris, _akis, _cikis]),
+          builder: (context, _) {
+            final t = _giris.value;
+            final cik = Curves.easeInCubic.transform(_cikis.value);
+            final yaziA = _aralik(t, .62, .92, Curves.easeOutCubic);
+            final rozet = _aralik(t, .70, .98, Curves.elasticOut);
+            final bekliyor = _hata == null && t >= 1;
+            return Stack(children: [
+              Positioned.fill(child: CustomPaint(painter: _Zemin(aksan: aksan, koyu: koyu, t: t))),
+              Center(
                 child: Opacity(
-                  opacity: 1 - c,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Transform.scale(
-                      scale: 1 + .4 * c,
-                      child: SizedBox(
-                        width: 260,
-                        height: 260,
+                  opacity: 1 - cik,
+                  child: Transform.scale(
+                    scale: 1 - .06 * cik,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      SizedBox(
+                        width: 150,
+                        height: 150,
                         child: CustomPaint(
-                          painter: _IsaretCizer(t: _giris.value, yorunge: _yorunge.value, bekliyor: _hata == null, isaret: widget.isaret),
+                          painter: _AcilisLogo(t: t, rozet: rozet, isaret: widget.isaret, renk: koyu ? Colors.white : Marka.mor, halka: zemin),
                         ),
                       ),
-                    ),
-                    _Yazi(t: _giris.value, alt: widget.alt),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      height: 100,
-                      child: _hata == null
-                          ? Opacity(
-                              opacity: _ara(_giris.value, .88, 1),
-                              child: Text('Hazırlanıyor…', style: TextStyle(color: Colors.white.withValues(alpha: .5), fontSize: 12.5, letterSpacing: .4)),
-                            )
-                          : Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 32),
-                              child: Column(children: [
-                                Text(_hata!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
-                                const SizedBox(height: 14),
-                                FilledButton.icon(
-                                  style: FilledButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: .12), foregroundColor: Colors.white),
-                                  onPressed: _basla,
-                                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                                  label: const Text('Tekrar dene'),
+                      const SizedBox(height: 22),
+                      Opacity(
+                        opacity: yaziA,
+                        child: Transform.translate(
+                          offset: Offset(0, 10 * (1 - yaziA)),
+                          child: Column(children: [
+                            Text.rich(TextSpan(children: [
+                              TextSpan(text: 'Boga', style: gosterim(34, renk: yazi)),
+                              TextSpan(text: 'Mail', style: gosterim(34, renk: aksan)),
+                            ])),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                              decoration: BoxDecoration(color: aksan.withValues(alpha: koyu ? .16 : .10), borderRadius: BorderRadius.circular(99)),
+                              child: Text(
+                                widget.alt,
+                                style: TextStyle(
+                                  fontFamily: 'packages/boga_ortak/Poppins',
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 3.2,
+                                  color: aksan,
                                 ),
-                              ]),
+                              ),
                             ),
-                    ),
+                          ]),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      SizedBox(
+                        width: 120,
+                        height: 3,
+                        child: AnimatedOpacity(
+                          opacity: bekliyor ? 1 : 0,
+                          duration: const Duration(milliseconds: 250),
+                          child: CustomPaint(painter: _Akis(faz: _akis.value, renk: aksan, iz: soluk.withValues(alpha: .18))),
+                        ),
+                      ),
+                      if (_hata != null) ...[
+                        const SizedBox(height: 8),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: Text(_hata!, textAlign: TextAlign.center, style: TextStyle(color: yazi.withValues(alpha: .85), fontSize: 14, height: 1.4)),
+                        ),
+                        const SizedBox(height: 14),
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(backgroundColor: aksan, foregroundColor: koyu ? Marka.grafit : Colors.white),
+                          onPressed: _basla,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Tekrar dene'),
+                        ),
+                      ],
+                    ]),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: MediaQuery.paddingOf(context).bottom + 22,
+                child: Opacity(
+                  opacity: yaziA * (1 - cik),
+                  child: Column(children: [
+                    Text('BOGAHOST', style: TextStyle(fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w700, color: soluk)),
+                    const SizedBox(height: 4),
+                    SurumEtiketi(renk: soluk, ortala: true),
                   ]),
                 ),
               ),
-            );
+            ]);
           },
         ),
       ),
@@ -146,308 +374,78 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
   }
 }
 
-/// [a,b] aralığını 0..1'e çevirir (dışı kırpılır).
-double _ara(double t, double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
+class _AcilisLogo extends CustomPainter {
+  _AcilisLogo({required this.t, required this.rozet, required this.isaret, required this.renk, required this.halka});
+  final double t, rozet;
+  final AcilisIsaret isaret;
+  final Color renk, halka;
 
-class _Yazi extends StatelessWidget {
-  const _Yazi({required this.t, required this.alt});
+  @override
+  void paint(Canvas c, Size s) {
+    c.scale(s.width / 150);
+    _logoCiz(c, const Rect.fromLTWH(30, 14, 84, 99.6), renk, t);
+    _rozetCiz(c, const Offset(116, 112), 19, isaret, halka: halka, olcek: rozet);
+  }
+
+  @override
+  bool shouldRepaint(_AcilisLogo o) => o.t != t || o.rozet != rozet || o.renk != renk;
+}
+
+/// Zemin: merkezde yumuşak vurgu ışığı + merkezden açılan, kenarlara doğru sönen nokta ızgarası.
+class _Zemin extends CustomPainter {
+  _Zemin({required this.aksan, required this.koyu, required this.t});
+  final Color aksan;
+  final bool koyu;
   final double t;
-  final String alt;
-  @override
-  Widget build(BuildContext context) {
-    const kelime = 'BogaMail';
-    final p = Curves.easeOutCubic.transform(_ara(t, .8, 1));
-    return Column(children: [
-      Row(mainAxisSize: MainAxisSize.min, children: [
-        for (var i = 0; i < kelime.length; i++)
-          Builder(builder: (_) {
-            final h = Curves.easeOutBack.transform(_ara(t, .62 + i * .024, .8 + i * .024));
-            return Opacity(
-              opacity: h.clamp(0.0, 1.0),
-              child: Transform.translate(
-                offset: Offset(0, 16 * (1 - h)),
-                child: Text(kelime[i], style: gosterim(30, renk: i < 4 ? Colors.white : const Color(0xFFC7D2FE))),
-              ),
-            );
-          }),
-      ]),
-      const SizedBox(height: 3),
-      Opacity(
-        opacity: p,
-        child: Text(alt, style: TextStyle(color: Marka.gok.withValues(alpha: .85), letterSpacing: 1 + 5 * p, fontSize: 12, fontWeight: FontWeight.w700)),
-      ),
-    ]);
-  }
-}
-
-/// Yavaşça dolaşan iki renk bulutu: zemin canlı ama sakin.
-class _AuroraCizer extends CustomPainter {
-  _AuroraCizer({required this.t, required this.gir});
-  final double t, gir;
-  @override
-  void paint(Canvas c, Size s) {
-    c.drawRect(Offset.zero & s, Paint()..shader = Marka.gece.createShader(Offset.zero & s));
-    if (gir <= 0) return;
-    final a = t * math.pi * 2;
-    void bulut(Offset m, double r, Color renk) {
-      c.drawCircle(m, r, Paint()..shader = RadialGradient(colors: [renk.withValues(alpha: .42 * gir), renk.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: m, radius: r)));
-    }
-
-    final k = math.max(s.width, s.height);
-    bulut(Offset(s.width * (.25 + .08 * math.sin(a)), s.height * (.22 + .05 * math.cos(a))), k * .55, Marka.mor);
-    bulut(Offset(s.width * (.8 + .06 * math.cos(a * 1.3)), s.height * (.78 + .05 * math.sin(a))), k * .5, Marka.mavi);
-    bulut(Offset(s.width * (.7 + .05 * math.sin(a * .7)), s.height * (.18 + .04 * math.sin(a * 1.6))), k * .28, Marka.gok);
-  }
-
-  @override
-  bool shouldRepaint(_AuroraCizer o) => o.t != t || o.gir != gir;
-}
-
-/// İşaret sahnesi (64×64 birimlik kutu, 120 px):
-///  0.00–0.40  dört yandan parçacıklar uçup zarfın köşelerine dizilir
-///  0.25–0.50  mor-mavi kutu merkezden yaylanarak açılır
-///  0.40–0.66  zarfın gövdesi çizilir
-///  0.58–0.78  kapak yukarıdan kapanır
-///  0.70–0.90  rozet yerine oturur (posta: yeni ileti noktası, yönetim: kalkan)
-///  0.82–1.00  çapraz parıltı; sonra beklerken yörünge yayı döner
-class _IsaretCizer extends CustomPainter {
-  _IsaretCizer({required this.t, required this.yorunge, required this.bekliyor, required this.isaret});
-  final double t, yorunge;
-  final bool bekliyor;
-  final AcilisIsaret isaret;
-
-  static const _govde = Rect.fromLTWH(13, 19, 38, 27);
-
-  static final List<({Offset hedef, Offset kaynak, double gecikme, double donus})> _parca = () {
-    final r = math.Random(7);
-    final hedefler = <Offset>[];
-    for (var i = 0; i <= 6; i++) {
-      hedefler.add(Offset(_govde.left + _govde.width * i / 6, _govde.top));
-      hedefler.add(Offset(_govde.left + _govde.width * i / 6, _govde.bottom));
-    }
-    for (var i = 1; i < 4; i++) {
-      hedefler.add(Offset(_govde.left, _govde.top + _govde.height * i / 4));
-      hedefler.add(Offset(_govde.right, _govde.top + _govde.height * i / 4));
-    }
-    return [
-      for (final h in hedefler)
-        () {
-          final aci = r.nextDouble() * math.pi * 2;
-          final uzak = 70 + r.nextDouble() * 60;
-          return (
-            hedef: h,
-            kaynak: const Offset(32, 32) + Offset(math.cos(aci), math.sin(aci)) * uzak,
-            gecikme: r.nextDouble() * .16,
-            donus: (r.nextDouble() - .5) * 6,
-          );
-        }(),
-    ];
-  }();
 
   @override
   void paint(Canvas c, Size s) {
-    final merkez = s.center(Offset.zero);
+    final m = Offset(s.width / 2, s.height / 2 - 40);
+    final r = math.max(s.width, s.height) * .55;
+    final isik = _aralik(t, 0, .6, Curves.easeOut);
+    c.drawCircle(
+      m,
+      r,
+      Paint()..shader = ui.Gradient.radial(m, r, [aksan.withValues(alpha: (koyu ? .22 : .10) * isik), aksan.withValues(alpha: 0)]),
+    );
+    final taban = koyu ? Colors.white : const Color(0xFF111427);
+    final nokta = Paint();
+    const ara = 26.0;
+    final gorunur = _aralik(t, .05, .5);
+    for (double x = (s.width % ara) / 2; x < s.width; x += ara) {
+      for (double y = (s.height % ara) / 2; y < s.height; y += ara) {
+        final u = (Offset(x, y) - m).distance / r;
+        if (u > gorunur * 1.4) continue;
+        final a = (1 - u).clamp(0.0, 1.0);
+        if (a <= 0) continue;
+        nokta.color = taban.withValues(alpha: (koyu ? .09 : .06) * a);
+        c.drawCircle(Offset(x, y), 1.1, nokta);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Zemin o) => o.t != t || o.koyu != koyu;
+}
+
+/// Bekleme çizgisi: ince izde akan kısa vurgu parçası.
+class _Akis extends CustomPainter {
+  _Akis({required this.faz, required this.renk, required this.iz});
+  final double faz;
+  final Color renk, iz;
+  @override
+  void paint(Canvas c, Size s) {
+    final h = s.height;
+    final kap = RRect.fromRectAndRadius(Offset.zero & s, Radius.circular(h));
+    c.drawRRect(kap, Paint()..color = iz);
+    final w = s.width * .38;
+    final x = -w + (s.width + w) * Curves.easeInOutSine.transform(faz);
     c.save();
-    c.translate(merkez.dx - 60, merkez.dy - 60);
-    c.scale(120 / 64);
-    ciz64(c);
+    c.clipRRect(kap);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x, 0, w, h), Radius.circular(h)), Paint()..color = renk);
     c.restore();
-
-    // Yörünge: beklerken işaretin çevresinde dönen kuyruklu yay + noktalar
-    final yb = _ara(t, .84, 1);
-    if (yb > 0 && bekliyor) {
-      const r = 106.0;
-      for (var i = 0; i < 24; i++) {
-        final a = i / 24 * math.pi * 2;
-        final gec = _ara(yb, i / 48, i / 48 + .5);
-        c.drawCircle(merkez + Offset(math.cos(a), math.sin(a)) * r, i % 6 == 0 ? 1.6 : 1, Paint()..color = Colors.white.withValues(alpha: (i % 6 == 0 ? .45 : .2) * gec));
-      }
-      final bas = yorunge * math.pi * 2 - math.pi / 2;
-      final yay = Rect.fromCircle(center: merkez, radius: r);
-      c.drawArc(
-        yay,
-        bas - 1.8,
-        1.8,
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..strokeCap = StrokeCap.round
-          ..shader = SweepGradient(
-            transform: GradientRotation(bas - 1.8),
-            colors: [Marka.lavanta.withValues(alpha: 0), Marka.gok.withValues(alpha: yb), Marka.gok.withValues(alpha: yb)],
-            stops: const [0, .27, 1],
-          ).createShader(yay),
-      );
-      final uc = merkez + Offset(math.cos(bas), math.sin(bas)) * r;
-      c.drawCircle(uc, 7, Paint()..color = Marka.gok.withValues(alpha: .25 * yb));
-      c.drawCircle(uc, 3.4, Paint()..color = Colors.white.withValues(alpha: yb));
-    }
-  }
-
-
-  /// İşaretin 64×64 birimlik içeriği (simge üretimi de bunu kullanır). [zemin] false: mor kutu ve hale çizilmez.
-  void ciz64(Canvas c, {bool zemin = true}) {
-    final kutu = RRect.fromRectAndRadius(const Rect.fromLTWH(0, 0, 64, 64), const Radius.circular(17));
-    // Hale
-    final hale = zemin ? _ara(t, .25, .7) : 0.0;
-    if (hale > 0) {
-      c.drawCircle(const Offset(32, 32), 46 + 6 * hale,
-          Paint()..shader = RadialGradient(colors: [Marka.morAcik.withValues(alpha: .5 * hale), Marka.mor.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: const Offset(32, 32), radius: 54)));
-    }
-
-    // Kutu
-    final z = Curves.easeOutBack.transform(_ara(t, .25, .5));
-    if (z > 0 && zemin) {
-      c.save();
-      c.translate(32, 32);
-      c.scale(z);
-      c.translate(-32, -32);
-      c.drawRRect(kutu, Paint()..shader = Marka.grad.createShader(const Rect.fromLTWH(0, 0, 64, 64)));
-      // üst ışık
-      c.drawRRect(kutu, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.center, colors: [Colors.white.withValues(alpha: .22), Colors.white.withValues(alpha: 0)]).createShader(const Rect.fromLTWH(0, 0, 64, 64)));
-      c.restore();
-    }
-
-    final kalem = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..color = Colors.white;
-
-    // Zarf gövdesi: yuvarlatılmış dikdörtgen yolu ilerleyerek çizilir
-    final g = Curves.easeInOutCubic.transform(_ara(t, .4, .66));
-    if (g > 0) {
-      final yol = Path()..addRRect(RRect.fromRectAndRadius(_govde, const Radius.circular(4.5)));
-      for (final m in yol.computeMetrics()) {
-        c.drawPath(m.extractPath(0, m.length * g), kalem);
-      }
-    }
-
-    // Kapak: açık (tepe yukarıda) → kapalı (V aşağıda)
-    final k = Curves.easeOutBack.transform(_ara(t, .58, .78));
-    if (k > 0) {
-      final tepeY = ui.lerpDouble(_govde.top - 12, _govde.top + 14, k)!;
-      final kapak = Path()
-        ..moveTo(_govde.left + 1.5, _govde.top + 1.5)
-        ..lineTo(32, tepeY)
-        ..lineTo(_govde.right - 1.5, _govde.top + 1.5);
-      c.drawPath(kapak, kalem..color = Colors.white.withValues(alpha: _ara(t, .58, .64)));
-      kalem.color = Colors.white;
-    }
-
-    // Uçan parçacıklar
-    final sondur = _ara(t, .42, .6);
-    if (sondur < 1) {
-      for (final m in _parca) {
-        final u = Curves.easeOutCubic.transform(_ara(t, m.gecikme, m.gecikme + .3));
-        if (u <= 0) continue;
-        final p = Offset.lerp(m.kaynak, m.hedef, u)!;
-        c.save();
-        c.translate(p.dx, p.dy);
-        c.rotate(m.donus * (1 - u));
-        final boy = 3.2 + 2.2 * (1 - u);
-        c.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: boy, height: boy), const Radius.circular(1)),
-          Paint()..color = Color.lerp(Marka.gok, Colors.white, u)!.withValues(alpha: u.clamp(0, 1) * (1 - sondur)),
-        );
-        c.restore();
-      }
-    }
-
-    // Rozet
-    final rz = Curves.elasticOut.transform(_ara(t, .7, .92));
-    if (rz > 0) {
-      c.save();
-      c.translate(50, 16);
-      c.scale(rz);
-      if (isaret == AcilisIsaret.posta) {
-        c.drawCircle(Offset.zero, 8.5, Paint()..color = Marka.lacivert1);
-        c.drawCircle(Offset.zero, 6.5, Paint()..color = Marka.gok);
-        c.drawCircle(const Offset(-1.6, -1.8), 2, Paint()..color = Colors.white.withValues(alpha: .8));
-      } else {
-        final kalkan = Path()
-          ..moveTo(0, -8)
-          ..quadraticBezierTo(5, -6.5, 7, -6.5)
-          ..quadraticBezierTo(7.5, 4, 0, 8.5)
-          ..quadraticBezierTo(-7.5, 4, -7, -6.5)
-          ..quadraticBezierTo(-5, -6.5, 0, -8)
-          ..close();
-        c.drawPath(kalkan, Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.4
-          ..color = Marka.lacivert1);
-        c.drawPath(kalkan, Paint()..color = Marka.zumrut);
-        c.drawPath(
-            Path()
-              ..moveTo(-3, 0)
-              ..lineTo(-.6, 2.6)
-              ..lineTo(3.4, -2.4),
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.8
-              ..strokeCap = StrokeCap.round
-              ..color = Colors.white);
-      }
-      c.restore();
-    }
-
-    // Parıltı
-    final pr = _ara(t, .82, 1);
-    if (pr > 0 && pr < 1) {
-      c.save();
-      c.clipRRect(kutu);
-      final x = -40 + 150 * Curves.easeInOutCubic.transform(pr);
-      c.drawPath(
-        Path()
-          ..moveTo(x, 0)
-          ..lineTo(x + 14, 0)
-          ..lineTo(x - 10, 64)
-          ..lineTo(x - 24, 64)
-          ..close(),
-        Paint()..color = Colors.white.withValues(alpha: .26),
-      );
-      c.restore();
-    }
   }
 
   @override
-  bool shouldRepaint(_IsaretCizer o) => o.t != t || o.yorunge != yorunge || o.bekliyor != bekliyor;
+  bool shouldRepaint(_Akis o) => o.faz != faz;
 }
-
-class _DaireAcilim extends CustomClipper<Path> {
-  _DaireAcilim(this.v);
-  final double v;
-  @override
-  Path getClip(Size s) {
-    final r = math.sqrt(s.width * s.width + s.height * s.height) / 2 * v;
-    return Path()..addOval(Rect.fromCircle(center: s.center(Offset.zero), radius: math.max(r, .1)));
-  }
-
-  @override
-  bool shouldReclip(_DaireAcilim o) => o.v != v;
-}
-
-/// Uygulama simgesi ve küçük logolar için durağan işaret (açılışın son karesi).
-class BogaIsaret extends StatelessWidget {
-  const BogaIsaret({super.key, this.boyut = 56, this.isaret = AcilisIsaret.posta});
-  final double boyut;
-  final AcilisIsaret isaret;
-  @override
-  Widget build(BuildContext context) => SizedBox(
-        width: boyut,
-        height: boyut,
-        child: FittedBox(
-          child: SizedBox(
-            width: 130,
-            height: 130,
-            child: CustomPaint(painter: _IsaretCizer(t: 1, yorunge: 0, bekliyor: false, isaret: isaret)),
-          ),
-        ),
-      );
-}
-
-/// Simge üretimi için: işaretin son karesini 64 birimlik alana çizer.
-void isaretCiz(Canvas c, AcilisIsaret isaret, {bool zemin = true}) =>
-    _IsaretCizer(t: 1, yorunge: 0, bekliyor: false, isaret: isaret).ciz64(c, zemin: zemin);

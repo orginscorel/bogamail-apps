@@ -124,6 +124,22 @@ class Bildirim {
     await goster(iletiId: '${o.veri['message_id'] ?? ''}', baslik: kimden, metin: konu.isEmpty ? '(konu yok)' : konu);
   }
 
+  /// Bildirim yükü bir sohbet odasıysa `sohbet:<oda>` biçimindedir.
+  static const sohbetOneki = 'sohbet:';
+
+  /// Canlı "chat_message" olayından bildirim: pencere odakta değilken (Windows; Android'de akış ön plandayken açıktır).
+  static Future<void> sohbetOlayi(CanliOlay o) async {
+    if (!yerel || o.tur != 'chat_message') return;
+    final oda = '${o.veri['room_id'] ?? ''}';
+    if (oda.isEmpty || WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) return;
+    final kim = '${o.veri['sender_name'] ?? ''}'.trim();
+    await goster(
+      iletiId: '$sohbetOneki$oda',
+      baslik: kim.isEmpty ? 'Yeni sohbet iletisi' : (o.veri['channel'] == true ? '$kim (kanal)' : kim),
+      metin: '${o.veri['preview'] ?? ''}',
+    );
+  }
+
   // ---- Android arka plan denetimi ----
 
   static Future<bool> arkaPlanAcik() async {

@@ -12,7 +12,7 @@ Color durumRengi(String durum) => switch (durum) {
   'active' || 'ok' || 'released' || 'resolved' || 'accepted' => Marka.zumrut,
   'pending' || 'warn' || 'deferred' || 'held' || 'repeat' || 'warning' => Marka.kehribar,
   'suspended' || 'fail' || 'failed' || 'deleted' || 'down' || 'critical' || 'firing' || 'invalid_user' => Marka.gul,
-  _ => Marka.mor,
+  _ => Marka.mavi,
 };
 
 class DurumRozeti extends StatelessWidget {
@@ -349,7 +349,7 @@ class EylemSatiri extends StatelessWidget {
 
 /// Bilgi / uyarı bandı.
 class Bant extends StatelessWidget {
-  const Bant(this.metin, {super.key, this.renk = Marka.mor, this.ikon = Icons.info_outline_rounded, this.eylem});
+  const Bant(this.metin, {super.key, this.renk = Marka.mavi, this.ikon = Icons.info_outline_rounded, this.eylem});
   final String metin;
   final Color renk;
   final IconData ikon;

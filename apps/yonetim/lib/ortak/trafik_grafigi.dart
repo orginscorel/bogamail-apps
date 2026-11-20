@@ -11,7 +11,7 @@ class TrafikGrafigi extends StatelessWidget {
   final List<TrafikDilimi> dilimler;
   final double yukseklik;
 
-  static const kabulRengi = Marka.mor;
+  static const kabulRengi = Marka.mavi;
   static const teslimRengi = Marka.zumrut;
   static const retRengi = Marka.gul;
   static const hataRengi = Marka.kehribar;
@@ -45,7 +45,10 @@ class TrafikGrafigi extends StatelessWidget {
       curveSmoothness: .2,
       preventCurveOverShooting: true,
       dotData: const FlDotData(show: false),
-      belowBarData: BarAreaData(show: dolgu, color: c.withValues(alpha: .12)),
+      belowBarData: BarAreaData(
+        show: dolgu,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.withValues(alpha: .22), c.withValues(alpha: 0)]),
+      ),
     );
     final adim = (dilimler.length / (gunluk ? 7 : 6)).ceilToDouble().clamp(1, 1000).toDouble();
     return Column(
@@ -62,7 +65,7 @@ class TrafikGrafigi extends StatelessWidget {
               gridData: FlGridData(
                 drawVerticalLine: false,
                 horizontalInterval: ust / 4,
-                getDrawingHorizontalLine: (_) => FlLine(color: r.kenar, strokeWidth: 1),
+                getDrawingHorizontalLine: (_) => FlLine(color: r.kenar, strokeWidth: 1, dashArray: const [4, 4]),
               ),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
@@ -94,7 +97,7 @@ class TrafikGrafigi extends StatelessWidget {
               ),
               lineTouchData: LineTouchData(
                 touchTooltipData: LineTouchTooltipData(
-                  getTooltipColor: (_) => const Color(0xFF15142E),
+                  getTooltipColor: (_) => Marka.grafit,
                   fitInsideHorizontally: true,
                   fitInsideVertically: true,
                   getTooltipItems: (noktalar) {
@@ -111,7 +114,7 @@ class TrafikGrafigi extends StatelessWidget {
               ),
               lineBarsData: [
                 seri(kabulRengi, (d) => d.kabul, dolgu: true),
-                seri(teslimRengi, (d) => d.teslim),
+                seri(teslimRengi, (d) => d.teslim, dolgu: true),
                 seri(retRengi, (d) => d.ret),
                 seri(hataRengi, (d) => d.hata),
               ],

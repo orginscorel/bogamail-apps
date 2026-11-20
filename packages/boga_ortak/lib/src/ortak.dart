@@ -185,7 +185,7 @@ class Baslik extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
         child: Row(children: [
           Expanded(
-            child: Text(metin.toUpperCase(),
+            child: Text(trBuyukHarf(metin),
                 style: TextStyle(color: context.r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1)),
           ),
           ?sag,
@@ -252,7 +252,7 @@ String basHarf(String adVeyaAdres) {
   if (p.isEmpty) return '?';
   final a = p.first.characters.first;
   final b = p.length > 1 ? p.last.characters.first : '';
-  return (a + b).toUpperCase();
+  return trBuyukHarf(a + b);
 }
 
 // ---- biçimlendirme ----
@@ -320,3 +320,6 @@ class HizliRota<T> extends PageRouteBuilder<T> {
           transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
         );
 }
+
+/// Türkçe büyük harf: i → İ, ı → I (Dart toUpperCase "i"yi "I" yapar).
+String trBuyukHarf(String s) => s.replaceAll('i', 'İ').replaceAll('ı', 'I').toUpperCase();

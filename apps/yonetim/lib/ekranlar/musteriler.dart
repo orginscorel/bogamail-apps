@@ -3,73 +3,47 @@ import 'package:flutter/material.dart';
 
 import '../oturum.dart';
 import '../ortak/bilesenler.dart';
+import '../ortak/iskelet.dart';
 import '../ortak/sayfali.dart';
+import '../ortak/tablo.dart';
 import '../veri/json.dart';
-import '../veri/modeller.dart';
-import 'alan_adlari.dart';
-import 'posta_kutulari.dart';
+import 'musteri_detay.dart';
+import 'musteri_form.dart';
+import 'musteri_islemleri.dart';
+import 'musteri_model.dart';
 
-/// Müşteriler (organizasyonlar): platform ve bayi yöneticileri için liste, ayrıntı ve askıya alma.
-/// Süper yönetici bayileri ayrı sekmede görür (GET /resellers).
-class MusterilerEkrani extends StatelessWidget {
+/// Müşteriler (GET /organizations?internal=0): sıralanabilir tablo (ad, oluşturulma, durum), arama, durum ve sektör
+/// filtreleri, satır menüsü; telefonda kartlar. Ayrıntı panelinde müşterinin tüm yönetim işlemleri bulunur.
+/// Bayiler ayrı bölümdedir.
+class MusterilerEkrani extends StatefulWidget {
   const MusterilerEkrani({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    if (!Uyg.platformYoneticisi) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Müşteriler')),
-        body: const MusteriListesi(),
-      );
-    }
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Müşteriler'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Müşteriler'),
-              Tab(text: 'Bayiler'),
-            ],
-          ),
-        ),
-        body: const TabBarView(children: [MusteriListesi(), BayiListesi()]),
-      ),
-    );
-  }
+  State<MusterilerEkrani> createState() => _MusterilerEkraniState();
 }
 
-class MusteriListesi extends StatefulWidget {
-  const MusteriListesi({super.key});
-  @override
-  State<MusteriListesi> createState() => _MusteriListesiState();
-}
+class _MusterilerEkraniState extends State<MusterilerEkrani> {
+  String _q = '', _durum = '', _sektor = '';
+  String _siralama = 'created_at';
+  bool _artan = false;
 
-class _MusteriListesiState extends State<MusteriListesi> with AutomaticKeepAliveClientMixin {
-  String _q = '', _durum = '';
-  Organizasyon? _secili;
-
-  late final _y = SayfaYukleyici<Organizasyon>(
+  late final _y = SayfaYukleyici<Musteri>(
     (s, b) async => Sayfa.coz(
       await Uyg.api.get(
         '/api/v1/organizations',
         q: {
           'page': '$s',
           'page_size': '$b',
-          'sort': 'name',
-          'order': 'asc',
+          'sort': _siralama,
+          'order': _artan ? 'asc' : 'desc',
           'internal': '0',
           if (_q.isNotEmpty) 'q': _q,
           if (_durum.isNotEmpty) 'status': _durum,
+          if (_sektor.isNotEmpty) 'sector': _sektor,
         },
       ),
-      Organizasyon.coz,
+      Musteri.coz,
     ),
   )..yenile();
-
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
@@ -77,294 +51,193 @@ class _MusteriListesiState extends State<MusteriListesi> with AutomaticKeepAlive
     super.dispose();
   }
 
-  void _ac(Organizasyon o) {
-    if (bolunmus(context)) {
-      setState(() => _secili = o);
-    } else {
-      sayfaAc(context, o.ad, MusteriDetay(org: o, degisti: (y) => _degisti(o.id, y)));
-    }
+  void _degisti(String id, Musteri? y) {
+    // Yönetici bölümüne taşınan müşteri bu listeden çıkar.
+    _y.degistir((x) => x.id == id, y != null && y.dahili ? null : y);
   }
 
-  void _degisti(String id, Organizasyon y) {
-    _y.degistir((x) => x.id == id, y);
-    if (_secili?.id == id) setState(() => _secili = y);
+  void _ac(Musteri m) => musteriDetayAc(context, m, (y) => _degisti(m.id, y));
+
+  Future<void> _yeni() async {
+    final m = await musteriFormuAc(context);
+    if (m == null || !mounted) return;
+    await _y.yenile();
+    if (mounted) _ac(m);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    final liste = Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-          child: Column(
-            children: [
-              AramaAlani(
-                ipucu: 'Müşteri ara…',
-                degisti: (v) {
-                  _q = v;
-                  _y.yenile();
-                },
-              ),
-              const SizedBox(height: 8),
-              SecimCipleri<String>(
-                secenekler: const [('', 'Tümü'), ('active', 'Aktif'), ('suspended', 'Askıda')],
-                secili: _durum,
-                secildi: (v) {
-                  setState(() => _durum = v);
-                  _y.yenile();
-                },
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SayfaliListe<Organizasyon>(
-            yukleyici: _y,
-            ayrac: false,
-            bosMetin: _q.isEmpty ? 'Henüz müşteri yok.' : 'Eşleşen müşteri yok.',
-            bosIkon: Icons.apartment_rounded,
-            oge: (c, o) => ListeSatiri(
-              secili: _secili?.id == o.id && bolunmus(c),
-              onTap: () => _ac(o),
-              sol: Avatar(o.ad, tohum: o.id),
-              baslik: o.ad,
-              alt: [?o.paketAdi, if (Uyg.platformYoneticisi && o.bayiAdi != null) o.bayiAdi!].join(' · '),
-              alt2: '${o.alanSayisi} alan adı · ${o.kutuSayisi} posta kutusu · ${boyutYaz(o.kullanilan)}',
-              sag: o.durum == 'active' ? null : DurumRozeti(o.durum),
-            ),
-          ),
-        ),
-      ],
-    );
-    return AnaDetay(
-      liste: liste,
-      detay: _secili == null ? null : MusteriDetay(key: ValueKey(_secili!.id), org: _secili!, degisti: (y) => _degisti(_secili!.id, y)),
-      bosMetin: 'Ayrıntı için bir müşteri seçin',
-      listeGenisligi: 400,
-    );
-  }
-}
-
-/// Müşteri ayrıntısı (GET /organizations/{id}): paket sınırları, kullanım, iletişim profili ve kısayollar.
-class MusteriDetay extends StatefulWidget {
-  const MusteriDetay({super.key, required this.org, required this.degisti});
-  final Organizasyon org;
-  final void Function(Organizasyon) degisti;
-  @override
-  State<MusteriDetay> createState() => _MusteriDetayState();
-}
-
-class _MusteriDetayState extends State<MusteriDetay> {
-  late Organizasyon _o = widget.org;
-  String? _hata;
-
-  @override
-  void initState() {
-    super.initState();
-    _yukle();
+  void _filtre(VoidCallback f) {
+    setState(f);
+    _y.yenile();
   }
 
-  Future<void> _yukle() async {
-    try {
-      final v = await Uyg.api.get('/api/v1/organizations/${_o.id}');
-      if (mounted) {
-        setState(() {
-          _o = Organizasyon.coz(harita(v));
-          _hata = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _hata = hataMetni(e));
-    }
-  }
+  List<SatirEylemi> _eylemler(Musteri m) => [
+    SatirEylemi(Icons.open_in_new_rounded, 'Ayrıntılar', () => _ac(m)),
+    if (MusteriYetki.yonetir)
+      SatirEylemi(Icons.edit_outlined, 'Düzenle', () async {
+        final y = await MusteriEylemleri.duzenle(context, m);
+        if (y != null) _degisti(m.id, y);
+      }),
+    if (MusteriYetki.girer) SatirEylemi(Icons.login_rounded, 'Müşteri paneline gir', () => MusteriEylemleri.paneleGir(context, m)),
+    SatirEylemi(Icons.language_rounded, 'Alan adları', () => MusteriEylemleri.alanAdlari(context, m)),
+    SatirEylemi(Icons.inbox_rounded, 'Posta kutuları', () => MusteriEylemleri.postaKutulari(context, m)),
+    if (Uyg.ortak) SatirEylemi(Icons.toggle_on_outlined, 'Özellikler', () => ozellikleriAc(context, m)),
+    if (MusteriYetki.disaAktarir) SatirEylemi(Icons.inventory_2_outlined, 'Tümünü dışa aktar', () => disaAktarmaAc(context, m)),
+    if (MusteriYetki.yonetir)
+      SatirEylemi(m.aktif ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, m.aktif ? 'Askıya al' : 'Etkinleştir', () async {
+        final y = await MusteriEylemleri.durumDegistir(context, m);
+        if (y != null) _degisti(m.id, y);
+      }, tehlikeli: m.aktif),
+    if (MusteriYetki.yonetir && !m.dahili)
+      SatirEylemi(Icons.delete_outline_rounded, 'Sil', () async {
+        if (await MusteriEylemleri.sil(context, m)) _degisti(m.id, null);
+      }, tehlikeli: true),
+  ];
 
-  Future<void> _durum() async {
-    final askiya = _o.durum == 'active';
-    if (askiya &&
-        !await onayla(
-          context,
-          '${_o.ad} askıya alınsın mı?',
-          mesaj: 'Müşterinin tüm posta kutuları giriş yapamaz ve posta gönderemez; panel erişimi kapanır.',
-          evet: 'Askıya al',
-          tehlikeli: true,
-        )) {
-      return;
-    }
-    final v = await islem(
-      () => Uyg.api.patch('/api/v1/organizations/${_o.id}', {'status': askiya ? 'suspended' : 'active'}),
-      tamam: askiya ? 'Müşteri askıya alındı' : 'Müşteri etkinleştirildi',
-    );
-    if (v != null && mounted) {
-      setState(() => _o = Organizasyon.coz(harita(v)));
-      widget.degisti(_o);
-    }
-  }
+  String _altSatir(Musteri m) => [
+    m.p('contact_name'),
+    m.p('contact_phone'),
+    sektorler[m.p('sector')] ?? '',
+    if (m.bayiAdi != null) 'Bayi: ${m.bayiAdi}',
+  ].where((x) => x.isNotEmpty).join(' · ');
 
-  void _git(Widget ekran) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ekran));
+  String _kota(Musteri m) => '${boyutYaz(m.ayrilan)} / ${(m.toplamKota ?? 0) > 0 ? boyutYaz(m.toplamKota) : '∞'}';
 
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final o = _o;
-    final profil = [
-      for (final e in profilAlanlari.entries)
-        if (metin(o.profil[e.key]).trim().isNotEmpty) (e.value, metin(o.profil[e.key]).trim()),
-    ];
-    String sinir(int kullanilan, int? enFazla) => enFazla == null || enFazla <= 0 ? '$kullanilan / sınırsız' : '$kullanilan / $enFazla';
-    return RefreshIndicator.adaptive(
-      onRefresh: _yukle,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: [
-          Kutu(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    final aramaVar = _q.isNotEmpty || _durum.isNotEmpty || _sektor.isNotEmpty;
+    final ust = FiltreCubugu(
+      arama: AramaAlani(
+        ipucu: 'Ad, unvan, yetkili, e-posta, telefon, vergi no…',
+        ilk: _q,
+        degisti: (v) {
+          _q = v.trim();
+          _y.yenile();
+        },
+      ),
+      filtreler: [
+        FiltreDugmesi<String>(
+          etiket: 'Durum',
+          ikon: Icons.toggle_on_outlined,
+          secenekler: const [('', 'Tüm durumlar'), ('active', 'Aktif'), ('suspended', 'Askıda')],
+          secili: _durum,
+          secildi: (v) => _filtre(() => _durum = v),
+        ),
+        FiltreDugmesi<String>(
+          etiket: 'Sektör',
+          ikon: Icons.category_outlined,
+          secenekler: [('', 'Tüm sektörler'), for (final e in sektorler.entries) (e.key, e.value)],
+          secili: _sektor,
+          secildi: (v) => _filtre(() => _sektor = v),
+        ),
+      ],
+      etkinler: [
+        if (_durum.isNotEmpty) EtkinFiltre('Durum: ${_durum == 'active' ? 'Aktif' : 'Askıda'}', () => _filtre(() => _durum = '')),
+        if (_sektor.isNotEmpty) EtkinFiltre('Sektör: ${sektorler[_sektor] ?? _sektor}', () => _filtre(() => _sektor = '')),
+      ],
+    );
+    return Iskelet(
+      baslik: 'Müşteriler',
+      alt: 'Organizasyonlar, paketleri ve kullanım durumları',
+      yenile: _y.yenile,
+      birincil: MusteriYetki.olusturur ? BirincilEylem(Icons.add_business_rounded, 'Yeni müşteri', _yeni) : null,
+      govde: VeriTablosu<Musteri>(
+        yukleyici: _y,
+        ust: ust,
+        siralama: _siralama,
+        artan: _artan,
+        siralamaDegisti: (alan, artan) => _filtre(() {
+          _siralama = alan;
+          _artan = artan;
+        }),
+        bosMetin: aramaVar
+            ? 'Aramanızla eşleşen müşteri yok.'
+            : 'Henüz müşteri yok. İlk müşterinizi ekleyin; ardından alan adı ve posta kutuları tanımlayabilirsiniz.',
+        bosIkon: Icons.apartment_rounded,
+        onTap: _ac,
+        eylemler: _eylemler,
+        tabloEnAz: 820,
+        sutunlar: [
+          Sutun(
+            'Müşteri',
+            esnek: 5,
+            siralama: 'name',
+            hucre: (c, m) {
+              final alt = _altSatir(m);
+              return IkiSatir(
+                m.ad,
+                alt: alt.isEmpty ? null : alt,
+                sol: Avatar(m.ad, tohum: m.id, boyut: 32),
+              );
+            },
+          ),
+          Sutun(
+            'Paket',
+            esnek: 2,
+            hucre: (c, m) => m.paketAdi == null ? const SolukMetin('Paketsiz') : Text(m.paketAdi!, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          Sutun('Alan adı', esnek: 1, sagaYasla: true, hucre: (c, m) => _oran(c, m.alanSayisi, m.enFazlaAlan)),
+          Sutun('Kutu', esnek: 1, sagaYasla: true, hucre: (c, m) => _oran(c, m.kutuSayisi, m.enFazlaKutu)),
+          Sutun(
+            'Kota',
+            esnek: 2,
+            hucre: (c, m) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Avatar(o.ad, tohum: o.id, boyut: 48),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(o.ad, style: gosterim(18, agirlik: FontWeight.w700)),
-                          Text([o.paketAdi ?? 'Paket yok', if (o.bayiAdi != null) o.bayiAdi!].join(' · '), style: TextStyle(color: r.silik, fontSize: 12.5)),
-                        ],
-                      ),
-                    ),
-                    DurumRozeti(o.durum),
-                  ],
-                ),
-                const SizedBox(height: 14),
                 Text(
-                  'Depolama',
-                  style: TextStyle(color: r.soluk, fontSize: 12.5, fontWeight: FontWeight.w600),
+                  _kota(m),
+                  style: TextStyle(color: r.soluk, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 6),
-                KullanimCubugu(kullanilan: o.kullanilan, toplam: o.toplamKota != null && o.toplamKota! > 0 ? o.toplamKota! : o.ayrilan),
                 const SizedBox(height: 4),
-                Text('${boyutYaz(o.ayrilan)} posta kutularına tahsis edildi', style: TextStyle(color: r.silik, fontSize: 12)),
+                KullanimCubugu(kullanilan: m.ayrilan, toplam: m.toplamKota ?? 0, yazi: false, kalinlik: 5),
               ],
             ),
           ),
-          if (_hata != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Bant(_hata!, renk: Marka.gul, ikon: Icons.cloud_off_rounded),
-            ),
-          const Baslik('Paket kullanımı'),
-          Kutu(
-            child: Column(
-              children: [
-                BilgiSatiri('Alan adları', sinir(o.alanSayisi, o.enFazlaAlan)),
-                BilgiSatiri('Posta kutuları', sinir(o.kutuSayisi, o.enFazlaKutu)),
-                BilgiSatiri('Toplam kota', o.toplamKota == null || o.toplamKota! <= 0 ? 'Sınırsız' : boyutYaz(o.toplamKota!)),
-                BilgiSatiri('Kayıt tarihi', tamZaman(o.eklenme)),
-              ],
-            ),
+          Sutun(
+            'Durum',
+            esnek: 1,
+            siralama: 'status',
+            hucre: (c, m) => Align(alignment: Alignment.centerLeft, child: DurumRozeti(m.durum)),
           ),
-          const Baslik('Kısayollar'),
-          EylemSatiri(
-            ikon: Icons.language_rounded,
-            baslik: 'Alan adları',
-            ipucu: '${o.alanSayisi} alan adı',
-            onTap: () => _git(AlanAdlariEkrani(orgId: o.id, orgAdi: o.ad)),
-          ),
-          const SizedBox(height: 8),
-          EylemSatiri(
-            ikon: Icons.inbox_rounded,
-            baslik: 'Posta kutuları',
-            ipucu: '${o.kutuSayisi} posta kutusu',
-            onTap: () => _git(PostaKutulariEkrani(orgId: o.id, orgAdi: o.ad)),
-          ),
-          if (profil.isNotEmpty) ...[
-            const Baslik('İletişim ve fatura bilgileri'),
-            Kutu(
-              child: Column(children: [for (final (a, d) in profil) BilgiSatiri(a, d, kopyalanabilir: !a.startsWith('Not'))]),
-            ),
-          ],
-          if (Uyg.yetki('organizations.manage')) ...[
-            const Baslik('İşlemler'),
-            EylemSatiri(
-              ikon: o.durum == 'active' ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
-              baslik: o.durum == 'active' ? 'Müşteriyi askıya al' : 'Müşteriyi etkinleştir',
-              ipucu: o.durum == 'active' ? 'Giriş ve gönderim durur' : 'Hesap yeniden kullanıma açılır',
-              tehlikeli: o.durum == 'active',
-              onTap: _durum,
-            ),
-          ],
+          Sutun('Oluşturulma', esnek: 1, siralama: 'created_at', hucre: (c, m) => SolukMetin(kisaZaman(m.eklenme))),
         ],
+        kart: (c, m) => VeriKarti(
+          baslik: m.ad,
+          alt: _altSatir(m).isEmpty ? null : _altSatir(m),
+          sol: Avatar(m.ad, tohum: m.id, boyut: 36),
+          rozetler: [DurumRozeti(m.durum)],
+          alanlar: [
+            ('Paket', m.paketAdi ?? 'Paketsiz'),
+            ('Alan adı', '${m.alanSayisi} / ${sinirYaz(m.enFazlaAlan)}'),
+            ('Posta kutusu', '${m.kutuSayisi} / ${sinirYaz(m.enFazlaKutu)}'),
+            ('Kota', _kota(m)),
+          ],
+          eylemler: _eylemler(m),
+          onTap: () => _ac(m),
+        ),
       ),
     );
   }
-}
 
-class BayiListesi extends StatefulWidget {
-  const BayiListesi({super.key});
-  @override
-  State<BayiListesi> createState() => _BayiListesiState();
-}
-
-class _BayiListesiState extends State<BayiListesi> with AutomaticKeepAliveClientMixin {
-  List<Bayi>? _l;
-  String? _hata;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _yukle();
-  }
-
-  Future<void> _yukle() async {
-    try {
-      final v = await Uyg.api.get('/api/v1/resellers');
-      if (mounted) {
-        setState(() {
-          _l = haritalar(harita(v)['items']).map(Bayi.coz).toList();
-          _hata = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _hata = hataMetni(e));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    final l = _l;
-    return RefreshIndicator.adaptive(
-      onRefresh: _yukle,
-      child: _hata != null && l == null
-          ? ListView(
-              children: [SizedBox(height: 320, child: Durum.hata(_hata!, tekrar: _yukle))],
-            )
-          : l == null
-          ? const Durum.yukleniyor()
-          : l.isEmpty
-          ? ListView(
-              children: const [SizedBox(height: 320, child: Durum.bos('Henüz bayi yok.', ikon: Icons.storefront_rounded))],
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: l.length,
-              itemBuilder: (c, i) {
-                final b = l[i];
-                return ListeSatiri(
-                  sol: Avatar(b.ad, tohum: b.id),
-                  baslik: b.ad,
-                  alt: '${b.musteriSayisi} müşteri',
-                  alt2: 'Kayıt: ${kisaZaman(b.eklenme)}',
-                  sag: b.durum == 'active' ? null : DurumRozeti(b.durum),
-                  onTap: null,
-                );
-              },
-            ),
+  Widget _oran(BuildContext c, int n, int? enFazla) {
+    final dolu = enFazla != null && enFazla > 0 && n >= enFazla;
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$n',
+            style: TextStyle(fontWeight: FontWeight.w600, color: dolu ? Marka.kehribar : null),
+          ),
+          TextSpan(
+            text: ' / ${sinirYaz(enFazla)}',
+            style: TextStyle(color: c.r.silik),
+          ),
+        ],
+      ),
+      style: const TextStyle(fontSize: 13),
     );
   }
 }

@@ -26,7 +26,14 @@ class Konum {
   int get hashCode => Object.hash(tur, id);
 }
 
-const gorunumAdlari = {'starred': 'Yıldızlı', 'important': 'Önemli', 'unread': 'Okunmamışlar'};
+const gorunumAdlari = {
+  'all': 'Tüm postalar',
+  'starred': 'Yıldızlı',
+  'important': 'Önemli',
+  'unread': 'Okunmamışlar',
+  'attachments': 'Ekli iletiler',
+  'followup': 'Takip edilenler',
+};
 
 /// Uygulama genelindeki posta durumu: klasörler, etiketler, ayarlar, seçili konum.
 class PostaDurum extends ChangeNotifier {

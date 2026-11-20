@@ -3,15 +3,17 @@ import 'package:flutter/material.dart';
 
 import '../oturum.dart';
 import '../ortak/bilesenler.dart';
+import '../ortak/iskelet.dart';
 import '../ortak/sayfali.dart';
+import '../ortak/tablo.dart';
 import '../veri/denetim.dart';
 import '../veri/denetim_tablolari.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
-import 'ozet.dart' show tonRengi;
+import 'liste_ortak.dart';
 
-/// Denetim kayıtları (GET /audit-logs): sayfalı, aranabilir, okunur etiketlerle. Türkçe arama metni eylem
-/// etiketleriyle de eşleşir (q_actions), web panelindeki gibi.
+/// Denetim kayıtları (GET /audit-logs): zamana göre sıralanabilir tablo (telefonda kartlar), işlem grubu / tek işlem
+/// süzgeci ve aranabilir okunur etiketler. Türkçe arama metni eylem etiketleriyle de eşleşir (q_actions), web panelindeki gibi.
 class DenetimKayitlariEkrani extends StatefulWidget {
   const DenetimKayitlariEkrani({super.key});
   @override
@@ -21,11 +23,14 @@ class DenetimKayitlariEkrani extends StatefulWidget {
 class _DenetimKayitlariEkraniState extends State<DenetimKayitlariEkrani> {
   String _q = '';
   String _grup = '';
-  DenetimKaydi? _secili;
+  String _eylem = '';
+  bool _artan = false;
 
   late final _y = SayfaYukleyici<DenetimKaydi>((s, b) async {
     final eylemler = _q.isEmpty ? const <String>[] : eylemAra(_q);
-    final grupEylemleri = _grup.isEmpty
+    final suzgec = _eylem.isNotEmpty
+        ? [_eylem]
+        : _grup.isEmpty
         ? const <String>[]
         : [
             for (final e in denetimEylemleri.entries)
@@ -37,9 +42,11 @@ class _DenetimKayitlariEkraniState extends State<DenetimKayitlariEkrani> {
         q: {
           'page': '$s',
           'page_size': '$b',
+          'sort': 'at',
+          'order': _artan ? 'asc' : 'desc',
           if (_q.isNotEmpty) 'q': _q,
           if (eylemler.isNotEmpty) 'q_actions': eylemler.join(','),
-          if (grupEylemleri.isNotEmpty) 'action': grupEylemleri.join(','),
+          if (suzgec.isNotEmpty) 'action': suzgec.join(','),
         },
       ),
       DenetimKaydi.coz,
@@ -52,107 +59,119 @@ class _DenetimKayitlariEkraniState extends State<DenetimKayitlariEkrani> {
     super.dispose();
   }
 
-  void _ac(DenetimKaydi k) {
-    if (bolunmus(context)) {
-      setState(() => _secili = k);
-    } else {
-      sayfaAc(context, 'Kayıt ayrıntısı', DenetimDetay(k));
-    }
+  void _filtre(void Function() f) {
+    setState(f);
+    _y.yenile();
+  }
+
+  void _ac(DenetimKaydi k) => ayrintiAc(context, 'Kayıt ayrıntısı', DenetimDetay(k), genislik: 560);
+
+  Future<void> _eylemSec() async {
+    final l = [
+      for (final e in denetimEylemleri.entries)
+        if (_grup.isEmpty || e.value.$1 == _grup) (e.key, e.value.$2, denetimGruplari[e.value.$1]),
+    ]..sort((a, b) => a.$2.compareTo(b.$2));
+    final v = await secimYap<String>(context, baslik: 'İşlem türü', secenekler: [('', 'Tüm işlemler', null), ...l], secili: _eylem);
+    if (v != null) _filtre(() => _eylem = v);
   }
 
   @override
   Widget build(BuildContext context) {
     final r = context.r;
     final gruplar = {for (final e in denetimEylemleri.values) e.$1};
-    final liste = Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
-          child: Column(
-            children: [
-              AramaAlani(
-                ipucu: 'İşlem veya kişi ara…',
-                degisti: (v) {
-                  _q = v;
-                  _y.yenile();
-                },
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final (k, e) in [
-                      ('', 'Tümü'),
-                      for (final g in denetimGruplari.entries)
-                        if (gruplar.contains(g.key)) (g.key, g.value),
-                    ])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(e),
-                          selected: _grup == k,
-                          showCheckmark: false,
-                          onSelected: (_) {
-                            setState(() => _grup = k);
-                            _y.yenile();
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+    Widget simge(DenetimEylemi e) => CircleAvatar(
+      radius: 16,
+      backgroundColor: (_tonRengi(e.ton) ?? r.birincil).withValues(alpha: .12),
+      child: Icon(_grupIkonu(e.grup), size: 16, color: _tonRengi(e.ton) ?? r.birincil),
+    );
+    String kisi(DenetimKaydi k) => k.aktor.isEmpty ? 'sistem' : k.aktor;
+    String? taklit(DenetimKaydi k) => k.taklitci == null ? null : (k.taklitci == k.aktor ? 'müşteri görünümünde' : 'yönetici: ${k.taklitci}');
+    return Iskelet(
+      baslik: 'Denetim Kayıtları',
+      alt: 'Kim, ne zaman, hangi işlemi yaptı · kayıtlar değiştirilemez',
+      yenile: _y.yenile,
+      govde: VeriTablosu<DenetimKaydi>(
+        yukleyici: _y,
+        onTap: _ac,
+        siralama: 'at',
+        artan: _artan,
+        siralamaDegisti: (_, a) => _filtre(() => _artan = a),
+        bosMetin: 'Kayıt bulunamadı.',
+        bosIkon: Icons.receipt_long_rounded,
+        vurgulu: (k) => denetimEylemi(k.eylem).ton == 'danger',
+        ust: FiltreCubugu(
+          arama: AramaAlani(ipucu: 'İşlem veya kullanıcı ara…', degisti: (v) => _filtre(() => _q = v)),
+          filtreler: [
+            FiltreDugmesi<String>(
+              etiket: 'Grup',
+              ikon: Icons.category_outlined,
+              secenekler: [
+                ('', 'Tüm gruplar'),
+                for (final g in denetimGruplari.entries)
+                  if (gruplar.contains(g.key)) (g.key, g.value),
+              ],
+              secili: _grup,
+              secildi: (v) => _filtre(() {
+                _grup = v;
+                if (_eylem.isNotEmpty && v.isNotEmpty && denetimEylemleri[_eylem]?.$1 != v) _eylem = '';
+              }),
+            ),
+            ActionChip(
+              avatar: const Icon(Icons.manage_search_rounded, size: 16),
+              label: Text(_eylem.isEmpty ? 'İşlem türü' : denetimEylemi(_eylem).etiket),
+              onPressed: _eylemSec,
+            ),
+          ],
+          etkinler: [
+            if (_grup.isNotEmpty) EtkinFiltre('Grup: ${denetimGruplari[_grup] ?? _grup}', () => _filtre(() => _grup = '')),
+            if (_eylem.isNotEmpty) EtkinFiltre('İşlem: ${denetimEylemi(_eylem).etiket}', () => _filtre(() => _eylem = '')),
+          ],
         ),
-        Expanded(
-          child: SayfaliListe<DenetimKaydi>(
-            yukleyici: _y,
-            ayrac: false,
-            bosMetin: 'Kayıt bulunamadı.',
-            bosIkon: Icons.receipt_long_rounded,
-            oge: (c, k) {
+        sutunlar: [
+          Sutun('Zaman', genislik: 150, siralama: 'at', hucre: (c, k) => IkiSatir(tamZaman(k.zaman), alt: goreliZaman(k.zaman), kalin: false)),
+          Sutun(
+            'İşlem',
+            esnek: 4,
+            hucre: (c, k) {
               final e = denetimEylemi(k.eylem);
               final hedef = denetimHedefi(k.hedefTuru, k.hedefId, k.orgAdi, k.ayrintilar);
               final ozet = denetimOzeti(k.ayrintilar);
-              return ListeSatiri(
-                secili: _secili?.id == k.id && bolunmus(c),
-                onTap: () => _ac(k),
-                sol: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: (tonRengi(e.ton) ?? r.birincil).withValues(alpha: .12),
-                  child: Icon(_grupIkonu(e.grup), size: 18, color: tonRengi(e.ton) ?? r.birincil),
-                ),
-                baslik: e.etiket,
-                alt: [?hedef, if (ozet.isNotEmpty) ozet].join(' · '),
-                alt2: [
-                  k.aktor.isEmpty ? 'sistem' : k.aktor,
-                  if (k.taklitci != null) '(${k.taklitci} adına)',
-                  if (!Uyg.musteri && k.orgAdi != null) k.orgAdi!,
-                ].join(' · '),
-                sag: Tooltip(
-                  message: tamZaman(k.zaman),
-                  child: Text(goreliZaman(k.zaman), style: TextStyle(color: r.silik, fontSize: 11.5)),
-                ),
-              );
+              return IkiSatir(e.etiket, alt: [?hedef, if (ozet.isNotEmpty) ozet].join(' · '), sol: simge(e));
             },
           ),
-        ),
-      ],
-    );
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Denetim Kayıtları'),
-        actions: [IconButton(tooltip: 'Yenile', onPressed: _y.yenile, icon: const Icon(Icons.refresh_rounded))],
-      ),
-      body: AnaDetay(
-        liste: liste,
-        detay: _secili == null ? null : DenetimDetay(_secili!, key: ValueKey(_secili!.id)),
-        bosMetin: 'Ayrıntı için bir kayıt seçin',
+          Sutun('Kullanıcı', esnek: 3, hucre: (c, k) => IkiSatir(kisi(k), alt: taklit(k), kalin: false)),
+          if (!Uyg.musteri) Sutun('Müşteri', esnek: 2, hucre: (c, k) => SolukMetin(k.orgAdi ?? '')),
+          Sutun('IP', genislik: 130, hucre: (c, k) => SolukMetin(k.ip ?? '', mono: true)),
+        ],
+        kart: (c, k) {
+          final e = denetimEylemi(k.eylem);
+          final hedef = denetimHedefi(k.hedefTuru, k.hedefId, k.orgAdi, k.ayrintilar);
+          final ozet = denetimOzeti(k.ayrintilar);
+          return VeriKarti(
+            baslik: e.etiket,
+            alt: [?hedef, if (ozet.isNotEmpty) ozet].join(' · '),
+            sol: simge(e),
+            vurgulu: e.ton == 'danger',
+            alanlar: [
+              ('Zaman', tamZaman(k.zaman)),
+              ('Kullanıcı', kisi(k)),
+              if (taklit(k) != null) ('Görünüm', taklit(k)!),
+              if (!Uyg.musteri && k.orgAdi != null) ('Müşteri', k.orgAdi!),
+            ],
+            onTap: () => _ac(k),
+          );
+        },
       ),
     );
   }
 }
+
+/// Denetim işleminin tonuna göre renk (ozet.dart'taki ile aynı kural; o dosya ayrı yönetildiği için yerel kopya).
+Color? _tonRengi(String ton) => switch (ton) {
+  'danger' => Marka.gul,
+  'warning' => Marka.kehribar,
+  _ => null,
+};
 
 IconData _grupIkonu(String g) => switch (g) {
   'auth' => Icons.login_rounded,
@@ -191,7 +210,7 @@ class DenetimDetay extends StatelessWidget {
             children: [
               Text(
                 e.etiket,
-                style: gosterim(17, agirlik: FontWeight.w700, renk: tonRengi(e.ton)),
+                style: gosterim(17, agirlik: FontWeight.w700, renk: _tonRengi(e.ton)),
               ),
               Text(denetimGruplari[e.grup] ?? e.grup, style: TextStyle(color: r.silik, fontSize: 12.5)),
               const SizedBox(height: 10),

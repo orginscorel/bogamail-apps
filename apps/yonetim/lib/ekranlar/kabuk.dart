@@ -7,33 +7,75 @@ import '../oturum.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import 'bolumler.dart';
+import 'taklit_islemleri.dart';
+import '../ortak/tablo.dart' show trBuyuk;
 
-/// Ana kabuk: telefonda alt gezinme çubuğu (Özet, Alan Adları, Posta Kutuları, Kuyruk, Daha Fazla), geniş ekranda
-/// tüm bölümleri gösteren yan menü. Bildirime dokunulunca ilgili alarmı açar.
+/// Ana kabuk: geniş ekranda gruplu yan menü (rozetler, sürüm, çıkış), telefonda alt gezinme çubuğu (ilk dört bölüm)
+/// ve gruplu "Daha fazla" ekranı. Gövdenin üstünde müşteri görünümü ve güncelleme bantları yer alır.
+/// Açılışta ve uygulama öne geldiğinde güncelleme denetlenir, rozet sayaçları yenilenir.
 class Kabuk extends StatefulWidget {
   const Kabuk({super.key});
   @override
   State<Kabuk> createState() => _KabukState();
 }
 
-class _KabukState extends State<Kabuk> {
+class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   Bolum _bolum = Bolum.ozet;
   bool _dahaFazla = false;
   final _acilan = <Bolum>{Bolum.ozet};
   StreamSubscription<Map<String, dynamic>>? _push;
+  Timer? _rozetSayaci;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    kabukKurucu ??= () => const Kabuk();
     bolumIstegi.addListener(_istek);
     _pushHazirla();
+    Guncelleme.denetle(Uyg.api);
+    _rozetleriYenile();
+    _rozetSayaci = Timer.periodic(const Duration(minutes: 2), (_) => _rozetleriYenile());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     bolumIstegi.removeListener(_istek);
     _push?.cancel();
+    _rozetSayaci?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      Guncelleme.denetle(Uyg.api);
+      _rozetleriYenile();
+    }
+  }
+
+  /// Menü rozetleri: etkin alarm sayısı, kuyruk derinliği, karantinada bekleyen ileti.
+  Future<void> _rozetleriYenile() async {
+    Future<Object?> dene(Future<dynamic> Function() f) async {
+      try {
+        return await f();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final s = await Future.wait<Object?>([
+      dene(() => Uyg.api.get('/api/v1/alerts/active')),
+      Bolum.kuyruk.gorunur ? dene(() => Uyg.api.get('/api/v1/stats/overview')) : Future.value(null),
+      Bolum.karantina.gorunur ? dene(() => Uyg.api.get('/api/v1/quarantine', q: {'status': 'held'})) : Future.value(null),
+    ]);
+    if (!mounted) return;
+    final m = <Bolum, int>{};
+    if (s[0] != null) m[Bolum.alarmlar] = haritalar(harita(s[0])['items']).length;
+    if (s[1] != null) m[Bolum.kuyruk] = tamsayi(harita(s[1])['queue_depth']);
+    if (s[2] != null) m[Bolum.karantina] = tamsayi(harita(harita(s[2])['summary'])['held']);
+    bolumRozetleri.value = m;
   }
 
   Future<void> _pushHazirla() async {
@@ -87,6 +129,15 @@ class _KabukState extends State<Kabuk> {
     children: [for (final b in bolumler) _acilan.contains(b) ? KeyedSubtree(key: ValueKey(b), child: b.ekran()) : const SizedBox.shrink()],
   );
 
+  /// Bantlar (müşteri görünümü, güncelleme) + gövde.
+  Widget _bantli(Widget govde) => Column(
+    children: [
+      const TaklitBandi(),
+      GuncellemeBandi(api: Uyg.api),
+      Expanded(child: govde),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) =>
       ValueListenableBuilder(valueListenable: Uyg.ben, builder: (context, _, _) => context.genis ? _genis(context) : _dar(context));
@@ -95,34 +146,58 @@ class _KabukState extends State<Kabuk> {
     final alt = _altCubuk;
     if (!alt.contains(_bolum)) _bolum = alt.first;
     final secili = _dahaFazla ? alt.length : alt.indexOf(_bolum);
-    return Scaffold(
-      body: _dahaFazla
-          ? DahaFazlaEkrani(
-              haric: alt,
-              ac: (b) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => b.ekran())),
-            )
-          : _govde(alt),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: secili,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (i) => setState(() {
-          if (i == alt.length) {
-            _dahaFazla = true;
-          } else {
-            _dahaFazla = false;
-            _bolum = alt[i];
-            _acilan.add(_bolum);
-          }
-        }),
-        destinations: [
-          for (final b in alt) NavigationDestination(icon: Icon(b.ikon), selectedIcon: Icon(b.secikIkon), label: _kisa(b), tooltip: b.baslik),
-          const NavigationDestination(icon: Icon(Icons.menu_rounded), label: 'Daha Fazla', tooltip: 'Diğer bölümler ve ayarlar'),
-        ],
-      ),
+    return ValueListenableBuilder<Map<Bolum, int>>(
+      valueListenable: bolumRozetleri,
+      builder: (context, rozet, _) {
+        final digerRozet = [
+          for (final e in rozet.entries)
+            if (!alt.contains(e.key) && e.key.gorunur && e.key != Bolum.kuyruk) e.value,
+        ].fold(0, (a, b) => a + b);
+        Widget ikon(Bolum b, IconData i) {
+          final n = b == Bolum.kuyruk ? 0 : (rozet[b] ?? 0);
+          return n > 0 ? Badge(label: Text(n > 99 ? '99+' : '$n'), child: Icon(i)) : Icon(i);
+        }
+
+        return Scaffold(
+          body: _bantli(
+            _dahaFazla
+                ? DahaFazlaEkrani(
+                    haric: alt,
+                    ac: (b) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => b.ekran())),
+                  )
+                : _govde(alt),
+          ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: secili,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            onDestinationSelected: (i) => setState(() {
+              if (i == alt.length) {
+                _dahaFazla = true;
+              } else {
+                _dahaFazla = false;
+                _bolum = alt[i];
+                _acilan.add(_bolum);
+              }
+            }),
+            destinations: [
+              for (final b in alt) NavigationDestination(icon: ikon(b, b.ikon), selectedIcon: ikon(b, b.secikIkon), label: _kisa(b), tooltip: b.baslik),
+              NavigationDestination(
+                icon: digerRozet > 0 ? const Badge(smallSize: 8, child: Icon(Icons.menu_rounded)) : const Icon(Icons.menu_rounded),
+                label: 'Daha fazla',
+                tooltip: 'Diğer bölümler ve ayarlar',
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  String _kisa(Bolum b) => b == Bolum.kutular ? 'Kutular' : b.baslik;
+  String _kisa(Bolum b) => switch (b) {
+    Bolum.kutular => 'Kutular',
+    Bolum.alanlar => 'Alan adları',
+    _ => b.baslik,
+  };
 
   Widget _genis(BuildContext context) {
     final hepsi = Bolum.gorunenler;
@@ -132,24 +207,142 @@ class _KabukState extends State<Kabuk> {
       body: Row(
         children: [
           SizedBox(
-            width: 268,
-            child: NavigationDrawer(
-              elevation: 0,
-              backgroundColor: r.kart,
-              selectedIndex: hepsi.indexOf(_bolum),
-              onDestinationSelected: (i) => _ac(hepsi[i]),
-              tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+            width: 272,
+            child: YanMenu(secili: _bolum, ac: _ac),
+          ),
+          VerticalDivider(width: 1, color: r.kenar),
+          Expanded(child: _bantli(_govde(hepsi))),
+        ],
+      ),
+    );
+  }
+}
+
+/// Geniş ekran yan menüsü: panel başlığı, gruplu bölümler (uzun gruplar katlanır), rozetler, sürüm ve çıkış.
+class YanMenu extends StatefulWidget {
+  const YanMenu({super.key, required this.secili, required this.ac});
+  final Bolum secili;
+  final void Function(Bolum) ac;
+  @override
+  State<YanMenu> createState() => _YanMenuState();
+}
+
+class _YanMenuState extends State<YanMenu> {
+  /// Kullanıcının kapattığı gruplar (seçili bölümün grubu her zaman açıktır).
+  final _kapali = <BolumGrubu>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    return ColoredBox(
+      color: r.kart,
+      child: Column(
+        children: [
+          const PanelBasligi(dolgu: EdgeInsets.fromLTRB(16, 16, 14, 8)),
+          Expanded(
+            child: ValueListenableBuilder<Map<Bolum, int>>(
+              valueListenable: bolumRozetleri,
+              builder: (context, rozet, _) => ListView(
+                padding: const EdgeInsets.fromLTRB(10, 4, 10, 12),
+                children: [
+                  for (final (grup, bolumler) in Bolum.gruplar) ...[
+                    _grupBasligi(context, grup, bolumler),
+                    if (!_kapali.contains(grup) || bolumler.contains(widget.secili))
+                      for (final b in bolumler) _oge(context, b, rozet[b] ?? 0),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, color: r.kenar),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 6, 8),
+            child: Row(
               children: [
-                const PanelBasligi(),
-                const SizedBox(height: 8),
-                for (final b in hepsi) NavigationDrawerDestination(icon: Icon(b.ikon), selectedIcon: Icon(b.secikIkon), label: Text(b.baslik)),
-                const SizedBox(height: 12),
+                const Expanded(child: SurumEtiketi()),
+                IconButton(
+                  tooltip: 'Ayarlar ve profil',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => widget.ac(Bolum.ayarlar),
+                  icon: Icon(Icons.settings_outlined, size: 20, color: r.soluk),
+                ),
+                IconButton(
+                  tooltip: 'Çıkış yap',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => cikisOnayi(context),
+                  icon: const Icon(Icons.logout_rounded, size: 20, color: Marka.gul),
+                ),
               ],
             ),
           ),
-          VerticalDivider(width: 1, color: r.kenar),
-          Expanded(child: _govde(hepsi)),
         ],
+      ),
+    );
+  }
+
+  Widget _grupBasligi(BuildContext context, BolumGrubu g, List<Bolum> bolumler) {
+    final r = context.r;
+    final katlanir = bolumler.length > 4 && !bolumler.contains(widget.secili);
+    final kapali = _kapali.contains(g) && katlanir;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: katlanir ? () => setState(() => kapali ? _kapali.remove(g) : _kapali.add(g)) : null,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 14, 8, 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                trBuyuk(g.baslik),
+                style: TextStyle(color: r.silik, fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+              ),
+            ),
+            if (katlanir) Icon(kapali ? Icons.expand_more_rounded : Icons.expand_less_rounded, size: 16, color: r.silik),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _oge(BuildContext context, Bolum b, int rozet) {
+    final r = context.r;
+    final secili = b == widget.secili;
+    final kritik = b == Bolum.alarmlar || b == Bolum.karantina;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Material(
+        color: secili ? r.vurguYumusak : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => widget.ac(b),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Row(
+              children: [
+                Icon(secili ? b.secikIkon : b.ikon, size: 20, color: secili ? r.vurgu : r.soluk),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    b.baslik,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13.5, fontWeight: secili ? FontWeight.w700 : FontWeight.w500, color: secili ? r.metin : r.soluk),
+                  ),
+                ),
+                if (rozet > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                    decoration: BoxDecoration(color: kritik ? Marka.gul : r.ic, borderRadius: BorderRadius.circular(20)),
+                    child: Text(
+                      rozet > 999 ? '999+' : sayiYaz(rozet),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kritik ? Colors.white : r.soluk),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -164,7 +357,7 @@ class PanelBasligi extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.r;
     final ad = Uyg.ad.isNotEmpty ? Uyg.ad : Uyg.adres;
-    final taklit = Uyg.ben.value?['impersonation'] != null;
+    final taklit = Uyg.taklit != null;
     return Padding(
       padding: dolgu,
       child: Column(
@@ -181,17 +374,17 @@ class PanelBasligi extends StatelessWidget {
                     Text('BogaMail', style: gosterim(16, agirlik: FontWeight.w800)),
                     Text(
                       'YÖNETİM',
-                      style: TextStyle(color: r.silik, fontSize: 10.5, letterSpacing: 2, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: r.vurgu, fontSize: 10.5, letterSpacing: 2, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(14)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -199,14 +392,14 @@ class PanelBasligi extends StatelessWidget {
                   Uyg.panelAdi,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
                 ),
                 if (Uyg.panelAlt.isNotEmpty)
                   Text(
                     Uyg.panelAlt,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: r.silik, fontSize: 12),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 const SizedBox(height: 10),
                 Row(
@@ -221,13 +414,13 @@ class PanelBasligi extends StatelessWidget {
                             ad,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                           Text(
                             rolEtiketi(Uyg.rol),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: r.silik, fontSize: 11.5),
+                            style: const TextStyle(color: Color(0xFF7CF0B5), fontSize: 11.5, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -244,7 +437,7 @@ class PanelBasligi extends StatelessWidget {
   }
 }
 
-/// Telefon: alt çubukta olmayan bölümler ve hesap.
+/// Telefon: alt çubukta olmayan bölümler (gruplu, rozetli) ve hesap.
 class DahaFazlaEkrani extends StatelessWidget {
   const DahaFazlaEkrani({super.key, required this.haric, required this.ac});
   final List<Bolum> haric;
@@ -253,63 +446,91 @@ class DahaFazlaEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final liste = [
-      for (final b in Bolum.gorunenler)
-        if (!haric.contains(b) && b != Bolum.ayarlar) b,
+    bool uygun(Bolum b) => !haric.contains(b) && b != Bolum.ayarlar;
+    final gruplar = [
+      for (final (g, l) in Bolum.gruplar)
+        if (l.any(uygun)) (g, l.where(uygun).toList()),
     ];
     return Scaffold(
-      appBar: AppBar(title: const Text('Daha Fazla')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-        children: [
-          const PanelBasligi(dolgu: EdgeInsets.fromLTRB(4, 0, 4, 8)),
-          if (liste.isNotEmpty) ...[
-            const Baslik('Bölümler'),
+      appBar: AppBar(title: const Text('Daha fazla')),
+      body: ValueListenableBuilder<Map<Bolum, int>>(
+        valueListenable: bolumRozetleri,
+        builder: (context, rozet, _) => ListView(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          children: [
+            const PanelBasligi(dolgu: EdgeInsets.fromLTRB(4, 0, 4, 8)),
+            for (final (g, liste) in gruplar) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
+                child: Text(trBuyuk(g.baslik),
+                    style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              ),
+              Kutu(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    for (final (i, b) in liste.indexed) ...[
+                      if (i > 0) const Divider(height: 1, indent: 56),
+                      ListTile(
+                        leading: Icon(b.ikon, color: r.birincil),
+                        title: Text(b.baslik),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if ((rozet[b] ?? 0) > 0)
+                              Badge(
+                                backgroundColor: b == Bolum.kuyruk ? r.ic : Marka.gul,
+                                textColor: b == Bolum.kuyruk ? r.soluk : Colors.white,
+                                label: Text(sayiYaz(rozet[b])),
+                              ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
+                        onTap: () => ac(b),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            const Baslik('Hesap'),
             Kutu(
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  for (final (i, b) in liste.indexed) ...[
-                    if (i > 0) const Divider(height: 1, indent: 56),
-                    ListTile(
-                      leading: Icon(b.ikon, color: r.birincil),
-                      title: Text(b.baslik),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => ac(b),
-                    ),
-                  ],
+                  ListTile(
+                    leading: Icon(Bolum.ayarlar.ikon, color: r.birincil),
+                    title: const Text('Ayarlar ve profil'),
+                    subtitle: const Text('Tema, bildirimler, oturumlar, güncelleme'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => ac(Bolum.ayarlar),
+                  ),
+                  const Divider(height: 1, indent: 56),
+                  ListTile(
+                    leading: const Icon(Icons.logout_rounded, color: Marka.gul),
+                    title: Text(Uyg.taklit != null ? 'Görünümden çık' : 'Çıkış yap', style: const TextStyle(color: Marka.gul)),
+                    onTap: () => cikisOnayi(context),
+                  ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            const SurumEtiketi(ortala: true),
           ],
-          const Baslik('Hesap'),
-          Kutu(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: Icon(Bolum.ayarlar.ikon, color: r.birincil),
-                  title: const Text('Ayarlar ve profil'),
-                  subtitle: const Text('Tema, bildirimler, oturumlar'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => ac(Bolum.ayarlar),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(Icons.logout_rounded, color: Marka.gul),
-                  title: const Text('Çıkış yap', style: TextStyle(color: Marka.gul)),
-                  onTap: () => cikisOnayi(context),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 Future<void> cikisOnayi(BuildContext context) async {
+  if (Uyg.taklit != null) {
+    if (await onayla(context, 'Görünümden çıkılsın mı?', mesaj: 'Kendi yönetici panelinize dönersiniz.', evet: 'Görünümden çık')) {
+      await gorunumdenCik();
+    }
+    return;
+  }
   if (await onayla(
     context,
     'Çıkış yapılsın mı?',

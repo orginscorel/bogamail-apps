@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../oturum.dart';
 import '../ortak/bilesenler.dart';
+import '../ortak/iskelet.dart';
 import '../ortak/trafik_grafigi.dart';
 import '../veri/bicim.dart';
 import '../veri/denetim.dart';
@@ -12,8 +13,10 @@ import '../veri/modeller.dart';
 import '../veri/operasyon.dart';
 import 'bolumler.dart';
 
-/// Gösterge paneli (web: admin/(panel)/page.tsx). Her değer canlı bir uç noktadan gelir; platform genelindeki kartlar
-/// (sunucu, teslimat motoru) yalnızca süper yöneticiye gösterilir.
+/// Gösterge paneli (web: admin/(panel)/page.tsx). Her değer canlı bir uç noktadan gelir: gösterge kartları (önceki
+/// 24 saate göre değişimle), trafik grafiği, dikkat gerektirenler, kuyruk ve karantina özeti, sistem sağlığı, son
+/// uyarılar, son işlemler ve hızlı işlemler. Platform genelindeki kartlar (sunucu, teslimat motoru) yalnızca süper
+/// yöneticiye gösterilir. Geniş ekranda ızgara, telefonda alt alta.
 class OzetEkrani extends StatefulWidget {
   const OzetEkrani({super.key});
   @override
@@ -25,15 +28,20 @@ class _OzetEkraniState extends State<OzetEkrani> {
   String? _hata;
   List<TrafikDilimi>? _trafik;
   int _saat = 24;
+
+  /// Son 48 saatin saatlik trafiği: bugünkü değerleri önceki 24 saatle karşılaştırmak için.
+  List<TrafikDilimi>? _iki;
   List<EtkinAlarm>? _alarmlar;
+  List<AlarmOlayi>? _alarmGecmisi;
   List<Map<String, dynamic>>? _saglik;
   DateTime? _saglikZamani;
   Map<String, dynamic>? _sistem;
   Map<String, dynamic>? _motor;
+  Map<String, dynamic>? _karantina;
   List<DenetimKaydi>? _islemler;
   bool _yukleniyor = false;
 
-  bool get _platform => Uyg.platformYoneticisi && Uyg.ben.value?['impersonation'] == null;
+  bool get _platform => Uyg.platformYoneticisi && Uyg.taklit == null;
 
   @override
   void initState() {
@@ -60,6 +68,9 @@ class _OzetEkraniState extends State<OzetEkrani> {
       _platform ? _dene(() => api.get('/api/v1/system')) : Future.value(null),
       _platform ? _dene(() => api.get('/api/v1/outbound/engine')) : Future.value(null),
       Uyg.yetki('audit.view') ? _dene(() => api.get('/api/v1/audit-logs', q: {'page_size': '6'})) : Future.value(null),
+      _dene(() => api.get('/api/v1/stats/traffic', q: {'hours': '48'})),
+      Bolum.karantina.gorunur ? _dene(() => api.get('/api/v1/quarantine', q: {'status': 'held'})) : Future.value(null),
+      _dene(() => api.get('/api/v1/alerts/history', q: {'limit': '5'})),
     ]);
     if (!mounted) return;
     setState(() {
@@ -81,6 +92,15 @@ class _OzetEkraniState extends State<OzetEkrani> {
       _sistem = s.isEmpty ? null : s.first;
       _motor = sonuc[5] == null ? null : harita(sonuc[5]);
       if (sonuc[6] != null) _islemler = Sayfa.coz(sonuc[6], DenetimKaydi.coz).ogeler;
+      if (sonuc[7] != null) _iki = TrafikDilimi.coz(sonuc[7]);
+      _karantina = sonuc[8] == null ? null : harita(sonuc[8]);
+      if (sonuc[9] != null) _alarmGecmisi = haritalar(harita(sonuc[9])['items']).map(AlarmOlayi.coz).toList();
+      // Kabuk rozetlerini de tazele.
+      final rozet = Map<Bolum, int>.from(bolumRozetleri.value);
+      if (_alarmlar != null) rozet[Bolum.alarmlar] = _alarmlar!.length;
+      if (_ozet?.kuyruk != null) rozet[Bolum.kuyruk] = _ozet!.kuyruk!;
+      if (_karantina != null) rozet[Bolum.karantina] = tamsayi(harita(_karantina!['summary'])['held']);
+      bolumRozetleri.value = rozet;
     });
   }
 
@@ -93,6 +113,9 @@ class _OzetEkraniState extends State<OzetEkrani> {
     if (mounted && saat == _saat) setState(() => _trafik = v == null ? [] : TrafikDilimi.coz(v));
   }
 
+  /// Son 24 saat ile önceki 24 saatin yüzde farkı ([f] ile seçilen sayaç).
+  double? _degisim(int Function(TrafikDilimi) f) => ozetDegisimi(_iki, f);
+
   String _selam() {
     final h = DateTime.now().hour;
     final p = h < 6 ? 'İyi geceler' : (h < 12 ? 'Günaydın' : (h < 18 ? 'İyi günler' : 'İyi akşamlar'));
@@ -102,125 +125,207 @@ class _OzetEkraniState extends State<OzetEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    final genislik = MediaQuery.sizeOf(context).width;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Özet'),
-        actions: [
-          IconButton(
-            tooltip: 'Yenile',
-            onPressed: _yukleniyor ? null : _yukle,
-            icon: _yukleniyor ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2)) : const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
-      body: _ozet == null && _hata == null
+    return Iskelet(
+      baslik: 'Özet',
+      alt: '${Uyg.panelAdi} · ${DateFormat('d MMMM EEEE', 'tr_TR').format(DateTime.now())}',
+      eylemler: [
+        IconButton(
+          tooltip: 'Yenile',
+          onPressed: _yukleniyor ? null : _yukle,
+          icon: _yukleniyor ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2)) : const Icon(Icons.refresh_rounded),
+        ),
+      ],
+      govde: _ozet == null && _hata == null
           ? const Durum.yukleniyor()
           : _ozet == null
           ? Durum.hata(_hata!, tekrar: _yukle)
           : RefreshIndicator.adaptive(
               onRefresh: _yukle,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(genislik >= 700 ? 24 : 12, 0, genislik >= 700 ? 24 : 12, 28),
-                children: _icerik(context, _ozet!),
-              ),
+              child: IcerikListesi(enFazla: 1500, children: _icerik(context, _ozet!)),
             ),
     );
   }
 
   List<Widget> _icerik(BuildContext context, Ozet o) {
-    final r = context.r;
     final genis = MediaQuery.sizeOf(context).width >= 1200;
-    final alarmSay = _alarmlar?.length;
+    Widget ikili(Widget a, Widget? b, {int sol = 2}) => b == null
+        ? a
+        : genis
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: sol, child: a),
+              const SizedBox(width: 14),
+              Expanded(child: b),
+            ],
+          )
+        : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [a, const SizedBox(height: 14), b]);
     return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_selam(), style: gosterim(22, agirlik: FontWeight.w700)),
-            Text('${Uyg.panelAdi} · ${DateFormat('d MMMM EEEE', 'tr_TR').format(DateTime.now())} · canlı veri', style: TextStyle(color: r.silik, fontSize: 13)),
-          ],
-        ),
-      ),
+      _karsilama(context),
+      const SizedBox(height: 14),
       if (_hata != null)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Bant('Özet yenilenemedi: $_hata', renk: Marka.gul, ikon: Icons.cloud_off_rounded),
         ),
-      Izgara(
-        enAz: 160,
-        children: [
-          if (Uyg.ortak)
-            IstatistikKarti(
-              ikon: Icons.apartment_rounded,
-              etiket: 'Müşteriler',
-              deger: sayiYaz(o.musteriler),
-              alt: 'kayıtlı müşteri',
-              onTap: () => bolumeGit(Bolum.musteriler),
-            ),
-          IstatistikKarti(
-            ikon: Icons.language_rounded,
-            etiket: 'Alan adları',
-            deger: sayiYaz(o.alanlar),
-            alt: '${o.bekleyenAlanlar} bekliyor · ${o.gatewayAlanlari} gateway',
-            onTap: () => bolumeGit(Bolum.alanlar),
-          ),
-          if (Bolum.kutular.gorunur)
-            IstatistikKarti(
-              ikon: Icons.inbox_rounded,
-              etiket: 'Posta kutuları',
-              deger: sayiYaz(o.aktifKutular),
-              alt: 'toplam ${sayiYaz(o.kutular)}',
-              onTap: () => bolumeGit(Bolum.kutular),
-            ),
-          IstatistikKarti(
-            ikon: Icons.storage_rounded,
-            etiket: 'Depolama',
-            deger: boyutYaz(o.kullanilan),
-            ek: KullanimCubugu(kullanilan: o.kullanilan, toplam: o.ayrilan, yazi: false, kalinlik: 5),
-            alt: '${boyutYaz(o.ayrilan)} tahsis',
-          ),
-          IstatistikKarti(
-            ikon: Icons.format_list_numbered_rounded,
-            etiket: 'Kuyruk',
-            deger: o.kuyruk == null ? '—' : sayiYaz(o.kuyruk),
-            alt: o.kuyruk == null ? (o.yok['queue_depth'] ?? 'veri yok') : 'bekleyen ileti',
-            onTap: Bolum.kuyruk.gorunur ? () => bolumeGit(Bolum.kuyruk) : null,
-          ),
-          IstatistikKarti(
-            ikon: Icons.notifications_active_rounded,
-            etiket: 'Etkin uyarılar',
-            deger: alarmSay == null ? '—' : sayiYaz(alarmSay),
-            alt: 'eşik aşan kurallar',
-            renk: (alarmSay ?? 0) > 0 ? Marka.kehribar : null,
-            onTap: () => bolumeGit(Bolum.alarmlar),
-          ),
-        ],
-      ),
+      _kpiIzgarasi(o),
       const SizedBox(height: 14),
-      if (genis)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 2, child: _trafikKarti(o)),
-            const SizedBox(width: 14),
-            Expanded(child: _dikkatKarti(o)),
-          ],
-        )
-      else ...[
-        _trafikKarti(o),
-        const SizedBox(height: 14),
-        _dikkatKarti(o),
-      ],
+      ikili(_trafikKarti(o), _dikkatKarti(o)),
+      const SizedBox(height: 14),
+      ikili(_kuyrukKarantinaKarti(o), _saglik == null ? null : _saglikKarti(), sol: 1),
       if (_platform && (_sistem != null || _motor != null)) ...[
         const SizedBox(height: 14),
-        Izgara(enAz: 340, children: [if (_sistem != null) _sunucuKarti(_sistem!), if (_motor != null) _motorKarti(_motor!)]),
+        Izgara(enAz: 380, children: [if (_sistem != null) _sunucuKarti(_sistem!), if (_motor != null) _motorKarti(_motor!)]),
       ],
       const SizedBox(height: 14),
-      Izgara(enAz: 340, children: [if (_saglik != null) _saglikKarti(), if (_islemler != null) _islemlerKarti()]),
+      Izgara(enAz: 380, children: [if (_alarmGecmisi != null) _sonUyarilarKarti(), if (_islemler != null) _islemlerKarti()]),
     ];
+  }
+
+  Widget _karsilama(BuildContext context) {
+    final r = context.r;
+    final hizli = <(IconData, String, VoidCallback)>[
+      if (Bolum.kutular.gorunur && Uyg.yetki('mailboxes.manage')) (Icons.person_add_alt_rounded, 'Posta kutuları', () => bolumeGit(Bolum.kutular)),
+      if (Bolum.alanlar.gorunur) (Icons.add_link_rounded, 'Alan adları', () => bolumeGit(Bolum.alanlar)),
+      if (Bolum.musteriler.gorunur) (Icons.apartment_rounded, 'Müşteriler', () => bolumeGit(Bolum.musteriler)),
+      if (Bolum.takip.gorunur) (Icons.manage_search_rounded, 'Mesaj takibi', () => bolumeGit(Bolum.takip)),
+      if (Bolum.kuyruk.gorunur) (Icons.format_list_numbered_rounded, 'Kuyruk', () => bolumeGit(Bolum.kuyruk)),
+      if (Bolum.denetim.gorunur) (Icons.receipt_long_rounded, 'Denetim', () => bolumeGit(Bolum.denetim)),
+    ];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(20), boxShadow: r.golge),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_selam(), style: gosterim(22, agirlik: FontWeight.w700, renk: Colors.white)),
+                    const SizedBox(height: 2),
+                    Text('${Uyg.panelAdi} · canlı veri', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  ],
+                ),
+              ),
+              if ((_alarmlar ?? const []).isEmpty)
+                const Rozet('Her şey yolunda', renk: Marka.yesil, ikon: Icons.check_circle_rounded)
+              else
+                Rozet('${_alarmlar!.length} etkin uyarı', renk: Marka.kehribar, ikon: Icons.warning_amber_rounded),
+            ],
+          ),
+          if (hizli.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final (i, e, f) in hizli)
+                  ActionChip(
+                    avatar: Icon(i, size: 17, color: Colors.white),
+                    label: Text(e),
+                    labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12.5),
+                    backgroundColor: Colors.white.withValues(alpha: .12),
+                    side: BorderSide(color: Colors.white.withValues(alpha: .22)),
+                    onPressed: f,
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _kpiIzgarasi(Ozet o) {
+    final alarmSay = _alarmlar?.length;
+    final oran = o.teslimOrani;
+    final karantina = _karantina == null ? null : tamsayi(harita(_karantina!['summary'])['held']);
+    return Izgara(
+      enAz: 210,
+      children: [
+        if (Uyg.ortak)
+          KpiKarti(
+            ikon: Icons.apartment_rounded,
+            etiket: 'Müşteriler',
+            deger: sayiYaz(o.musteriler),
+            alt: 'kayıtlı müşteri',
+            renk: Marka.mavi,
+            onTap: Bolum.musteriler.gorunur ? () => bolumeGit(Bolum.musteriler) : null,
+          ),
+        KpiKarti(
+          ikon: Icons.language_rounded,
+          etiket: 'Alan adları',
+          deger: sayiYaz(o.alanlar),
+          alt: '${o.bekleyenAlanlar} doğrulama bekliyor · ${o.gatewayAlanlari} gateway',
+          renk: Marka.gok,
+          onTap: () => bolumeGit(Bolum.alanlar),
+        ),
+        if (Bolum.kutular.gorunur)
+          KpiKarti(
+            ikon: Icons.inbox_rounded,
+            etiket: 'Posta kutuları',
+            deger: sayiYaz(o.aktifKutular),
+            alt: 'aktif · toplam ${sayiYaz(o.kutular)}',
+            renk: Marka.zumrut,
+            onTap: () => bolumeGit(Bolum.kutular),
+          ),
+        KpiKarti(
+          ikon: Icons.storage_rounded,
+          etiket: 'Depolama',
+          deger: boyutYaz(o.kullanilan),
+          ek: KullanimCubugu(kullanilan: o.kullanilan, toplam: o.ayrilan, yazi: false, kalinlik: 5),
+          alt: '${boyutYaz(o.ayrilan)} tahsis edildi',
+          renk: Marka.lavanta,
+          onTap: Bolum.depolama.gorunur ? () => bolumeGit(Bolum.depolama) : null,
+        ),
+        KpiKarti(
+          ikon: Icons.move_to_inbox_rounded,
+          etiket: 'Alınan (24 saat)',
+          deger: sayiYaz(o.alinan),
+          degisim: _degisim((d) => d.kabul),
+          alt: '${sayiYaz(o.reddedilen)} reddedildi · ${sayiYaz(o.spam)} spam',
+          renk: Marka.mavi,
+          onTap: Bolum.takip.gorunur ? () => bolumeGit(Bolum.takip) : null,
+        ),
+        KpiKarti(
+          ikon: Icons.mark_email_read_rounded,
+          etiket: 'Teslim başarısı',
+          deger: oran == null ? '—' : yuzdeYaz(oran),
+          degisim: _degisim((d) => d.teslim),
+          alt: oran == null ? (o.yok['delivery_success_rate'] ?? 'veri yok') : '${sayiYaz(o.teslim)} teslim · ${sayiYaz(o.basarisiz)} başarısız',
+          renk: oran == null || oran >= 90 ? Marka.zumrut : Marka.kehribar,
+          onTap: Bolum.teslimatSorunlari.gorunur ? () => bolumeGit(Bolum.teslimatSorunlari) : null,
+        ),
+        KpiKarti(
+          ikon: Icons.format_list_numbered_rounded,
+          etiket: 'Kuyruk',
+          deger: o.kuyruk == null ? '—' : sayiYaz(o.kuyruk),
+          alt: o.kuyruk == null ? (o.yok['queue_depth'] ?? 'veri yok') : 'teslim bekleyen ileti',
+          renk: (o.kuyruk ?? 0) > 100 ? Marka.kehribar : Marka.grafitAcik,
+          onTap: Bolum.kuyruk.gorunur ? () => bolumeGit(Bolum.kuyruk) : null,
+        ),
+        if (karantina != null)
+          KpiKarti(
+            ikon: Icons.shield_rounded,
+            etiket: 'Karantina',
+            deger: sayiYaz(karantina),
+            alt: 'bekleyen ileti',
+            renk: karantina > 0 ? Marka.kehribar : Marka.zumrut,
+            onTap: () => bolumeGit(Bolum.karantina),
+          ),
+        KpiKarti(
+          ikon: Icons.notifications_active_rounded,
+          etiket: 'Etkin uyarılar',
+          deger: alarmSay == null ? '—' : sayiYaz(alarmSay),
+          alt: 'eşiği aşan kural',
+          renk: (alarmSay ?? 0) > 0 ? Marka.gul : Marka.zumrut,
+          onTap: () => bolumeGit(Bolum.alarmlar),
+        ),
+      ],
+    );
   }
 
   Widget _trafikKarti(Ozet o) {
@@ -236,7 +341,6 @@ class _OzetEkraniState extends State<OzetEkrani> {
         ],
       ),
     );
-    final oran = o.teslimOrani;
     return BolumKarti(
       baslik: 'Posta trafiği',
       ikon: Icons.show_chart_rounded,
@@ -253,24 +357,15 @@ class _OzetEkraniState extends State<OzetEkrani> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Bugün',
-            style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600, fontSize: 12.5),
-          ),
-          const SizedBox(height: 6),
           Wrap(
             spacing: 22,
             runSpacing: 10,
             children: [
-              stat('Alınan', sayiYaz(o.alinan)),
               stat('Teslim edilen', sayiYaz(o.teslim)),
-              stat('Reddedilen', sayiYaz(o.reddedilen)),
               stat('Gönderilen', sayiYaz(o.gonderilen), ipucu: 'Kimlik doğrulamalı gönderim (alıcı sayısı)'),
+              stat('Reddedilen', sayiYaz(o.reddedilen)),
               stat('Spam', sayiYaz(o.spam), ipucu: 'Gereksiz klasörüne düşen + reddedilen'),
               if ((o.gateway ?? 0) > 0 || o.gatewayAlanlari > 0) stat('Gateway', sayiYaz(o.gateway), ipucu: 'Müşteri sunucusuna iletilen'),
-              oran != null
-                  ? stat('Teslim başarısı', yuzdeYaz(oran), ipucu: '${o.basarisiz ?? 0} başarısız', renk: oran < 90 ? Marka.kehribar : Marka.zumrut)
-                  : stat('Teslim başarısı', '—', ipucu: o.yok['delivery_success_rate']),
             ],
           ),
           const SizedBox(height: 16),
@@ -291,14 +386,16 @@ class _OzetEkraniState extends State<OzetEkrani> {
       ));
     }
     final e = harita(_motor?['engine']);
-    if (mantik(e['bulk_paused'])) maddeler.add((Marka.gul, 'Toplu gönderim durduruldu', metinYa(e['pause_reason']), Bolum.kuyruk));
+    if (mantik(e['bulk_paused'])) maddeler.add((Marka.gul, 'Toplu gönderim durduruldu', metinYa(e['pause_reason']), Bolum.teslimatKontrol));
     for (final b in haritalar(_motor?['brakes']).where((b) => mantik(b['active'], true))) {
       final kim = metinYa(b['mailbox']) ?? metinYa(b['organization_name']) ?? 'platform';
-      maddeler.add((Marka.kehribar, 'Gönderim freni: $kim', metinYa(b['reason']), Bolum.kuyruk));
+      maddeler.add((Marka.kehribar, 'Gönderim freni: $kim', metinYa(b['reason']), Bolum.teslimatKontrol));
     }
     final bekletilen = tamsayi(harita(e['queued'])['held']);
     if (bekletilen > 0) maddeler.add((Marka.kehribar, '$bekletilen ileti bekletiliyor', 'Kuyrukta onay ya da fren bekleyen iletiler', Bolum.kuyruk));
-    if (o.bekleyenAlanlar > 0) maddeler.add((Marka.mor, '${o.bekleyenAlanlar} alan adı DNS doğrulaması bekliyor', null, Bolum.alanlar));
+    final karantina = _karantina == null ? 0 : tamsayi(harita(_karantina!['summary'])['held']);
+    if (karantina > 0) maddeler.add((Marka.kehribar, '$karantina ileti karantinada', 'Serbest bırakma ya da silme kararı bekliyor', Bolum.karantina));
+    if (o.bekleyenAlanlar > 0) maddeler.add((Marka.mavi, '${o.bekleyenAlanlar} alan adı DNS doğrulaması bekliyor', null, Bolum.alanlar));
     maddeler.sort((a, b) => _sira(a.$1).compareTo(_sira(b.$1)));
     final r = context.r;
     return BolumKarti(
@@ -317,25 +414,20 @@ class _OzetEkraniState extends State<OzetEkrani> {
                       padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
                       child: Row(
                         children: [
-                          Icon(Icons.error_outline_rounded, size: 18, color: renk),
+                          Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(color: renk.withValues(alpha: .12), borderRadius: BorderRadius.circular(9)),
+                            child: Icon(Icons.priority_high_rounded, size: 17, color: renk),
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  baslik,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
-                                ),
+                                Text(baslik, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                                 if (ayrinti != null && ayrinti.isNotEmpty)
-                                  Text(
-                                    ayrinti,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: r.silik, fontSize: 12),
-                                  ),
+                                  Text(ayrinti, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -345,6 +437,108 @@ class _OzetEkraniState extends State<OzetEkrani> {
                     ),
                   ),
                 if (maddeler.length > 8) Text('+${maddeler.length - 8} madde daha', style: TextStyle(color: r.silik, fontSize: 12)),
+              ],
+            ),
+    );
+  }
+
+  Widget _kuyrukKarantinaKarti(Ozet o) {
+    final r = context.r;
+    final e = harita(harita(_motor?['engine'])['queued']);
+    final ks = harita(_karantina?['summary']);
+    Widget kutu(String etiket, String deger, IconData ikon, Color renk, Bolum? b) => Expanded(
+      child: Material(
+        color: r.ic,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: b != null && b.gorunur ? () => bolumeGit(b) : null,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(ikon, size: 18, color: renk),
+                const SizedBox(height: 8),
+                Text(deger, style: gosterim(20)),
+                Text(etiket, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: r.silik, fontSize: 11.5)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return BolumKarti(
+      baslik: 'Kuyruk ve karantina',
+      ikon: Icons.inventory_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              kutu('Kuyrukta', o.kuyruk == null ? '—' : sayiYaz(o.kuyruk), Icons.format_list_numbered_rounded, Marka.mavi, Bolum.kuyruk),
+              const SizedBox(width: 8),
+              kutu('Başarısız (bugün)', sayiYaz(o.basarisiz), Icons.error_outline_rounded, (o.basarisiz ?? 0) > 0 ? Marka.gul : Marka.zumrut, Bolum.teslimatSorunlari),
+              if (_motor != null) ...[
+                const SizedBox(width: 8),
+                kutu('Bekletilen', sayiYaz(tamsayi(e['held'])), Icons.pause_circle_outline_rounded, Marka.kehribar, Bolum.kuyruk),
+              ],
+            ],
+          ),
+          if (_karantina != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                kutu('Karantinada', sayiYaz(tamsayi(ks['held'])), Icons.shield_rounded, Marka.kehribar, Bolum.karantina),
+                const SizedBox(width: 8),
+                kutu('Virüs (7 gün)', sayiYaz(tamsayi(ks['virus_7d'])), Icons.coronavirus_outlined, Marka.gul, Bolum.karantina),
+                const SizedBox(width: 8),
+                kutu('Engellenen ek (7 gün)', sayiYaz(tamsayi(ks['blocked_7d'])), Icons.attach_file_rounded, Marka.gul, Bolum.karantina),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _sonUyarilarKarti() {
+    final r = context.r;
+    final l = _alarmGecmisi!;
+    return BolumKarti(
+      baslik: 'Son uyarılar',
+      ikon: Icons.notifications_rounded,
+      sag: TextButton(onPressed: () => bolumeGit(Bolum.alarmlar), child: const Text('Tümü')),
+      child: l.isEmpty
+          ? Text('Henüz uyarı yok.', style: TextStyle(color: r.silik))
+          : Column(
+              children: [
+                for (final a in l)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        DurumNoktasi(a.durum == 'resolved' ? Marka.zumrut : (a.onem == 'critical' ? Marka.gul : Marka.kehribar)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(a.etiket.isEmpty ? a.kuralAdi : '${a.kuralAdi} · ${a.etiket}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                              Text(
+                                [alarmDurumlari[a.durum] ?? a.durum, if (a.orgAdi.isNotEmpty) a.orgAdi].join(' · '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: r.silik, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(goreliZaman(a.zaman), style: TextStyle(color: r.silik, fontSize: 12)),
+                      ],
+                    ),
+                  ),
               ],
             ),
     );
@@ -566,23 +760,11 @@ Color? tonRengi(String ton) => switch (ton) {
   _ => null,
 };
 
-/// Genişliğe göre sütun sayısı ayarlanan kart ızgarası (her kart en az [enAz] piksel).
-class Izgara extends StatelessWidget {
-  const Izgara({super.key, required this.children, this.enAz = 180, this.bosluk = 12});
-  final List<Widget> children;
-  final double enAz, bosluk;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, k) {
-      if (children.isEmpty) return const SizedBox.shrink();
-      final sutun = ((k.maxWidth + bosluk) / (enAz + bosluk)).floor().clamp(1, children.length);
-      final g = (k.maxWidth - bosluk * (sutun - 1)) / sutun;
-      return Wrap(
-        spacing: bosluk,
-        runSpacing: bosluk,
-        children: [for (final c in children) SizedBox(width: g, child: c)],
-      );
-    },
-  );
+/// Son 24 saatin toplamının önceki 24 saate göre yüzde değişimi (48 saatlik saatlik diziden).
+double? ozetDegisimi(List<TrafikDilimi>? l, int Function(TrafikDilimi) f) {
+  if (l == null || l.length < 2) return null;
+  final yari = l.length ~/ 2;
+  final once = l.take(yari).fold(0, (a, d) => a + f(d));
+  final simdi = l.skip(yari).fold(0, (a, d) => a + f(d));
+  return degisimYuzdesi(simdi, once);
 }

@@ -3,11 +3,16 @@ import 'package:flutter/material.dart';
 
 import '../oturum.dart';
 import '../ortak/bilesenler.dart';
+import '../ortak/iskelet.dart';
+import '../ortak/sayfali.dart';
+import '../ortak/tablo.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/operasyon.dart';
+import 'liste_ortak.dart';
 
-/// Karantina (GET /quarantine): virüs / engellenen ek / spam nedeniyle tutulan iletiler.
+/// Karantina (GET /quarantine): virüs / engellenen ek / spam nedeniyle tutulan iletiler. Sunucu en yeni 200 kaydı
+/// döndürür; tablo yerelde sayfalanır.
 class KarantinaEkrani extends StatefulWidget {
   const KarantinaEkrani({super.key});
   @override
@@ -16,160 +21,160 @@ class KarantinaEkrani extends StatefulWidget {
 
 class _KarantinaEkraniState extends State<KarantinaEkrani> {
   String _durum = 'held', _neden = '', _q = '';
-  List<KarantinaOgesi>? _liste;
   Map<String, dynamic> _ozet = {}, _tarayici = {};
-  String? _hata;
-  KarantinaOgesi? _secili;
-  int _nesil = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _yukle();
-  }
-
-  Future<void> _yukle() async {
-    final n = ++_nesil;
-    try {
-      final v = harita(await Uyg.api.get('/api/v1/quarantine', q: {'status': _durum, if (_neden.isNotEmpty) 'reason': _neden, if (_q.isNotEmpty) 'q': _q}));
-      if (!mounted || n != _nesil) return;
+  late final _y = SayfaYukleyici.yerel<KarantinaOgesi>(() async {
+    final v = harita(await Uyg.api.get('/api/v1/quarantine', q: {'status': _durum, if (_neden.isNotEmpty) 'reason': _neden, if (_q.isNotEmpty) 'q': _q}));
+    if (mounted) {
       setState(() {
-        _liste = haritalar(v['items']).map(KarantinaOgesi.coz).toList();
         _ozet = harita(v['summary']);
         _tarayici = harita(v['scanner']);
-        _hata = null;
       });
-    } catch (e) {
-      if (mounted && n == _nesil) setState(() => _hata = hataMetni(e));
     }
+    return haritalar(v['items']).map(KarantinaOgesi.coz).toList();
+  }, sayfaBoyu: 25)..yenile();
+
+  @override
+  void dispose() {
+    _y.dispose();
+    super.dispose();
   }
 
   void _filtre(void Function() f) {
-    setState(() {
-      f();
-      _liste = null;
-    });
-    _yukle();
+    setState(f);
+    _y.yenile();
   }
 
-  void _ac(KarantinaOgesi k) {
-    if (bolunmus(context)) {
-      setState(() => _secili = k);
-    } else {
-      sayfaAc(context, 'Karantina', KarantinaDetay(oge: k, degisti: _degisti, tamSayfa: true));
-    }
-  }
-
-  void _degisti() {
-    setState(() => _secili = null);
-    _yukle();
-  }
+  void _ac(KarantinaOgesi k) => ayrintiAc(context, k.konu.isEmpty ? 'Karantina kaydı' : k.konu, KarantinaDetay(oge: k, degisti: _y.yenile, tamSayfa: true));
 
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final l = _liste;
+    final yatay = context.genis ? 16.0 : 12.0;
     final tarayiciKapali = _tarayici.isNotEmpty && !mantik(_tarayici['configured'], true);
+    final tarayiciDusuk = _tarayici.isNotEmpty && mantik(_tarayici['configured']) && metin(_tarayici['status']) == 'down';
+    const durumlar = {'held': 'Bekleyen', 'released': 'Serbest bırakılan', 'deleted': 'Silinen', 'all': 'Tümü'};
     final ust = Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (tarayiciKapali)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Bant('Virüs tarayıcısı yapılandırılmamış; yalnızca ek ve spam kuralları uygulanıyor.', renk: Marka.kehribar),
+        if (tarayiciKapali || tarayiciDusuk)
+          Padding(
+            padding: EdgeInsets.fromLTRB(yatay, 8, yatay, 0),
+            child: Bant(
+              tarayiciKapali
+                  ? 'Virüs tarayıcısı yapılandırılmamış; yalnızca ek ve spam kuralları uygulanıyor.'
+                  : 'Virüs tarayıcısına ulaşılamıyor; tarama yapılamayan iletiler geçici hatayla ertelenebilir.',
+              renk: tarayiciKapali ? Marka.kehribar : Marka.gul,
+              ikon: Icons.coronavirus_outlined,
+            ),
           ),
         if (_ozet.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 6,
+            padding: EdgeInsets.fromLTRB(yatay, 10, yatay, 2),
+            child: Izgara(
+              enAz: 170,
+              bosluk: 8,
               children: [
-                Rozet('${tamsayi(_ozet['held'])} bekliyor', renk: Marka.mor),
-                Rozet('Son 7 gün: ${tamsayi(_ozet['virus_7d'])} virüs', renk: tamsayi(_ozet['virus_7d']) > 0 ? Marka.gul : r.silik),
-                Rozet('${tamsayi(_ozet['blocked_7d'])} engellenen ek', renk: r.silik),
+                OzetKutusu('Bekleyen', sayiYaz(tamsayi(_ozet['held'])), ikon: Icons.inventory_2_outlined, renk: tamsayi(_ozet['held']) > 0 ? Marka.mor : null),
+                OzetKutusu(
+                  'Virüs (7 gün)',
+                  sayiYaz(tamsayi(_ozet['virus_7d'])),
+                  ikon: Icons.coronavirus_outlined,
+                  renk: tamsayi(_ozet['virus_7d']) > 0 ? Marka.gul : null,
+                ),
+                OzetKutusu('Engellenen ek (7 gün)', sayiYaz(tamsayi(_ozet['blocked_7d'])), ikon: Icons.attach_file_rounded),
+                OzetKutusu(
+                  'Virüs tarayıcısı',
+                  switch (metin(_tarayici['status'])) {
+                    'ok' => 'Çalışıyor',
+                    'down' => 'Ulaşılamıyor',
+                    _ => 'Kapalı',
+                  },
+                  ikon: Icons.health_and_safety_outlined,
+                  renk: switch (metin(_tarayici['status'])) {
+                    'ok' => Marka.zumrut,
+                    'down' => Marka.gul,
+                    _ => r.silik,
+                  },
+                ),
               ],
             ),
           ),
-        AramaAlani(ipucu: 'Konu, gönderen veya alıcı…', degisti: (v) => _filtre(() => _q = v)),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final (d, e) in const [('held', 'Bekleyen'), ('released', 'Serbest bırakılan'), ('deleted', 'Silinen'), ('all', 'Tümü')])
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(label: Text(e), selected: _durum == d, showCheckmark: false, onSelected: (_) => _filtre(() => _durum = d)),
-                ),
-              const SizedBox(width: 8),
-              for (final (d, e) in [('', 'Tüm nedenler'), ...karantinaNedenleri.entries.map((x) => (x.key, x.value))])
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(label: Text(e), selected: _neden == d, showCheckmark: false, onSelected: (_) => _filtre(() => _neden = d)),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-    Widget govde;
-    if (_hata != null && l == null) {
-      govde = ListView(
-        children: [SizedBox(height: 320, child: Durum.hata(_hata!, tekrar: _yukle))],
-      );
-    } else if (l == null) {
-      govde = const Durum.yukleniyor();
-    } else if (l.isEmpty) {
-      govde = ListView(
-        children: [SizedBox(height: 320, child: Durum.bos(_durum == 'held' ? 'Karantinada bekleyen ileti yok.' : 'Kayıt yok.', ikon: Icons.shield_outlined))],
-      );
-    } else {
-      govde = ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-        itemCount: l.length,
-        itemBuilder: (c, i) {
-          final k = l[i];
-          return ListeSatiri(
-            secili: _secili?.id == k.id && bolunmus(c),
-            onTap: () => _ac(k),
-            sol: KarantinaIkonu(k.neden),
-            baslik: k.konu.isEmpty ? '(konu yok)' : k.konu,
-            alt: k.kimden.isNotEmpty ? k.kimden : k.zarfGonderen,
-            alt2: [
-              karantinaNedenleri[k.neden] ?? k.neden,
-              if (k.bulgular.isNotEmpty) k.bulgular.first.ad,
-              if (!Uyg.musteri && k.orgAdi != null) k.orgAdi!,
-            ].join(' · '),
-            sag: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (k.durum != 'held') Rozet(karantinaDurumlari[k.durum] ?? k.durum, renk: k.durum == 'released' ? Marka.zumrut : r.silik),
-                Text(goreliZaman(k.olusturma), style: TextStyle(color: r.silik, fontSize: 11.5)),
-              ],
+        const SizedBox(height: 6),
+        FiltreCubugu(
+          arama: AramaAlani(ipucu: 'Konu, gönderen veya alıcı…', degisti: (v) => _filtre(() => _q = v)),
+          filtreler: [
+            FiltreDugmesi<String>(
+              etiket: 'Durum',
+              ikon: Icons.flag_outlined,
+              secenekler: [for (final e in durumlar.entries) (e.key, e.value)],
+              secili: _durum,
+              secildi: (v) => _filtre(() => _durum = v),
             ),
-          );
-        },
-      );
-    }
-    final liste = Column(
-      children: [
-        Padding(padding: const EdgeInsets.fromLTRB(12, 6, 12, 6), child: ust),
-        Expanded(
-          child: RefreshIndicator.adaptive(onRefresh: _yukle, child: govde),
+            FiltreDugmesi<String>(
+              etiket: 'Neden',
+              ikon: Icons.report_outlined,
+              secenekler: [('', 'Tüm nedenler'), for (final e in karantinaNedenleri.entries) (e.key, e.value)],
+              secili: _neden,
+              secildi: (v) => _filtre(() => _neden = v),
+            ),
+          ],
+          etkinler: [
+            if (_durum != 'held') EtkinFiltre('Durum: ${durumlar[_durum]}', () => _filtre(() => _durum = 'held')),
+            if (_neden.isNotEmpty) EtkinFiltre('Neden: ${karantinaNedenleri[_neden] ?? _neden}', () => _filtre(() => _neden = '')),
+          ],
         ),
       ],
     );
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Karantina'),
-        actions: [IconButton(tooltip: 'Yenile', onPressed: _yukle, icon: const Icon(Icons.refresh_rounded))],
-      ),
-      body: AnaDetay(
-        liste: liste,
-        detay: _secili == null ? null : KarantinaDetay(key: ValueKey(_secili!.id), oge: _secili!, degisti: _degisti),
-        bosMetin: 'İçerik ve bulgular için bir ileti seçin',
+    Widget durumRozeti(KarantinaOgesi k) => Rozet(
+      karantinaDurumlari[k.durum] ?? k.durum,
+      renk: switch (k.durum) {
+        'held' => Marka.mor,
+        'released' => Marka.zumrut,
+        _ => r.silik,
+      },
+    );
+    return Iskelet(
+      baslik: 'Karantina',
+      alt: 'Virüs, engellenen ek ve spam nedeniyle tutulan iletiler',
+      yenile: _y.yenile,
+      govde: VeriTablosu<KarantinaOgesi>(
+        yukleyici: _y,
+        onTap: _ac,
+        eylemler: (k) => [SatirEylemi(Icons.open_in_new_rounded, 'Ayrıntı ve işlemler', () => _ac(k))],
+        bosIkon: Icons.shield_outlined,
+        bosMetin: _durum == 'held' && _neden.isEmpty && _q.isEmpty ? 'Karantinada bekleyen ileti yok.' : 'Eşleşen kayıt yok.',
+        ust: ust,
+        sutunlar: [
+          Sutun(
+            'Konu / gönderen',
+            esnek: 5,
+            hucre: (c, k) => IkiSatir(k.konu.isEmpty ? '(konu yok)' : k.konu, alt: k.kimden.isNotEmpty ? k.kimden : k.zarfGonderen, sol: KarantinaIkonu(k.neden)),
+          ),
+          Sutun(
+            'Neden',
+            esnek: 3,
+            hucre: (c, k) => IkiSatir(karantinaNedenleri[k.neden] ?? k.neden, alt: k.bulgular.isEmpty ? null : k.bulgular.first.ad, kalin: false),
+          ),
+          if (!Uyg.musteri) Sutun('Müşteri', esnek: 2, hucre: (c, k) => SolukMetin(k.orgAdi ?? '')),
+          Sutun('Alıcı', esnek: 2, hucre: (c, k) => SolukMetin(k.alicilar.isEmpty ? '' : '${k.alicilar.first}${k.alicilar.length > 1 ? ' +${k.alicilar.length - 1}' : ''}')),
+          Sutun('Durum', genislik: 140, hucre: (c, k) => Sigdir(durumRozeti(k))),
+          Sutun('Zaman', genislik: 110, hucre: (c, k) => Tooltip(message: tamZaman(k.olusturma), child: SolukMetin(goreliZaman(k.olusturma)))),
+        ],
+        kart: (c, k) => VeriKarti(
+          baslik: k.konu.isEmpty ? '(konu yok)' : k.konu,
+          alt: k.kimden.isNotEmpty ? k.kimden : k.zarfGonderen,
+          sol: KarantinaIkonu(k.neden),
+          rozetler: [durumRozeti(k), Rozet(karantinaNedenleri[k.neden] ?? k.neden, renk: r.silik)],
+          alanlar: [
+            if (k.bulgular.isNotEmpty) ('Bulgu', k.bulgular.first.ad),
+            if (!Uyg.musteri && k.orgAdi != null) ('Müşteri', k.orgAdi!),
+            ('Boyut', boyutYaz(k.boyut)),
+            ('Zaman', goreliZaman(k.olusturma)),
+          ],
+          onTap: () => _ac(k),
+        ),
       ),
     );
   }

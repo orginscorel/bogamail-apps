@@ -82,5 +82,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Profil resmi veya marka logosu olarak seçtiğiniz görsellere erişilir.</string>
 </dict>
 </plist>

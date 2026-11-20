@@ -1,6 +1,6 @@
 name: boga_ortak
 description: "BogaMail uygulamalarının ortak çekirdeği: API istemcisi, tema, açılış, giriş, bildirim."
-version: 1.0.0
+version: 1.1.0
 publish_to: 'none'
 resolution: workspace
 
@@ -19,6 +19,10 @@ dependencies:
   intl: any
   package_info_plus: ^10.2.2
   device_info_plus: ^13.3.0
+  url_launcher: ^6.3.3
+  open_filex: ^5.0.0
+  crypto: ^3.0.6
+  path_drawing: ^1.0.1
 
 dev_dependencies:
   flutter_lints: ^6.0.0

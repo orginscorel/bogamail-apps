@@ -57,13 +57,16 @@ jobs:
             if [ "$P" = hepsi ] || [ "$P" = "$p" ]; then echo "$p=true" >> $GITHUB_OUTPUT; else echo "$p=false" >> $GITHUB_OUTPUT; fi
           done
           echo "etiket=surum-${{ github.run_number }}" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: kurulum
       - name: Sürüm kaydı
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           T="surum-${{ github.run_number }}"; R="${{ github.repository }}"
           gh release view "$T" --repo "$R" >/dev/null 2>&1 || gh release create "$T" --repo "$R" --target "${{ github.sha }}" \
-            --title "BogaMail derleme ${{ github.run_number }}" --notes "Android APK ve Windows kurulum dosyaları. iPhone ve Mac sürümleri TestFlight'tadır." --prerelease
+            --title "BogaMail derleme ${{ github.run_number }}" --notes-file kurulum/surum-notlari.md --prerelease
 
   analiz:
     runs-on: ubuntu-latest
@@ -209,6 +212,16 @@ jobs:
         run: |
           xcrun altool --validate-app -f uygulama.ipa -t ios --apiKey $ASC_KEY_ID --apiIssuer $ASC_ISSUER
           xcrun altool --upload-app -f uygulama.ipa -t ios --apiKey $ASC_KEY_ID --apiIssuer $ASC_ISSUER
+      - name: Güncelleme işareti
+        if: steps.g.outputs.var == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          AD=$([ "${{ matrix.uygulama }}" = posta ] && echo BogaMail || echo BogaMail-Yonetim)
+          F="$AD-$V-${{ github.run_number }}-iOS.testflight"
+          echo "TestFlight'a yüklendi" > "$RUNNER_TEMP/$F"
+          gh release upload "${{ needs.hazirla.outputs.etiket }}" "$RUNNER_TEMP/$F" --repo "${{ github.repository }}" --clobber
       - name: Temizle
         if: always()
         run: |
@@ -300,6 +313,16 @@ jobs:
         run: |
           xcrun altool --validate-app -f cikti/uygulama.pkg -t macos --apiKey $ASC_KEY_ID --apiIssuer $ASC_ISSUER
           xcrun altool --upload-app -f cikti/uygulama.pkg -t macos --apiKey $ASC_KEY_ID --apiIssuer $ASC_ISSUER
+      - name: Güncelleme işareti
+        if: steps.g.outputs.var == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          AD=$([ "${{ matrix.uygulama }}" = posta ] && echo BogaMail || echo BogaMail-Yonetim)
+          F="$AD-$V-${{ github.run_number }}-macOS.testflight"
+          echo "TestFlight'a yüklendi" > "$RUNNER_TEMP/$F"
+          gh release upload "${{ needs.hazirla.outputs.etiket }}" "$RUNNER_TEMP/$F" --repo "${{ github.repository }}" --clobber
       - name: Temizle
         if: always()
         run: |

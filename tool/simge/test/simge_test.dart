@@ -27,7 +27,7 @@ void _kare(Canvas c, double k, AcilisIsaret i, {double radius = 0}) {
   c.scale(k);
   const r = Rect.fromLTWH(0, 0, 1024, 1024);
   final rr = RRect.fromRectAndRadius(r, Radius.circular(radius));
-  c.drawRRect(rr, Paint()..shader = Marka.grad.createShader(r));
+  c.drawRRect(rr, Paint()..shader = isaretDegradesi(i).createShader(r));
   c.drawRRect(rr, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.center, colors: [Colors.white.withValues(alpha: .18), Colors.white.withValues(alpha: 0)]).createShader(r));
   c.scale(1024 / 64);
   isaretCiz(c, i, zemin: false);
@@ -43,7 +43,7 @@ void _mac(Canvas c, double k, AcilisIsaret i) {
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18));
   c.save();
   c.clipRRect(rr);
-  c.drawRect(r, Paint()..shader = Marka.grad.createShader(r));
+  c.drawRect(r, Paint()..shader = isaretDegradesi(i).createShader(r));
   c.drawRect(r, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.center, colors: [Colors.white.withValues(alpha: .18), Colors.white.withValues(alpha: 0)]).createShader(r));
   c.translate(100, 100);
   c.scale(824 / 64);
@@ -118,7 +118,7 @@ void main() {
 ''');
       File('$d/android/app/src/main/res/values/ic_launcher_background.xml').writeAsStringSync('''<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#5443D2</color>
+    <color name="ic_launcher_background">${isaret == AcilisIsaret.posta ? "#5443D2" : "#1D2233"}</color>
 </resources>
 ''');
       // Windows

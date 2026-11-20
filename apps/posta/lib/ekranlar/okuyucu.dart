@@ -13,11 +13,14 @@ import '../ortak/iskelet.dart';
 import '../ortak/secimler.dart';
 import '../ortak/simgeler.dart';
 import '../veri/durum.dart';
+import '../veri/hesap_servisi.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/tercihler.dart';
 import '../veri/yazma_hazirla.dart';
 import '../veri/yardimci.dart';
+import 'gorevler/gorevler_ekrani.dart';
+import 'takvim/davet_karti.dart';
 import 'yazma.dart';
 
 /// Telefonda okuyucuyu ayrı sayfa olarak açar.
@@ -215,9 +218,125 @@ class OkuyucuState extends State<Okuyucu> {
     }
   }
 
+  Adres get _gonderen {
+    final d = _d!;
+    return d.gorunum.kimden.isNotEmpty ? d.gorunum.kimden.first : adresCoz(d.ozet.kimden);
+  }
+
+  Future<void> _engelle() async {
+    final a = _gonderen.eposta;
+    if (a.isEmpty) return;
+    final alan = a.contains('@') ? '@${a.split('@').last}' : '';
+    final sec = await showModalBottomSheet<String>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text('Gönderen engellensin mi?', style: gosterim(17, agirlik: FontWeight.w700)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text('Engellenen gönderenlerin yeni iletileri doğrudan Gereksiz klasörüne gider.', style: TextStyle(color: c.r.soluk)),
+            ),
+            ListTile(leading: const Icon(Icons.person_off_outlined), title: Text('Yalnızca $a'), onTap: () => Navigator.pop(c, a)),
+            if (alan.length > 1)
+              ListTile(leading: const Icon(Icons.domain_disabled_outlined), title: Text('Tüm $alan alan adı'), onTap: () => Navigator.pop(c, alan)),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (sec == null) return;
+    final ok = await islem(() async {
+      await Hesap.gondericiEkle('block', sec);
+      return true;
+    }, tamam: '$sec engellendi');
+    if (ok == true && _rol != 'junk' && mounted && await onayla(context, 'Bu ileti Gereksiz klasörüne taşınsın mı?', evet: 'Taşı')) {
+      await _eylem(() => Posta.toplu([widget.id], 'move', klasorId: PostaDurum.ben.rolu('junk')?.id), 'Gereksiz klasörüne taşındı', kaldir: true);
+    }
+  }
+
+  Future<void> _kisiyeEkle() async {
+    final g = _gonderen;
+    if (g.eposta.isEmpty) return;
+    await islem(
+      () => Hesap.kisiKaydet(Kisi(ad: g.ad, eposta: g.eposta)),
+      tamam: '${g.gorunen} kişilerinize eklendi',
+    );
+  }
+
+  Future<void> _oltaBildir() async {
+    if (!await onayla(
+      context,
+      'Oltalama (phishing) olarak bildirilsin mi?',
+      mesaj: 'İleti güvenlik ekibinize iletilir. Şüpheli bağlantılara tıklamayın, ekleri açmayın.',
+      evet: 'Bildir',
+      tehlikeli: true,
+    )) {
+      return;
+    }
+    final m = await islem(() => Hesap.oltaBildir(widget.id));
+    if (m != null) bildir('Bildiriminiz alındı', mesaj: m.isEmpty ? null : m, tur: MesajTur.basari);
+  }
+
+  Future<void> _takip() async {
+    final d = _d!;
+    final gunler = [(1, 'Yarın'), (2, '2 gün sonra'), (3, '3 gün sonra'), (7, '1 hafta sonra'), (14, '2 hafta sonra')];
+    final v = await showModalBottomSheet<int>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Text('Takip hatırlatıcısı', style: gosterim(17, agirlik: FontWeight.w700)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                'Yanıt gelmezse ileti seçtiğiniz zamanda Gelen Kutusu\'nun en üstünde "Takip" işaretiyle yeniden görünür.',
+                style: TextStyle(color: c.r.soluk),
+              ),
+            ),
+            for (final g in gunler) ListTile(leading: const Icon(Icons.notifications_active_outlined), title: Text(g.$2), onTap: () => Navigator.pop(c, g.$1)),
+            if (d.ozet.takip)
+              ListTile(
+                leading: const Icon(Icons.notifications_off_outlined, color: Marka.gul),
+                title: const Text('Hatırlatıcıyı kaldır'),
+                onTap: () => Navigator.pop(c, 0),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (v == null) return;
+    if (v == 0) {
+      await _eylem(() => Hesap.takipKaldir(widget.id), 'Takip hatırlatıcısı kaldırıldı');
+    } else {
+      await _eylem(() => Hesap.takipKur(widget.id, v), 'Takip hatırlatıcısı kuruldu');
+    }
+  }
+
   void _menu(String v) {
     final d = _d!;
     switch (v) {
+      case 'engelle':
+        _engelle();
+      case 'kisi':
+        _kisiyeEkle();
+      case 'olta':
+        _oltaBildir();
+      case 'takip':
+        _takip();
+      case 'gorev':
+        GorevDuzenleyici.ac(context, iletiId: widget.id, ilkBaslik: d.ozet.konu);
       case 'okunmadi':
         _eylem(() => Posta.guncelle(widget.id, {'seen': false}), 'Okunmadı olarak işaretlendi', kaldir: true);
       case 'yildiz':
@@ -261,6 +380,15 @@ class OkuyucuState extends State<Okuyucu> {
         o('spamDegil', Icons.thumb_up_alt_outlined, 'Gereksiz değil')
       else if (!_taslak && _rol != 'sent')
         o('spam', Icons.report_outlined, 'Gereksiz (spam)'),
+      if (!_taslak && (PostaDurum.ben.ayarlar?.ozellik('tasks') ?? true)) o('gorev', Icons.add_task_rounded, 'Göreve dönüştür…'),
+      if (!_taslak) o('takip', Icons.notifications_active_outlined, d.ozet.takip ? 'Takip hatırlatıcısı…' : 'Takip hatırlatıcısı kur…'),
+      if (!_taslak && _rol != 'sent') ...[
+        const PopupMenuDivider(),
+        o('kisi', Icons.person_add_alt_1_outlined, 'Göndereni kişilere ekle'),
+        o('engelle', Icons.block_rounded, 'Göndereni engelle…'),
+        o('olta', Icons.phishing_outlined, 'Oltalama olarak bildir'),
+      ],
+      const PopupMenuDivider(),
       o('disa', Icons.download_rounded, 'İletiyi indir (.eml)'),
     ];
   }
@@ -356,6 +484,7 @@ class OkuyucuState extends State<Okuyucu> {
               ),
             ),
           ),
+        if (v.ekler.any((e) => e.davetiye)) DavetKarti(key: ValueKey('davet-${d.ozet.id}'), iletiId: d.ozet.id),
         if (v.dosyaEkleri.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),

@@ -82,5 +82,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>İletinize eklemek üzere fotoğraf veya video çekmek için kameranız kullanılır.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>İletinize eklemek için seçtiğiniz fotoğraf ve videolara erişilir.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>İletinize eklemek üzere çektiğiniz videonun sesini kaydetmek için mikrofon kullanılır.</string>
 </dict>
 </plist>

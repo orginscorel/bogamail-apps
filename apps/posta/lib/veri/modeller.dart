@@ -86,7 +86,7 @@ class IletiOzet {
   final bool iletildi;
   final String onizleme;
   final bool ekVar;
-  final List<String> etiketler;
+  List<String> etiketler;
   final DateTime? ertelemeBitis;
   final String? klasorRolu;
   final bool takip;
@@ -267,6 +267,7 @@ class PostaAyarlari {
     this.ozellikler = const {},
     this.azamiEk = 0,
     this.azamiIleti = 0,
+    this.azamiImza = 0,
     this.etkinImzaHtml = '',
     this.imzaKilitli = false,
     this.imzaKurumdan = false,
@@ -286,6 +287,9 @@ class PostaAyarlari {
   final Map<String, bool> ozellikler;
   final int azamiEk;
   final int azamiIleti;
+
+  /// Biçimli imzanın (görseller dahil) azami boyutu.
+  final int azamiImza;
 
   /// Etkin imza (kurum şablonu veya kendi imzası, değişkenler doldurulmuş).
   final String etkinImzaHtml;
@@ -326,6 +330,7 @@ class PostaAyarlari {
       ozellikler: f.map((k, v) => MapEntry(k, v == true)),
       azamiEk: _i(_m(l['max_attachment_bytes'])['bytes']),
       azamiIleti: _i(_m(l['max_message_bytes'])['bytes']),
+      azamiImza: _i(_m(l['max_signature_bytes'])['bytes']),
       etkinImzaHtml: etkin,
       imzaKilitli: g != null && _b(g['locked']),
       imzaKurumdan: g != null && _b(g['from_org']),

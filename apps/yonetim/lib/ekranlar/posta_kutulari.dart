@@ -3,16 +3,22 @@ import 'package:flutter/material.dart';
 
 import '../oturum.dart';
 import '../ortak/bilesenler.dart';
+import '../ortak/iskelet.dart';
 import '../ortak/sayfali.dart';
 import '../ortak/secimler.dart';
+import '../ortak/tablo.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/modeller.dart';
 import 'kutu_detay.dart';
 import 'kutu_formlari.dart';
+import 'kutu_islemleri.dart';
 import 'takma_adlar.dart';
+import 'taklit_islemleri.dart';
 
-/// Posta kutuları: aranabilir, sayfalı liste (alan adı ve durum filtresi), ayrıntı ve oluşturma.
+/// Posta kutuları (web: mailboxes/page.tsx): geniş ekranda sıralanabilir tablo (adres, kullanım, son giriş,
+/// oluşturma), telefonda kartlar; arama, alan adı ve durum filtreleri (etkin filtre çipleriyle), satır menüsünde
+/// "Posta kutusuna gir", şifre, düzenleme, limitler, taşıma, geri yükleme, dışa aktarma, askıya alma ve silme.
 class PostaKutulariEkrani extends StatefulWidget {
   const PostaKutulariEkrani({super.key, this.orgId, this.orgAdi, this.alanId, this.alanAdi});
   final String? orgId, orgAdi, alanId, alanAdi;
@@ -23,6 +29,8 @@ class PostaKutulariEkrani extends StatefulWidget {
 class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
   String _q = '';
   String _durum = '';
+  String _sirala = 'address';
+  bool _artan = true;
   late String? _alanId = widget.alanId;
   late String? _alanAdi = widget.alanAdi;
   PostaKutusu? _secili;
@@ -34,8 +42,8 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
         q: {
           'page': '$s',
           'page_size': '$b',
-          'sort': 'address',
-          'order': 'asc',
+          'sort': _sirala,
+          'order': _artan ? 'asc' : 'desc',
           if (_q.isNotEmpty) 'q': _q,
           if (_durum.isNotEmpty) 'status': _durum,
           if (_alanId != null) 'domain_id': _alanId,
@@ -46,14 +54,18 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
     ),
   )..yenile();
 
+  bool get _yonetir => Uyg.yetki('mailboxes.manage');
+
   @override
   void dispose() {
     _y.dispose();
     super.dispose();
   }
 
+  bool get _yanPanel => MediaQuery.sizeOf(context).width >= 1400;
+
   void _ac(PostaKutusu k) {
-    if (bolunmus(context)) {
+    if (_yanPanel) {
       setState(() => _secili = k);
     } else {
       sayfaAc(context, k.adres, KutuDetay(kutu: k, degisti: (y) => _degisti(k.id, y), tamSayfa: true));
@@ -75,12 +87,7 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
     if (mounted) _ac(k);
   }
 
-  Future<void> _alanFiltresi() async {
-    if (_alanId != null) {
-      setState(() => _alanId = _alanAdi = null);
-      _y.yenile();
-      return;
-    }
+  Future<void> _alanSec() async {
     final d = await alanSec(context, orgId: widget.orgId);
     if (d == null) return;
     setState(() {
@@ -90,118 +97,198 @@ class _PostaKutulariEkraniState extends State<PostaKutulariEkrani> {
     _y.yenile();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final yonetir = Uyg.yetki('mailboxes.manage');
+  void _alanKaldir() {
+    setState(() => _alanId = _alanAdi = null);
+    _y.yenile();
+  }
+
+  Future<void> _duzenle(PostaKutusu k) async {
+    final y = await showDialog<PostaKutusu>(context: context, builder: (_) => KutuDuzenleDialog(kutu: k));
+    if (y != null && mounted) _degisti(k.id, y);
+  }
+
+  Future<void> _durumDegistir(PostaKutusu k) async {
+    final askiya = k.aktif;
+    if (askiya &&
+        !await onayla(
+          context,
+          '${k.adres} askıya alınsın mı?',
+          mesaj: 'Kullanıcı giriş yapamaz ve posta gönderemez. Gelen posta kabul edilmeye devam eder.',
+          evet: 'Askıya al',
+          tehlikeli: true,
+        )) {
+      return;
+    }
+    final v = await islem(
+      () => Uyg.api.patch('/api/v1/mailboxes/${k.id}', {'status': askiya ? 'suspended' : 'active'}),
+      tamam: askiya ? 'Posta kutusu askıya alındı' : 'Posta kutusu etkinleştirildi',
+    );
+    if (v != null && mounted) _degisti(k.id, PostaKutusu.coz(harita(v)));
+  }
+
+  Future<void> _sil(PostaKutusu k) async {
+    final ok = await yazarakOnayla(
+      context,
+      baslik: '${k.adres} silinsin mi?',
+      mesaj: 'Hesap kalıcı olarak silinir ve bu adrese gelen posta reddedilir. İçinde ileti bulunan kutular silinemez. Bu işlem geri alınamaz.',
+      beklenen: k.adres,
+    );
+    if (!ok) return;
+    final v = await islem(() => Uyg.api.delete('/api/v1/mailboxes/${k.id}').then((_) => true), tamam: 'Posta kutusu silindi');
+    if (v == true && mounted) _degisti(k.id, null);
+  }
+
+  List<SatirEylemi> _eylemler(PostaKutusu k) => [
+    SatirEylemi(Icons.open_in_full_rounded, 'Ayrıntılar', () => _ac(k)),
+    if (_yonetir) ...[
+      if (k.aktif) SatirEylemi(Icons.mark_email_unread_outlined, 'Posta kutusuna gir', () => postaKutusunaGir(context, id: k.id, adres: k.adres)),
+      SatirEylemi(Icons.edit_rounded, 'Düzenle', () => _duzenle(k)),
+      SatirEylemi(Icons.key_rounded, 'Şifreyi sıfırla', () => sifreSifirla(context, k)),
+      SatirEylemi(Icons.straighten_rounded, 'Boyut limitleri', () => boyutLimitleri(context, k)),
+      SatirEylemi(Icons.move_down_rounded, 'IMAP ile taşı', () => imapTasima(context, k)),
+      SatirEylemi(Icons.history_rounded, 'Yedekten geri yükle', () => yedektenGeriYukle(context, k)),
+      SatirEylemi(Icons.download_rounded, 'Dışa aktar (.zip)', () => kutuyuDisariAktar(context, k)),
+      SatirEylemi(k.aktif ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, k.aktif ? 'Askıya al' : 'Etkinleştir', () => _durumDegistir(k)),
+      SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(k), tehlikeli: true),
+    ],
+  ];
+
+  Widget _kullanim(PostaKutusu k) {
+    final oran = kullanimOrani(k.kullanilan, k.kota);
     final r = context.r;
-    final baslik = widget.alanAdi != null && widget.alanId == _alanId
-        ? '${widget.alanAdi}'
-        : (widget.orgAdi != null ? '${widget.orgAdi} · Posta kutuları' : 'Posta Kutuları');
-    final liste = Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
-          child: Column(
-            children: [
-              AramaAlani(
-                ipucu: 'Adres veya ad ara…',
-                degisti: (v) {
-                  _q = v;
-                  _y.yenile();
-                },
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    InputChip(
-                      avatar: const Icon(Icons.language_rounded, size: 17),
-                      label: Text(_alanAdi ?? 'Tüm alan adları'),
-                      selected: _alanId != null,
-                      showCheckmark: false,
-                      onPressed: _alanFiltresi,
-                      onDeleted: _alanId == null ? null : _alanFiltresi,
-                      deleteButtonTooltipMessage: 'Filtreyi kaldır',
-                    ),
-                    const SizedBox(width: 8),
-                    for (final (d, e) in const [('', 'Tümü'), ('active', 'Aktif'), ('suspended', 'Askıda')])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(e),
-                          selected: _durum == d,
-                          showCheckmark: false,
-                          onSelected: (_) {
-                            setState(() => _durum = d);
-                            _y.yenile();
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        Text(
+          '${boyutYaz(k.kullanilan)} / ${sinirsizMi(k.kota) ? 'sınırsız' : boyutYaz(k.kota)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: (oran ?? 0) >= .9 ? Marka.gul : r.metin),
         ),
-        Expanded(
-          child: SayfaliListe<PostaKutusu>(
-            yukleyici: _y,
-            ayrac: false,
-            bosMetin: _q.isEmpty && _durum.isEmpty ? 'Henüz posta kutusu yok.' : 'Eşleşen posta kutusu yok.',
-            bosIkon: Icons.inbox_rounded,
-            oge: (c, k) {
-              final oran = kullanimOrani(k.kullanilan, k.kota);
-              return ListeSatiri(
-                secili: _secili?.id == k.id && bolunmus(c),
-                onTap: () => _ac(k),
-                sol: Avatar(k.gorunenAd.isEmpty ? k.adres : k.gorunenAd, tohum: k.adres),
-                baslik: k.adres,
-                alt: [if (k.gorunenAd.isNotEmpty) k.gorunenAd, if (!Uyg.musteri) k.orgAdi].join(' · '),
-                alt2: k.sonGiris == null ? 'Hiç giriş yapılmadı' : 'Son giriş ${goreliZaman(k.sonGiris)}',
-                sag: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!k.aktif) ...[DurumRozeti(k.durum), const SizedBox(height: 4)],
-                    Text(
-                      boyutYaz(k.kullanilan),
-                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: (oran ?? 0) >= .9 ? Marka.gul : null),
-                    ),
-                    Text(sinirsizMi(k.kota) ? 'sınırsız' : '/ ${boyutYaz(k.kota)}', style: TextStyle(color: r.silik, fontSize: 11.5)),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
+        const SizedBox(height: 4),
+        SizedBox(width: 140, child: KullanimCubugu(kullanilan: k.kullanilan, toplam: k.kota, yazi: false, kalinlik: 5)),
       ],
     );
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(baslik, overflow: TextOverflow.ellipsis),
-        actions: [
-          IconButton(
-            tooltip: 'Takma adlar ve listeler',
-            icon: const Icon(Icons.alternate_email_rounded),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TakmaAdlarEkrani(orgId: widget.orgId, alanId: _alanId, alanAdi: _alanAdi),
-              ),
-            ),
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    final baslik = widget.alanAdi != null && widget.alanId == _alanId ? widget.alanAdi! : (widget.orgAdi != null ? '${widget.orgAdi} · Posta kutuları' : 'Posta Kutuları');
+    final ust = FiltreCubugu(
+      arama: AramaAlani(
+        ipucu: 'Adres veya ad ara…',
+        degisti: (v) {
+          setState(() => _q = v);
+          _y.yenile();
+        },
+      ),
+      filtreler: [
+        ActionChip(
+          avatar: Icon(Icons.language_rounded, size: 16, color: _alanId != null ? r.vurgu : r.soluk),
+          label: Text(_alanAdi ?? 'Alan adı'),
+          onPressed: _alanSec,
+        ),
+        FiltreDugmesi<String>(
+          etiket: 'Durum',
+          ikon: Icons.toggle_on_outlined,
+          secenekler: const [('', 'Tümü'), ('active', 'Aktif'), ('suspended', 'Askıda')],
+          secili: _durum,
+          secildi: (d) {
+            setState(() => _durum = d);
+            _y.yenile();
+          },
+        ),
+        TextButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => TakmaAdlarEkrani(orgId: widget.orgId, alanId: _alanId, alanAdi: _alanAdi)),
           ),
-          if (yonetir && bolunmus(context)) IconButton(tooltip: 'Yeni posta kutusu', onPressed: _yeni, icon: const Icon(Icons.add_rounded)),
-          if (bolunmus(context)) IconButton(tooltip: 'Yenile', onPressed: _y.yenile, icon: const Icon(Icons.refresh_rounded)),
-        ],
+          icon: const Icon(Icons.alternate_email_rounded, size: 18),
+          label: const Text('Takma adlar'),
+        ),
+      ],
+      etkinler: [
+        if (_alanId != null) EtkinFiltre('Alan: $_alanAdi', _alanKaldir, ikon: Icons.language_rounded),
+        if (_durum.isNotEmpty)
+          EtkinFiltre('Durum: ${durumEtiketi(_durum)}', () {
+            setState(() => _durum = '');
+            _y.yenile();
+          }),
+      ],
+    );
+    final tablo = VeriTablosu<PostaKutusu>(
+      yukleyici: _y,
+      ust: ust,
+      tabloEnAz: 640,
+      bosMetin: _q.isEmpty && _durum.isEmpty && _alanId == null ? 'Henüz posta kutusu yok.' : 'Eşleşen posta kutusu yok.',
+      bosIkon: Icons.inbox_rounded,
+      siralama: _sirala,
+      artan: _artan,
+      siralamaDegisti: (a, b) {
+        setState(() {
+          _sirala = a;
+          _artan = b;
+        });
+        _y.yenile();
+      },
+      secili: (k) => _secili?.id == k.id,
+      onTap: _ac,
+      eylemler: _eylemler,
+      sutunlar: [
+        Sutun(
+          'Posta kutusu',
+          esnek: 5,
+          siralama: 'address',
+          hucre: (_, k) => IkiSatir(
+            k.adres,
+            alt: [if (k.gorunenAd.isNotEmpty) k.gorunenAd, if (!Uyg.musteri && widget.orgId == null) k.orgAdi].join(' · '),
+            sol: Avatar(k.gorunenAd.isEmpty ? k.adres : k.gorunenAd, tohum: k.adres, boyut: 34),
+          ),
+        ),
+        Sutun('Kullanım', esnek: 3, siralama: 'used', hucre: (_, k) => _kullanim(k)),
+        Sutun('Son giriş', esnek: 2, siralama: 'last_login', hucre: (_, k) => SolukMetin(k.sonGiris == null ? 'Hiç' : goreliZaman(k.sonGiris))),
+        Sutun('Durum', genislik: 110, hucre: (_, k) => DurumRozeti(k.durum)),
+        Sutun('Oluşturma', esnek: 2, siralama: 'created_at', hucre: (_, k) => SolukMetin(kisaZaman(k.eklenme))),
+      ],
+      kart: (c, k) => VeriKarti(
+        baslik: k.adres,
+        alt: [if (k.gorunenAd.isNotEmpty) k.gorunenAd, if (!Uyg.musteri && widget.orgId == null) k.orgAdi].join(' · '),
+        sol: Avatar(k.gorunenAd.isEmpty ? k.adres : k.gorunenAd, tohum: k.adres),
+        rozetler: [if (!k.aktif) DurumRozeti(k.durum)],
+        alanlar: [('Son giriş', k.sonGiris == null ? 'Hiç' : goreliZaman(k.sonGiris)), ('Oluşturma', kisaZaman(k.eklenme))],
+        ek: KullanimCubugu(kullanilan: k.kullanilan, toplam: k.kota, kalinlik: 5),
+        eylemler: _eylemler(k),
+        onTap: () => _ac(k),
       ),
-      floatingActionButton: yonetir && !bolunmus(context)
-          ? FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Icons.person_add_alt_rounded), label: const Text('Posta kutusu'))
-          : null,
-      body: AnaDetay(
-        liste: liste,
-        detay: _secili == null ? null : KutuDetay(key: ValueKey(_secili!.id), kutu: _secili!, degisti: (y) => _degisti(_secili!.id, y)),
-        bosMetin: 'Ayrıntı için bir posta kutusu seçin',
-      ),
+    );
+    return Iskelet(
+      baslik: baslik,
+      alt: 'Kullanıcı hesapları, kotalar ve durumları',
+      yenile: _y.yenile,
+      birincil: _yonetir ? BirincilEylem(Icons.person_add_alt_rounded, 'Posta kutusu', _yeni) : null,
+      govde: _secili == null || !_yanPanel
+          ? tablo
+          : Row(
+              children: [
+                Expanded(child: tablo),
+                VerticalDivider(width: 1, color: r.kenar),
+                SizedBox(
+                  width: 460,
+                  child: Column(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(tooltip: 'Kapat', onPressed: () => setState(() => _secili = null), icon: const Icon(Icons.close_rounded)),
+                      ),
+                      Expanded(
+                        child: KutuDetay(key: ValueKey(_secili!.id), kutu: _secili!, degisti: (y) => _degisti(_secili!.id, y)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

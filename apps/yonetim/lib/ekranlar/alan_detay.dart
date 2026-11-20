@@ -255,6 +255,18 @@ class _AlanDetayState extends State<AlanDetay> {
                     ),
             ),
           ],
+          if (!a.hosting) ...[
+            const Baslik('3. Teslim hedefi (gateway)'),
+            _GatewayHedefi(
+              alan: a,
+              yonetir: _yonetir,
+              kaydedildi: (y) {
+                setState(() => _a = y);
+                widget.degisti(y);
+              },
+            ),
+          ],
+          if (a.hosting) ...[const Baslik('Posta programı ayarları'), PostaProgramiAyarlari(alanAdi: a.gorunenAd)],
           const Baslik('İşlemler'),
           if (a.hosting && Bolum.kutular.gorunur) ...[
             EylemSatiri(ikon: Icons.inbox_rounded, baslik: 'Posta kutuları', ipucu: 'Bu alan adındaki hesaplar', onTap: _kutular),
@@ -448,4 +460,207 @@ class DnsKontrolSatiri extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Gateway alan adının birincil teslim hedefi (PATCH /domains/{id} gateway_host, gateway_port).
+class _GatewayHedefi extends StatefulWidget {
+  const _GatewayHedefi({required this.alan, required this.yonetir, required this.kaydedildi});
+  final AlanAdi alan;
+  final bool yonetir;
+  final ValueChanged<AlanAdi> kaydedildi;
+  @override
+  State<_GatewayHedefi> createState() => _GatewayHedefiState();
+}
+
+class _GatewayHedefiState extends State<_GatewayHedefi> {
+  late final _host = TextEditingController(text: widget.alan.gatewayHost);
+  late final _port = TextEditingController(text: '${widget.alan.gatewayPort == 0 ? 25 : widget.alan.gatewayPort}');
+  bool _mesgul = false;
+  String? _hata;
+
+  @override
+  void dispose() {
+    _host.dispose();
+    _port.dispose();
+    super.dispose();
+  }
+
+  Future<void> _kaydet() async {
+    final port = int.tryParse(_port.text.trim());
+    if (port == null || port < 1 || port > 65535) {
+      setState(() => _hata = 'Port 1-65535 arasında olmalı.');
+      return;
+    }
+    setState(() {
+      _mesgul = true;
+      _hata = null;
+    });
+    try {
+      final v = await Uyg.api.patch('/api/v1/domains/${widget.alan.id}', {'gateway_host': _host.text.trim(), 'gateway_port': port});
+      bildir('Teslim hedefi kaydedildi', tur: MesajTur.basari);
+      widget.kaydedildi(AlanAdi.coz(harita(v)));
+    } catch (e) {
+      if (mounted) setState(() => _hata = hataMetni(e));
+    } finally {
+      if (mounted) setState(() => _mesgul = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    return Kutu(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Spam taramasından geçen iletiler bu sunucuya iletilir (müşterinin kendi posta sunucusu). Yerel ve özel ağ adresleri güvenlik nedeniyle kabul edilmez.',
+            style: TextStyle(color: r.soluk, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _host,
+                  enabled: widget.yonetir,
+                  autocorrect: false,
+                  keyboardType: TextInputType.url,
+                  style: const TextStyle(fontFamily: 'monospace'),
+                  decoration: const InputDecoration(labelText: 'Sunucu', hintText: 'mail.musteri.com', isDense: true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 90,
+                child: TextField(
+                  controller: _port,
+                  enabled: widget.yonetir,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Port', isDense: true),
+                ),
+              ),
+            ],
+          ),
+          if (_hata != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 12.5))),
+          if (widget.yonetir) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: _mesgul ? null : _kaydet,
+                child: _mesgul ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Kaydet'),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          if (widget.alan.gatewayHost.isEmpty)
+            const Bant(
+              'Hedef tanımlanmadan bu alan adına gelen iletiler geçici hatayla (451) geri çevrilir; gönderen sunucu daha sonra tekrar dener.',
+              renk: Marka.kehribar,
+              ikon: Icons.warning_amber_rounded,
+            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Yedek hedefler, TLS politikası, devre kesici ve kesinti modu Mail Gateway bölümünden yönetilir.',
+              style: TextStyle(color: r.silik, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Posta programı ayarları (GET /mail-client-settings): sunucu, gelen / giden portlar, güvenlik, kullanıcı adı biçimi.
+class PostaProgramiAyarlari extends StatefulWidget {
+  const PostaProgramiAyarlari({super.key, required this.alanAdi});
+  final String alanAdi;
+  @override
+  State<PostaProgramiAyarlari> createState() => _PostaProgramiAyarlariState();
+}
+
+class _PostaProgramiAyarlariState extends State<PostaProgramiAyarlari> {
+  late final Future<dynamic> _getir = Uyg.api.get('/api/v1/mail-client-settings');
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<dynamic>(
+    future: _getir,
+    builder: (c, s) {
+      final r = c.r;
+      if (s.hasError) return Kutu(child: Text(hataMetni(s.error!), style: TextStyle(color: r.silik, fontSize: 13)));
+      if (!s.hasData) {
+        return const Kutu(child: Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator.adaptive())));
+      }
+      final m = harita(s.data);
+      final host = metin(m['host']);
+      Widget uclar(String baslik, IconData ikon, List<Map<String, dynamic>> l) => Container(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: r.kenar)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Row(
+                children: [
+                  Icon(ikon, size: 16, color: r.birincil),
+                  const SizedBox(width: 6),
+                  Text(baslik, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: r.kenar),
+            if (l.isEmpty) Padding(padding: const EdgeInsets.all(12), child: Text('Açık değil', style: TextStyle(color: r.silik, fontSize: 13))),
+            for (final e in l)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(metin(e['protocol']), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                    Text('${tamsayi(e['port'])}', style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+                    const SizedBox(width: 8),
+                    Text(metin(e['security']), style: TextStyle(color: r.soluk, fontSize: 12.5)),
+                    if (!mantik(e['enabled'], true)) ...[const SizedBox(width: 6), Rozet('kapalı', renk: r.silik)],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+      final gelen = uclar('Gelen posta', Icons.mail_outline_rounded, haritalar(m['incoming']));
+      final giden = uclar('Giden posta (SMTP)', Icons.send_outlined, haritalar(m['outgoing']));
+      final notlar = [
+        'SMTP için kimlik doğrulama açık olmalı (gelen sunucuyla aynı kullanıcı adı ve şifre).',
+        if (mantik(m['restricted'])) 'Şu an posta programı bağlantıları yalnızca izin verilen IP adreslerinden kabul ediliyor.',
+        if (metin(m['host_note']).isNotEmpty) metin(m['host_note']),
+      ].join(' ');
+      return Kutu(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            BilgiSatiri('Sunucu', host, mono: true, kopyalanabilir: host.isNotEmpty),
+            BilgiSatiri('Kullanıcı adı', 'ad@${widget.alanAdi}', mono: true),
+            const BilgiSatiri('Şifre', 'Posta kutusunun şifresi'),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (c, k) => k.maxWidth >= 460
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: gelen),
+                        const SizedBox(width: 10),
+                        Expanded(child: giden),
+                      ],
+                    )
+                  : Column(children: [gelen, const SizedBox(height: 10), giden]),
+            ),
+            const SizedBox(height: 8),
+            Text(notlar, style: TextStyle(color: r.silik, fontSize: 12)),
+          ],
+        ),
+      );
+    },
+  );
 }

@@ -1,21 +1,26 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../oturum.dart';
 import '../ortak/adres_alani.dart';
+import '../ortak/izin.dart';
 import '../ortak/simgeler.dart';
 import '../veri/durum.dart';
 import '../veri/html_temizle.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/yazma_hazirla.dart';
+import '../veri/tercihler.dart';
 import '../veri/yardimci.dart';
 
 /// Yazma penceresini açar: telefonda tam ekran, geniş ekranda iletişim kutusu.
@@ -42,12 +47,12 @@ Future<void> yazmaAc(BuildContext context, [YazmaBaslangic? b]) async {
 }
 
 class _YerelEk {
-  _YerelEk(this.dosya, this.boyut);
-  final PlatformFile dosya;
+  _YerelEk(this.ad, this.boyut, this._oku);
+  final String ad;
   final int boyut;
+  final Future<List<int>> Function() _oku;
   String? _b64;
-  String get ad => dosya.name;
-  Future<String> veri() async => _b64 ??= base64Encode(await dosya.readAsBytes());
+  Future<String> veri() async => _b64 ??= base64Encode(await _oku());
 }
 
 class YazmaEkrani extends StatefulWidget {
@@ -66,7 +71,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
   late final _metin = TextEditingController(text: b.metin);
   final _metinOdak = FocusNode();
   late bool _bilgiGoster = b.bilgi.isNotEmpty || b.gizli.isNotEmpty;
-  late bool _imza = b.imzaEkle;
+  late bool _imza = b.imzaEkle && (b.tur == YazmaTuru.yeni ? Tercihler.imzaYeni.value : Tercihler.imzaYanit.value);
   bool _alinti = true;
   final _yerel = <_YerelEk>[];
   late List<DahilEk> _dahil = [...b.dahilEkler];
@@ -74,6 +79,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
   late final bool _acilanTaslak = b.taslakId != null;
   late String? _oncelik = b.oncelik;
   late bool _okunduBilgisi = b.okunduBilgisi;
+  late int _takipGun = b.takipGun;
   bool _kirli = false;
   bool _mesgul = false;
   double? _ilerleme;
@@ -155,7 +161,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     if (_taslakId != null) r['draft_id'] = _taslakId;
     if (_oncelik != null) r['priority'] = _oncelik;
     if (_okunduBilgisi) r['read_receipt'] = true;
-    if (b.takipGun > 0) r['followup_days'] = b.takipGun;
+    if (_takipGun > 0) r['followup_days'] = _takipGun;
     return r;
   }
 
@@ -375,6 +381,137 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     }
   }
 
+  /// İletiyi Şablonlar klasörüne kaydeder (taslağın yerine geçmez).
+  Future<void> _sablonKaydet() async {
+    if (_konu.text.trim().isEmpty && _metin.text.trim().isEmpty) {
+      setState(() => _hata = 'Şablon için konu veya metin yazın.');
+      return;
+    }
+    setState(() => _mesgul = true);
+    try {
+      final r = await _istek();
+      r.remove('draft_id');
+      r['template'] = true;
+      await Posta.taslakKaydet(r);
+      PostaDurum.ben.sayilariYenile();
+      bildir('Şablon kaydedildi', mesaj: 'Şablonlar klasöründe bulabilirsiniz.', tur: MesajTur.basari);
+    } on GonderimHatasi catch (e) {
+      if (mounted) setState(() => _hata = e.mesaj);
+    } finally {
+      if (mounted) setState(() => _mesgul = false);
+    }
+  }
+
+  /// Şablonlar klasöründen bir şablon seçip konu (boşsa) ve metne ekler.
+  Future<void> _sablonEkle() async {
+    final k = PostaDurum.ben.rolu('templates');
+    if (k == null) {
+      bildir('Şablonlar klasörü bulunamadı', tur: MesajTur.uyari);
+      return;
+    }
+    List<IletiOzet> l;
+    try {
+      l = (await Posta.liste(klasorId: k.id, boyut: 100)).ogeler;
+    } catch (e) {
+      bildir('Şablonlar alınamadı', mesaj: hataMetni(e), tur: MesajTur.hata);
+      return;
+    }
+    if (!mounted) return;
+    final sec = await showModalBottomSheet<IletiOzet>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(c).height * .7),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text('Şablon ekle', style: gosterim(17, agirlik: FontWeight.w700)),
+              ),
+              if (l.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('Kayıtlı şablon yok. Bir iletiyi menüden "Şablon olarak kaydet" ile kaydedebilirsiniz.'),
+                ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final m in l)
+                      ListTile(
+                        leading: const Icon(Icons.description_outlined),
+                        title: Text(m.konu.trim().isEmpty ? '(konu yok)' : m.konu),
+                        subtitle: Text(m.onizleme, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        onTap: () => Navigator.pop(c, m),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (sec == null) return;
+    try {
+      final d = await Posta.ileti(sec.id);
+      final metin = d.gorunum.metin.trim().isNotEmpty ? d.gorunum.metin.trim() : htmlMetne(d.gorunum.html).trim();
+      setState(() {
+        if (_konu.text.trim().isEmpty) _konu.text = d.gorunum.konu;
+        final t = _metin.text;
+        _metin.text = t.trim().isEmpty ? metin : '$t\n$metin';
+        _kirli = true;
+      });
+    } catch (e) {
+      bildir('Şablon açılamadı', mesaj: hataMetni(e), tur: MesajTur.hata);
+    }
+  }
+
+  Future<void> _takipSec() async {
+    const secenekler = [(0, 'Kapalı'), (1, '1 gün'), (2, '2 gün'), (3, '3 gün'), (7, '1 hafta'), (14, '2 hafta')];
+    final v = await showModalBottomSheet<int>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Text('Yanıt gelmezse hatırlat', style: gosterim(17, agirlik: FontWeight.w700)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                'Seçtiğiniz süre içinde yanıt gelmezse ileti Gelen Kutusu\'nda "Takip" işaretiyle en üstte görünür.',
+                style: TextStyle(color: c.r.soluk),
+              ),
+            ),
+            for (final s in secenekler)
+              ListTile(
+                leading: Icon(
+                  s.$1 == _takipGun ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                  color: s.$1 == _takipGun ? c.r.vurgu : null,
+                ),
+                title: Text(s.$2),
+                onTap: () => Navigator.pop(c, s.$1),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (v != null) {
+      setState(() {
+        _takipGun = v;
+        _kirli = true;
+      });
+    }
+  }
+
   Future<void> _taslakSil(String id) async {
     // İlk silme Çöp Kutusu'na taşır, ikincisi kalıcı siler (web ile aynı).
     try {
@@ -429,7 +566,35 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
 
   // ---- ekler ----
 
+  /// Ek ekleme: dosya, galeri (fotoğraf/video) ve telefonda kamera (fotoğraf/video).
   Future<void> _ekSec() async {
+    final mobil = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    if (!mobil) return _dosyaSec();
+    final s = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(leading: const Icon(Icons.attach_file_rounded), title: const Text('Dosya seç'), onTap: () => Navigator.pop(c, 'dosya')),
+            ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Fotoğraf/Video galerisi'), onTap: () => Navigator.pop(c, 'galeri')),
+            ListTile(leading: const Icon(Icons.photo_camera_outlined), title: const Text('Kamerayla fotoğraf çek'), onTap: () => Navigator.pop(c, 'foto')),
+            ListTile(leading: const Icon(Icons.videocam_outlined), title: const Text('Kamerayla video çek'), onTap: () => Navigator.pop(c, 'video')),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    switch (s) {
+      case 'dosya':
+        await _dosyaSec();
+      case 'galeri' || 'foto' || 'video':
+        await _medyaSec(s!);
+    }
+  }
+
+  Future<void> _dosyaSec() async {
     final List<PlatformFile> l;
     try {
       l = await FilePicker.pickFiles(dialogTitle: 'Dosya ekle');
@@ -438,16 +603,54 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
       return;
     }
     if (l.isEmpty) return;
+    final adaylar = <({String ad, int boyut, Future<List<int>> Function() oku})>[];
+    for (final f in l) {
+      adaylar.add((ad: f.name, boyut: f.lengthSync() ?? await f.length() ?? 0, oku: f.readAsBytes));
+    }
+    _ekleriEkle(adaylar);
+  }
+
+  /// Büyük fotoğraflar küçültülür (en uzun kenar 2560 px, JPEG kalite %82); videolar olduğu gibi eklenir.
+  Future<void> _medyaSec(String tur) async {
+    final p = ImagePicker();
+    final List<XFile> l;
+    try {
+      l = switch (tur) {
+        'foto' => [?await p.pickImage(source: ImageSource.camera, imageQuality: 82, maxWidth: 2560, maxHeight: 2560)],
+        'video' => [?await p.pickVideo(source: ImageSource.camera, maxDuration: const Duration(minutes: 5))],
+        _ => await p.pickMultipleMedia(imageQuality: 82, maxWidth: 2560, maxHeight: 2560),
+      };
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      if (e.code.contains('access_denied') || e.code.contains('permission')) {
+        await izinReddedildi(context, kamera: tur != 'galeri');
+      } else {
+        bildir('Medya alınamadı', mesaj: e.message, tur: MesajTur.hata);
+      }
+      return;
+    } catch (_) {
+      bildir('Medya alınamadı', tur: MesajTur.hata);
+      return;
+    }
+    if (l.isEmpty) return;
+    final adaylar = <({String ad, int boyut, Future<List<int>> Function() oku})>[];
+    for (final f in l) {
+      adaylar.add((ad: f.name, boyut: await f.length(), oku: f.readAsBytes));
+    }
+    _ekleriEkle(adaylar);
+  }
+
+  void _ekleriEkle(List<({String ad, int boyut, Future<List<int>> Function() oku})> l) {
     final hatalar = <String>[];
     var toplam = _ekToplam;
     for (final f in l) {
-      final n = f.lengthSync() ?? await f.length() ?? 0;
+      final n = f.boyut;
       if (n == 0) {
-        hatalar.add('"${f.name}" boş; eklenemedi.');
+        hatalar.add('"${f.ad}" boş; eklenemedi.');
       } else if (_azamiEk > 0 && toplam + n > _azamiEk) {
-        hatalar.add('"${f.name}" eklenemedi: ekler toplam ${boyutYaz(_azamiEk)} sınırını geçemez.');
+        hatalar.add('"${f.ad}" eklenemedi: ekler toplam ${boyutYaz(_azamiEk)} sınırını geçemez.');
       } else {
-        _yerel.add(_YerelEk(f, n));
+        _yerel.add(_YerelEk(f.ad, n, f.oku));
         toplam += n;
       }
     }
@@ -493,6 +696,12 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                       await _taslakKaydet();
                     case 'planla':
                       await _planla();
+                    case 'sablonEkle':
+                      await _sablonEkle();
+                    case 'sablonKaydet':
+                      await _sablonKaydet();
+                    case 'takip':
+                      await _takipSec();
                     case 'oncelik':
                       setState(() {
                         _oncelik = _oncelik == 'high' ? null : 'high';
@@ -521,6 +730,22 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     value: 'planla',
                     child: ListTile(leading: Icon(Icons.schedule_send_outlined), title: Text('Daha sonra gönder…')),
                   ),
+                  const PopupMenuItem(
+                    value: 'sablonEkle',
+                    child: ListTile(leading: Icon(Icons.description_outlined), title: Text('Şablon ekle…')),
+                  ),
+                  const PopupMenuItem(
+                    value: 'sablonKaydet',
+                    child: ListTile(leading: Icon(Icons.save_as_outlined), title: Text('Şablon olarak kaydet')),
+                  ),
+                  PopupMenuItem(
+                    value: 'takip',
+                    child: ListTile(
+                      leading: const Icon(Icons.notifications_active_outlined),
+                      title: Text(_takipGun > 0 ? 'Yanıt gelmezse hatırlat: $_takipGun gün' : 'Yanıt gelmezse hatırlat…'),
+                    ),
+                  ),
+                  const PopupMenuDivider(),
                   CheckedPopupMenuItem(value: 'oncelik', checked: _oncelik == 'high', child: const Text('Yüksek öncelik')),
                   CheckedPopupMenuItem(value: 'okundu', checked: _okunduBilgisi, child: const Text('Okundu bilgisi iste')),
                   if (_taslakId != null)

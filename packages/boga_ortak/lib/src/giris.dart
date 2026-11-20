@@ -18,6 +18,10 @@ class GirisEkrani extends StatefulWidget {
     required this.isaret,
     required this.girisYapildi,
     this.adresIpucu = 'ad@firmaniz.com',
+    this.ust,
+    this.geri,
+    this.kaydetSecenegi = false,
+    this.ilkAdres,
   });
 
   final BogaApi api;
@@ -32,18 +36,31 @@ class GirisEkrani extends StatefulWidget {
   /// Oturum açıldı: uygulama ana ekranına geçer.
   final Future<void> Function(BuildContext context) girisYapildi;
 
+  /// İsteğe bağlı: formun üstünde gösterilir (ör. kayıtlı hesaplar listesi).
+  final Widget? ust;
+
+  /// Verilirse sol üstte geri düğmesi gösterilir (ör. "Hesap ekle" kipi).
+  final VoidCallback? geri;
+
+  /// true: "Bu cihazda kayıtlı kalsın" kutusu gösterilir ve giriş isteğine `save` alanı eklenir.
+  final bool kaydetSecenegi;
+
+  /// Adres alanının ilk değeri (ör. oturumu kapanmış kayıtlı hesap).
+  final String? ilkAdres;
+
   @override
   State<GirisEkrani> createState() => _GirisEkraniState();
 }
 
 class _GirisEkraniState extends State<GirisEkrani> {
-  final _adres = TextEditingController();
+  late final _adres = TextEditingController(text: widget.ilkAdres);
   final _sifre = TextEditingController();
   final _kod = TextEditingController();
   final _form = GlobalKey<FormState>();
   bool _gizli = true;
   bool _bekliyor = false;
   bool _hatirla = true;
+  bool _kaydet = true;
   String? _mfaJeton;
   String? _hata;
 
@@ -65,7 +82,11 @@ class _GirisEkraniState extends State<GirisEkrani> {
     try {
       final dynamic v;
       if (_mfaJeton == null) {
-        v = await widget.api.post(widget.girisYolu, {'email': _adres.text.trim(), 'password': _sifre.text});
+        v = await widget.api.post(widget.girisYolu, {
+          'email': _adres.text.trim(),
+          'password': _sifre.text,
+          if (widget.kaydetSecenegi) 'save': _kaydet,
+        });
       } else {
         final kod = _kod.text.replaceAll(' ', '').trim();
         if (kod.isEmpty) {
@@ -137,9 +158,18 @@ class _GirisEkraniState extends State<GirisEkrani> {
                 // Üst marka alanı
                 Container(
                   width: double.infinity,
-                  decoration: const BoxDecoration(gradient: Marka.gece, borderRadius: BorderRadius.vertical(bottom: Radius.circular(32))),
+                  decoration: BoxDecoration(gradient: Marka.gece, borderRadius: BorderRadius.vertical(bottom: Radius.circular(32))),
                   padding: EdgeInsets.fromLTRB(24, MediaQuery.paddingOf(context).top + 36, 24, 44),
                   child: Column(children: [
+                    if (widget.geri != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Geri',
+                          onPressed: widget.geri,
+                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                        ),
+                      ),
                     BogaIsaret(boyut: 84, isaret: widget.isaret),
                     const SizedBox(height: 14),
                     Text(widget.baslik, style: gosterim(28, renk: Colors.white)),
@@ -147,6 +177,11 @@ class _GirisEkraniState extends State<GirisEkrani> {
                     Text(widget.aciklama, textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: .7), fontSize: 14)),
                   ]),
                 ),
+                if (widget.ust != null && !mfa)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440), child: widget.ust),
+                  ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                   child: ConstrainedBox(
@@ -182,7 +217,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
                 ),
                 Padding(
                   padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom + 12),
-                  child: Text('Bogahost • ${widget.api.surum}', style: TextStyle(color: r.silik.withValues(alpha: .7), fontSize: 11)),
+                  child: Text('Bogahost · Sürüm ${widget.api.surum}', style: TextStyle(color: r.silik.withValues(alpha: .7), fontSize: 11)),
                 ),
               ]),
             ),
@@ -223,7 +258,16 @@ class _GirisEkraniState extends State<GirisEkrani> {
               ),
               validator: (v) => (v ?? '').isEmpty ? 'Şifrenizi girin' : null,
             ),
-            const SizedBox(height: 20),
+            if (widget.kaydetSecenegi)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: _kaydet,
+                onChanged: (v) => setState(() => _kaydet = v ?? true),
+                title: const Text('Bu cihazda kayıtlı kalsın', style: TextStyle(fontSize: 14)),
+                subtitle: Text('Çıkış yapsanız da hesap listede kalır; şifresiz geri dönebilirsiniz.', style: TextStyle(color: r.silik, fontSize: 12)),
+              ),
+            SizedBox(height: widget.kaydetSecenegi ? 8 : 20),
             _dugme('Giriş yap', Icons.login_rounded),
           ]),
         ),

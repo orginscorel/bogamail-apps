@@ -6,6 +6,7 @@ import '../ortak/bilesenler.dart';
 import '../veri/bicim.dart';
 import '../veri/json.dart';
 import '../veri/operasyon.dart';
+import 'bolumler.dart';
 import 'kuyruk.dart';
 
 /// Kuyruktaki iletinin ayrıntısı, başlıkları (GET /queue/{id}/headers) ve işlemleri (POST /queue/bulk).
@@ -75,7 +76,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
   Future<void> _sil() async {
     final s = await showDialog<(String, String)>(
       context: context,
-      builder: (_) => _SilDialog(giden: o.giden),
+      builder: (_) => KuyrukSilDialog(giden: o.giden),
     );
     if (s == null) return;
     await _toplu('delete', mod: s.$1, neden: s.$2, tamam: s.$1 == 'bounce' ? 'İleti silindi, göndericiye bildirildi' : 'İleti sessizce silindi');
@@ -84,7 +85,7 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final ortak = Uyg.ortak && widget.yonetebilir;
+    final ortak = Uyg.ortak && widget.yonetebilir && Uyg.taklit == null;
     return RefreshIndicator.adaptive(
       onRefresh: _yukle,
       child: ListView(
@@ -137,12 +138,25 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
             ),
           ],
           const Baslik('İşlemler'),
-          EylemSatiri(
-            ikon: Icons.replay_rounded,
-            baslik: 'Şimdi yeniden dene',
-            ipucu: 'Bekleme süresini atla, teslimi hemen dene',
-            onTap: () => _toplu('retry', tamam: 'Yeniden deneme sıraya alındı'),
-          ),
+          if (Bolum.takip.gorunur) ...[
+            EylemSatiri(
+              ikon: Icons.manage_search_rounded,
+              baslik: 'Mesaj takibinde aç',
+              ipucu: 'Bu iletinin teslim yolculuğunu (aşamalar, alıcı sonuçları, ham kayıtlar) gösterir',
+              onTap: () {
+                if (widget.tamSayfa) Navigator.of(context).maybePop();
+                bolumeGit(Bolum.takip, kuyrukId: o.kimlik);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (Uyg.taklit == null)
+            EylemSatiri(
+              ikon: Icons.replay_rounded,
+              baslik: 'Şimdi yeniden dene',
+              ipucu: 'Bekleme süresini atla, teslimi hemen dene',
+              onTap: () => _toplu('retry', tamam: 'Yeniden deneme sıraya alındı'),
+            ),
           if (ortak && o.giden) ...[
             const SizedBox(height: 8),
             o.durum == 'held'
@@ -220,15 +234,17 @@ class _KuyrukDetayState extends State<KuyrukDetay> {
   }
 }
 
-/// Silme biçimi (bounce/sessiz), isteğe bağlı neden ve "SİL" onayı (web panelindeki iletişim kutusunun aynısı).
-class _SilDialog extends StatefulWidget {
-  const _SilDialog({required this.giden});
+/// Silme biçimi (bounce/sessiz), isteğe bağlı gerekçe ve "SİL" onayı (web panelindeki iletişim kutusunun aynısı).
+/// Sonuç: (mod, gerekçe). [adet] verilirse toplu silme başlığı gösterilir.
+class KuyrukSilDialog extends StatefulWidget {
+  const KuyrukSilDialog({super.key, required this.giden, this.adet = 1});
   final bool giden;
+  final int adet;
   @override
-  State<_SilDialog> createState() => _SilDialogState();
+  State<KuyrukSilDialog> createState() => _KuyrukSilDialogState();
 }
 
-class _SilDialogState extends State<_SilDialog> {
+class _KuyrukSilDialogState extends State<KuyrukSilDialog> {
   late String _mod = widget.giden ? 'bounce' : 'silent';
   final _neden = TextEditingController();
   final _onay = TextEditingController();
@@ -244,7 +260,7 @@ class _SilDialogState extends State<_SilDialog> {
   Widget build(BuildContext context) {
     final tamam = {'SİL', 'SIL'}.contains(_onay.text.trim().toUpperCase());
     return AlertDialog(
-      title: Text('İleti kuyruktan silinsin mi?', style: gosterim(18, agirlik: FontWeight.w700)),
+      title: Text(widget.adet == 1 ? 'İleti kuyruktan silinsin mi?' : '${widget.adet} ileti kuyruktan silinsin mi?', style: gosterim(18, agirlik: FontWeight.w700)),
       content: SizedBox(
         width: 440,
         child: SingleChildScrollView(
@@ -252,6 +268,11 @@ class _SilDialogState extends State<_SilDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(
+                'İletiler alıcılara teslim edilmeyecek. İşlem geri alınamaz ve denetim kaydına yazılır.',
+                style: TextStyle(color: context.r.silik, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
               RadioGroup<String>(
                 groupValue: _mod,
                 onChanged: (v) => setState(() => _mod = v ?? _mod),
@@ -264,7 +285,7 @@ class _SilDialogState extends State<_SilDialog> {
                       title: const Text('Göndericiye bildir (bounce)'),
                       subtitle: Text(
                         widget.giden
-                            ? 'Gönderen kutuya teslim edilemedi bildirimi gider.'
+                            ? 'Gönderen kendi posta kutumuzsa teslim edilemedi bildirimi (DSN) alır. Gelen/aktarılan iletilerde uygulanmaz.'
                             : 'Gelen iletilerde kullanılamaz (sahte göndericilere geri saçılma).',
                       ),
                     ),
@@ -272,19 +293,17 @@ class _SilDialogState extends State<_SilDialog> {
                       contentPadding: EdgeInsets.zero,
                       value: 'silent',
                       title: Text('Sessiz sil'),
-                      subtitle: Text('Kimseye bildirim gönderilmez.'),
+                      subtitle: Text('Kimseye bildirim gitmez. Yalnızca spam/kötüye kullanım gibi durumlarda bilerek seçin.'),
                     ),
                   ],
                 ),
               ),
-              if (_mod == 'bounce') ...[
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _neden,
-                  maxLength: 300,
-                  decoration: const InputDecoration(labelText: 'Neden (bildirime eklenir, isteğe bağlı)'),
-                ),
-              ],
+              const SizedBox(height: 6),
+              TextField(
+                controller: _neden,
+                maxLength: 300,
+                decoration: InputDecoration(labelText: 'Gerekçe (denetim kaydı${_mod == 'bounce' ? ' ve bildirim' : ''})'),
+              ),
               const SizedBox(height: 10),
               Text.rich(
                 TextSpan(

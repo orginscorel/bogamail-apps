@@ -6,7 +6,8 @@ import 'ekranlar/kabuk.dart';
 /// Yönetim uygulamasının tekil durumu.
 class Uyg {
   Uyg._();
-  static final api = BogaApi(uygulama: 'yonetim', csrfCerezi: 'bm_csrf');
+  /// API istemcisi. Testlerde sahte bir [BogaApi] ile değiştirilebilir.
+  static BogaApi api = BogaApi(uygulama: 'yonetim', csrfCerezi: 'bm_csrf');
   static const pushYolu = '/api/v1/app/push';
   static const pushKonu = 'com.bogahost.yonetim';
 
@@ -30,6 +31,23 @@ class Uyg {
     if (p is! List) return true;
     return p.contains(izin);
   }
+
+  /// Müşteri paketinin özelliği açık mı (GET /auth/me → context.organization.features). Müşteri değilse true.
+  static bool ozellik(String ad) {
+    final o = baglam['organization'];
+    if (!musteri || o is! Map) return true;
+    final f = o['features'];
+    return f is Map && f[ad] == true;
+  }
+
+  /// Müşteri / bayi görünümü (yönetici başka bir panele girmiş): GET /auth/me → user.impersonation.
+  static Map<String, dynamic>? get taklit {
+    final t = ben.value?['impersonation'];
+    return t is Map ? Map<String, dynamic>.from(t) : null;
+  }
+
+  /// Müşteri paneline / webmail'e girebilir mi (web: canImpersonate): süper yönetici ya da bayi, görünüm içinde değil.
+  static bool get girebilir => taklit == null && (rol == 'super_admin' || rol == 'reseller_admin');
 
   /// Müşterinin paket türü (hosting | gateway | hybrid); müşteri değilse boş.
   static String get paketTuru {

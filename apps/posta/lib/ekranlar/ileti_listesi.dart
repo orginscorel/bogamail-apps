@@ -5,24 +5,55 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:intl/intl.dart';
 
 import '../ortak/iskelet.dart';
+import '../ortak/liste_filtresi.dart';
 import '../ortak/secimler.dart';
 import '../veri/bildirim.dart';
 import '../veri/durum.dart';
+import '../veri/hesap_servisi.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/yardimci.dart';
 import 'ileti_satiri.dart';
 
-/// Bir konumun (klasör / görünüm / etiket) ileti listesi: sayfalama, arama, çoklu seçim, kaydırma eylemleri.
+/// Aramanın sınırlandığı alan (sunucuda `in=`).
+enum AramaAlani {
+  hepsi('Tümü', null),
+  kimden('Kimden', 'from'),
+  kime('Kime', 'to'),
+  konu('Konu', 'subject');
+
+  const AramaAlani(this.ad, this.deger);
+  final String ad;
+  final String? deger;
+}
+
+/// Bir konumun (klasör / görünüm / etiket) ileti listesi: sayfalama, süzgeçler, arama, çoklu seçim, kaydırma eylemleri.
 class IletiListesi extends StatefulWidget {
-  const IletiListesi({super.key, required this.konum, required this.ac, this.seciliId, this.cekmece, this.fab, this.kaldirildi});
+  const IletiListesi({
+    super.key,
+    required this.konum,
+    required this.ac,
+    this.seciliId,
+    this.fab,
+    this.kaldirildi,
+    this.aramaSabit = false,
+    this.klasorler,
+    this.klasorRozeti = 0,
+  });
   final Konum konum;
   final ValueChanged<IletiOzet> ac;
   final String? seciliId;
-  final Widget? cekmece;
   final Widget? fab;
+
+  /// Arama sekmesi: arama kutusu hep açık, sonuçlar tüm klasörlerden.
+  final bool aramaSabit;
+
+  /// Telefonda Posta sekmesi: başlığın solunda klasör değiştirici.
+  final VoidCallback? klasorler;
+  final int klasorRozeti;
 
   /// Listeden kaldırılan iletiler (okuyucu bölmesi kapanabilsin).
   final ValueChanged<Set<String>>? kaldirildi;
@@ -40,22 +71,34 @@ class IletiListesiState extends State<IletiListesi> {
   bool _yukleniyor = true;
   bool _dahaYukleniyor = false;
   String? _hata;
-  bool _okunmamis = false;
+  ListeFiltresi _filtre = ListeFiltresi.tumu;
   bool _aramaAcik = false;
   String _arama = '';
   bool _tumKlasorler = false;
+  AramaAlani _alan = AramaAlani.hepsi;
+  DateTimeRange? _tarih;
   final _secim = <String>{};
   int _istek = 0;
+  List<KayitliArama> _kayitli = [];
 
   int get _boyut => PostaDurum.ben.ayarlar?.sayfaBoyutu ?? 50;
   Klasor? get _klasor => widget.konum.tur == KonumTur.klasor ? PostaDurum.ben.klasor(widget.konum.id) : null;
   bool get _secimModu => _secim.isNotEmpty;
+
+  /// Arama sekmesinde henüz bir şey aranmadı: liste yerine ipuçları gösterilir.
+  bool get _aramaBekliyor => widget.aramaSabit && _arama.isEmpty && _tarih == null;
 
   @override
   void initState() {
     super.initState();
     _kaydirma.addListener(_kaydi);
     PostaDurum.ben.surum.addListener(_canli);
+    PostaDurum.ben.addListener(_durumDegisti);
+    if (widget.aramaSabit) {
+      _aramaAcik = true;
+      _tumKlasorler = true;
+      _kayitlilariYukle();
+    }
     _yukle();
   }
 
@@ -64,7 +107,7 @@ class IletiListesiState extends State<IletiListesi> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.konum != widget.konum) {
       _secim.clear();
-      _okunmamis = false;
+      _filtre = ListeFiltresi.tumu;
       if (_aramaAcik && widget.konum.tur != KonumTur.klasor) _tumKlasorler = true;
       _ogeler = [];
       _yukle();
@@ -74,36 +117,56 @@ class IletiListesiState extends State<IletiListesi> {
   @override
   void dispose() {
     PostaDurum.ben.surum.removeListener(_canli);
+    PostaDurum.ben.removeListener(_durumDegisti);
     _kaydirma.dispose();
     _aramaMetni.dispose();
     _aramaOdak.dispose();
     super.dispose();
   }
 
+  /// Klasör sayıları değişti: başlıktaki okunmamış sayısı tazelenir.
+  void _durumDegisti() {
+    if (mounted) setState(() {});
+  }
+
   void _canli() {
-    if (!_yukleniyor && !_dahaYukleniyor) _yukle(sessiz: true);
+    if (!_yukleniyor && !_dahaYukleniyor && !_aramaBekliyor) _yukle(sessiz: true);
   }
 
   void _kaydi() {
     if (_kaydirma.position.extentAfter < 600 && !_dahaYukleniyor && !_yukleniyor && _ogeler.length < _toplam) _dahaFazla();
   }
 
+  static final _gun = DateFormat('yyyy-MM-dd');
+
   Future<Sayfa> _getir(int sayfa, int boyut) {
     final k = widget.konum;
     final arama = _arama.trim().isEmpty ? null : _arama.trim();
-    if (arama != null && (_tumKlasorler || k.tur != KonumTur.klasor)) {
-      return Posta.liste(gorunum: 'all', arama: arama, sayfa: sayfa, boyut: boyut, okunmamis: _okunmamis);
+    final filtre = _filtre.sunucuDegeri;
+    final bas = _tarih == null ? null : _gun.format(_tarih!.start);
+    final bit = _tarih == null ? null : _gun.format(_tarih!.end);
+    if ((arama != null || _tarih != null) && (_tumKlasorler || k.tur != KonumTur.klasor)) {
+      return Posta.liste(gorunum: 'all', arama: arama, alan: _alan.deger, sayfa: sayfa, boyut: boyut, filtre: filtre, baslangic: bas, bitis: bit);
     }
     return switch (k.tur) {
-      KonumTur.klasor => Posta.liste(klasorId: k.id, sayfa: sayfa, boyut: boyut, okunmamis: _okunmamis, arama: arama),
-      KonumTur.gorunum => Posta.liste(gorunum: k.id, sayfa: sayfa, boyut: boyut, okunmamis: _okunmamis),
-      KonumTur.etiket => Posta.liste(etiketId: k.id, sayfa: sayfa, boyut: boyut, okunmamis: _okunmamis),
+      KonumTur.klasor => Posta.liste(klasorId: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre, arama: arama, alan: _alan.deger, baslangic: bas, bitis: bit),
+      KonumTur.gorunum => Posta.liste(gorunum: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre),
+      KonumTur.etiket => Posta.liste(gorunum: 'label', etiketId: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre),
     };
   }
 
   /// İlk sayfayı (sessizde: o ana kadar yüklenen kadarını) yeniden alır.
   Future<void> _yukle({bool sessiz = false}) async {
     final no = ++_istek;
+    if (_aramaBekliyor) {
+      setState(() {
+        _ogeler = [];
+        _toplam = 0;
+        _yukleniyor = false;
+        _hata = null;
+      });
+      return;
+    }
     if (!sessiz) {
       setState(() {
         _yukleniyor = true;
@@ -156,6 +219,16 @@ class IletiListesiState extends State<IletiListesi> {
     await _yukle(sessiz: true);
   }
 
+  void _filtreSec(ListeFiltresi f) {
+    if (f == _filtre) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _filtre = f;
+      _secim.clear();
+    });
+    _yukle();
+  }
+
   // ---- eylemler ----
 
   void _cikar(Iterable<String> idler) {
@@ -169,12 +242,12 @@ class IletiListesiState extends State<IletiListesi> {
   }
 
   /// Toplu eylem. [kaldir]: iletiler bu listeden çıkar.
-  Future<void> _toplu(List<String> idler, String eylem, String tamam, {String? klasorId, bool kaldir = true}) async {
+  Future<void> _toplu(List<String> idler, String eylem, String tamam, {String? klasorId, String? etiketId, bool kaldir = true}) async {
     if (idler.isEmpty) return;
     final onceki = List<IletiOzet>.from(_ogeler);
     if (kaldir) _cikar(idler);
     try {
-      await Posta.toplu(idler, eylem, klasorId: klasorId);
+      await Posta.toplu(idler, eylem, klasorId: klasorId, etiketId: etiketId);
       if (!kaldir) {
         setState(() {
           for (final m in _ogeler.where((m) => idler.contains(m.id))) {
@@ -187,6 +260,12 @@ class IletiListesiState extends State<IletiListesi> {
                 m.yildizli = true;
               case 'unflag':
                 m.yildizli = false;
+              case 'important':
+                m.onemli = true;
+              case 'unimportant':
+                m.onemli = false;
+              case 'label' when etiketId != null && !m.etiketler.contains(etiketId):
+                m.etiketler = [...m.etiketler, etiketId];
             }
           }
           _secim.clear();
@@ -296,6 +375,14 @@ class IletiListesiState extends State<IletiListesi> {
     }
   }
 
+  Future<void> _etiketle(List<String> idler) async {
+    final s = await etiketSec(context, const {});
+    if (s == null || s.ekle.isEmpty || !mounted) return;
+    for (final e in s.ekle) {
+      await _toplu(idler, 'label', 'Etiket eklendi', etiketId: e, kaldir: false);
+    }
+  }
+
   // ---- arama ----
 
   void _aramaAc() {
@@ -307,17 +394,56 @@ class IletiListesiState extends State<IletiListesi> {
   }
 
   void _aramaKapat() {
-    final vardi = _arama.isNotEmpty;
+    final vardi = _arama.isNotEmpty || _tarih != null;
     setState(() {
-      _aramaAcik = false;
+      if (!widget.aramaSabit) _aramaAcik = false;
       _arama = '';
+      _tarih = null;
+      _alan = AramaAlani.hepsi;
       _aramaMetni.clear();
     });
-    if (vardi) _yukle();
+    if (vardi || widget.aramaSabit) _yukle();
   }
 
   void _ara(String q) {
     setState(() => _arama = q.trim());
+    _yukle();
+  }
+
+  Future<void> _kayitlilariYukle() async {
+    try {
+      final l = await Hesap.kayitliAramalar();
+      if (mounted) setState(() => _kayitli = l);
+    } catch (_) {}
+  }
+
+  Future<void> _aramayiKaydet() async {
+    final q = _arama.trim();
+    if (q.isEmpty) return;
+    final ad = await metinSor(context, 'Aramayı kaydet', ilk: q, ipucu: 'Kayıt adı', tamam: 'Kaydet');
+    if (ad == null || ad.trim().isEmpty) return;
+    await islem(() => Hesap.aramaKaydet(ad, q), tamam: 'Arama kaydedildi');
+    await _kayitlilariYukle();
+  }
+
+  void _kayitliAc(KayitliArama k) {
+    _aramaMetni.text = k.sorgu;
+    setState(() => _alan = AramaAlani.hepsi);
+    _ara(k.sorgu);
+  }
+
+  Future<void> _tarihSec() async {
+    final simdi = DateTime.now();
+    final t = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(simdi.year - 20),
+      lastDate: simdi,
+      initialDateRange: _tarih,
+      helpText: 'Tarih aralığı',
+      saveText: 'Uygula',
+    );
+    if (t == null) return;
+    setState(() => _tarih = t);
     _yukle();
   }
 
@@ -378,104 +504,233 @@ class IletiListesiState extends State<IletiListesi> {
 
   // ---- arayüz ----
 
-  PreferredSizeWidget _ustCubuk() {
+  int get _okunmamisSayisi {
+    final d = PostaDurum.ben;
+    return switch (widget.konum.tur) {
+      KonumTur.klasor => _klasor?.okunmamis ?? 0,
+      KonumTur.etiket => d.etiket(widget.konum.id)?.okunmamis ?? 0,
+      KonumTur.gorunum => widget.konum.id == 'unread' ? _toplam : 0,
+    };
+  }
+
+  /// Okunmamış süzgecinin anlamsız olduğu klasörler.
+  bool get _filtreGizli =>
+      widget.aramaSabit && _aramaBekliyor || const {'drafts', 'templates'}.contains(_klasor?.rol) || widget.konum == const Konum.gorunum('unread');
+
+  PreferredSizeWidget _secimCubugu() {
+    final secilen = _ogeler.where((m) => _secim.contains(m.id)).toList();
+    final hepsi = secilen.length == _ogeler.length;
+    return AppBar(
+      backgroundColor: context.r.vurguYumusak,
+      leading: IconButton(icon: const Icon(Icons.close_rounded), tooltip: 'Seçimi kaldır', onPressed: () => setState(_secim.clear)),
+      title: Text('${_secim.length} ileti seçildi', style: gosterim(18, agirlik: FontWeight.w700)),
+      actions: [
+        TextButton.icon(
+          onPressed: () => setState(() => hepsi ? _secim.clear() : _secim.addAll(_ogeler.map((m) => m.id))),
+          icon: Icon(hepsi ? Icons.deselect_rounded : Icons.select_all_rounded, size: 20),
+          label: Text(hepsi ? 'Hiçbiri' : 'Tümünü seç'),
+        ),
+        const SizedBox(width: 6),
+      ],
+    );
+  }
+
+  /// Çoklu seçimde alttaki etiketli eylem çubuğu.
+  Widget _secimEylemleri() {
     final r = context.r;
-    final durum = PostaDurum.ben;
-    final menu = widget.cekmece != null && !_aramaAcik && !_secimModu
-        ? Builder(
-            builder: (c) => IconButton(icon: const Icon(Icons.menu_rounded), tooltip: 'Klasörler', onPressed: () => Scaffold.of(c).openDrawer()),
-          )
-        : null;
-    if (_secimModu) {
-      final secilen = _ogeler.where((m) => _secim.contains(m.id)).toList();
-      final hepsiOkundu = secilen.every((m) => m.okundu);
-      final hepsiYildizli = secilen.every((m) => m.yildizli);
-      final idler = _secim.toList();
-      return AppBar(
-        leading: IconButton(icon: const Icon(Icons.close_rounded), tooltip: 'Seçimi kaldır', onPressed: () => setState(_secim.clear)),
-        title: Text('${_secim.length} seçili'),
-        actions: [
-          IconButton(
-            icon: Icon(hepsiOkundu ? Icons.mark_email_unread_outlined : Icons.mark_email_read_outlined),
-            tooltip: hepsiOkundu ? 'Okunmadı yap' : 'Okundu yap',
-            onPressed: () => _toplu(idler, hepsiOkundu ? 'unread' : 'read', hepsiOkundu ? 'Okunmadı işaretlendi' : 'Okundu işaretlendi', kaldir: false),
-          ),
-          if (_klasor?.rol != 'archive')
-            IconButton(icon: const Icon(Icons.archive_outlined), tooltip: 'Arşivle', onPressed: () => _toplu(idler, 'archive', 'Arşivlendi')),
-          IconButton(icon: const Icon(Icons.delete_outline_rounded), tooltip: 'Sil', onPressed: () => _sil(idler)),
-          PopupMenuButton<String>(
-            tooltip: 'Diğer işlemler',
-            onSelected: (v) => switch (v) {
-              'tasi' => _tasi(idler),
-              'yildiz' => _toplu(idler, hepsiYildizli ? 'unflag' : 'flag', hepsiYildizli ? 'Yıldız kaldırıldı' : 'Yıldızlandı', kaldir: false),
-              'spam' => _toplu(idler, 'spam', 'Gereksiz olarak işaretlendi'),
-              'spamDegil' => _toplu(idler, 'notspam', 'Gelen Kutusu\'na taşındı'),
-              _ => setState(() => _secim.addAll(_ogeler.map((m) => m.id))),
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'hepsi',
-                child: ListTile(leading: Icon(Icons.select_all_rounded), title: Text('Tümünü seç')),
+    final secilen = _ogeler.where((m) => _secim.contains(m.id)).toList();
+    final hepsiOkundu = secilen.every((m) => m.okundu);
+    final hepsiYildizli = secilen.every((m) => m.yildizli);
+    final hepsiOnemli = secilen.every((m) => m.onemli);
+    final idler = _secim.toList();
+    final rol = _klasor?.rol;
+    Widget dugme(IconData i, String t, VoidCallback f, {Color? renk}) => Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: f,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(i, size: 22, color: renk ?? r.metin),
+              const SizedBox(height: 3),
+              Text(
+                t,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: renk ?? r.metin),
               ),
-              const PopupMenuItem(
-                value: 'tasi',
-                child: ListTile(leading: Icon(Icons.drive_file_move_outline), title: Text('Taşı…')),
-              ),
-              PopupMenuItem(
-                value: 'yildiz',
-                child: ListTile(leading: const Icon(Icons.star_border_rounded), title: Text(hepsiYildizli ? 'Yıldızı kaldır' : 'Yıldızla')),
-              ),
-              if (_klasor?.rol == 'junk')
-                const PopupMenuItem(
-                  value: 'spamDegil',
-                  child: ListTile(leading: Icon(Icons.thumb_up_alt_outlined), title: Text('Gereksiz değil')),
-                )
-              else
-                const PopupMenuItem(
-                  value: 'spam',
-                  child: ListTile(leading: Icon(Icons.report_outlined), title: Text('Gereksiz (spam)')),
-                ),
             ],
           ),
-        ],
-      );
-    }
-    if (_aramaAcik) {
-      return AppBar(
-        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), tooltip: 'Aramayı kapat', onPressed: _aramaKapat),
-        titleSpacing: 0,
-        title: TextField(
-          controller: _aramaMetni,
-          focusNode: _aramaOdak,
-          textInputAction: TextInputAction.search,
-          onSubmitted: _ara,
-          decoration: InputDecoration(
-            hintText: 'Postalarda ara',
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            suffixIcon: _aramaMetni.text.isEmpty
-                ? null
-                : IconButton(icon: const Icon(Icons.clear_rounded, size: 20), tooltip: 'Temizle', onPressed: () => setState(_aramaMetni.clear)),
-          ),
-          onChanged: (_) => setState(() {}),
         ),
-        actions: [
-          IconButton(icon: const Icon(Icons.manage_search_rounded), tooltip: 'Arama işleçleri', onPressed: _islecYardimi),
-          IconButton(icon: const Icon(Icons.search_rounded), tooltip: 'Ara', onPressed: () => _ara(_aramaMetni.text)),
-        ],
-      );
-    }
-    final k = _klasor;
-    final okunmamis = k?.okunmamis ?? durum.etiket(widget.konum.id)?.okunmamis ?? 0;
+      ),
+    );
+    return Material(
+      color: r.kart,
+      elevation: 0,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: r.kenar)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              children: [
+                dugme(
+                  hepsiOkundu ? Icons.mark_email_unread_outlined : Icons.mark_email_read_outlined,
+                  hepsiOkundu ? 'Okunmadı' : 'Okundu',
+                  () => _toplu(idler, hepsiOkundu ? 'unread' : 'read', hepsiOkundu ? 'Okunmadı işaretlendi' : 'Okundu işaretlendi', kaldir: false),
+                ),
+                if (rol != 'archive') dugme(Icons.archive_outlined, 'Arşivle', () => _toplu(idler, 'archive', 'Arşivlendi')),
+                dugme(Icons.drive_file_move_outline, 'Taşı', () => _tasi(idler)),
+                dugme(Icons.delete_outline_rounded, _copte ? 'Kalıcı sil' : 'Sil', () => _sil(idler), renk: Marka.gul),
+                Expanded(
+                  child: PopupMenuButton<String>(
+                    tooltip: 'Diğer işlemler',
+                    onSelected: (v) => switch (v) {
+                      'yildiz' => _toplu(idler, hepsiYildizli ? 'unflag' : 'flag', hepsiYildizli ? 'Yıldız kaldırıldı' : 'Yıldızlandı', kaldir: false),
+                      'onemli' => _toplu(
+                        idler,
+                        hepsiOnemli ? 'unimportant' : 'important',
+                        hepsiOnemli ? 'Önemli işareti kaldırıldı' : 'Önemli olarak işaretlendi',
+                        kaldir: false,
+                      ),
+                      'etiket' => _etiketle(idler),
+                      'spam' => _toplu(idler, 'spam', 'Gereksiz olarak işaretlendi'),
+                      'spamDegil' => _toplu(idler, 'notspam', 'Gelen Kutusu\'na taşındı'),
+                      _ => null,
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: 'yildiz',
+                        child: ListTile(
+                          leading: Icon(hepsiYildizli ? Icons.star_rounded : Icons.star_border_rounded),
+                          title: Text(hepsiYildizli ? 'Yıldızı kaldır' : 'Yıldızla'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'onemli',
+                        child: ListTile(
+                          leading: const Icon(Icons.label_important_outline_rounded),
+                          title: Text(hepsiOnemli ? 'Önemli değil' : 'Önemli olarak işaretle'),
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'etiket',
+                        child: ListTile(leading: Icon(Icons.label_outline_rounded), title: Text('Etiket ekle…')),
+                      ),
+                      if (rol == 'junk')
+                        const PopupMenuItem(
+                          value: 'spamDegil',
+                          child: ListTile(leading: Icon(Icons.thumb_up_alt_outlined), title: Text('Gereksiz değil')),
+                        )
+                      else
+                        const PopupMenuItem(
+                          value: 'spam',
+                          child: ListTile(leading: Icon(Icons.report_outlined), title: Text('Gereksiz (spam)')),
+                        ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.more_horiz_rounded, size: 22, color: r.metin),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Diğer',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: r.metin),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _aramaCubugu() {
     return AppBar(
-      leading: menu,
       automaticallyImplyLeading: false,
-      titleSpacing: menu == null ? 16 : 0,
+      leading: widget.aramaSabit ? null : IconButton(icon: const Icon(Icons.arrow_back_rounded), tooltip: 'Aramayı kapat', onPressed: _aramaKapat),
+      titleSpacing: widget.aramaSabit ? 16 : 0,
+      title: TextField(
+        controller: _aramaMetni,
+        focusNode: _aramaOdak,
+        textInputAction: TextInputAction.search,
+        onSubmitted: _ara,
+        decoration: InputDecoration(
+          hintText: 'Postalarda ara (ad, adres, konu, metin)',
+          isDense: true,
+          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          suffixIcon: _aramaMetni.text.isEmpty && _arama.isEmpty
+              ? null
+              : IconButton(icon: const Icon(Icons.clear_rounded, size: 20), tooltip: 'Aramayı temizle', onPressed: _aramaKapat),
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        if (_arama.isNotEmpty && _alan == AramaAlani.hepsi)
+          IconButton(icon: const Icon(Icons.bookmark_add_outlined), tooltip: 'Aramayı kaydet', onPressed: _aramayiKaydet),
+        IconButton(icon: const Icon(Icons.manage_search_rounded), tooltip: 'Arama işleçleri', onPressed: _islecYardimi),
+        const SizedBox(width: 4),
+      ],
+    );
+  }
+
+  PreferredSizeWidget _ustCubuk() {
+    if (_secimModu) return _secimCubugu();
+    if (_aramaAcik) return _aramaCubugu();
+    final r = context.r;
+    final durum = PostaDurum.ben;
+    final k = _klasor;
+    final okunmamis = _okunmamisSayisi;
+    return AppBar(
+      leading: widget.klasorler == null
+          ? null
+          : IconButton(
+              key: const ValueKey('klasor-degistir'),
+              tooltip: 'Klasörler ve etiketler',
+              onPressed: widget.klasorler,
+              icon: Badge(
+                isLabelVisible: widget.klasorRozeti > 0,
+                backgroundColor: r.vurgu,
+                textColor: Colors.white,
+                label: Text(widget.klasorRozeti > 999 ? '999+' : '${widget.klasorRozeti}'),
+                child: const Icon(Icons.menu_rounded),
+              ),
+            ),
+      titleSpacing: Navigator.of(context).canPop() || widget.klasorler != null ? 0 : 16,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(durum.baslik(widget.konum), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Row(
+            children: [
+              Flexible(child: Text(durum.baslik(widget.konum), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              if (okunmamis > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  key: const ValueKey('baslik-okunmamis'),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: r.vurgu, borderRadius: BorderRadius.circular(20)),
+                  child: Text(
+                    okunmamis > 9999 ? '9999+' : '$okunmamis',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
+                  ),
+                ),
+              ],
+            ],
+          ),
           if (!_yukleniyor)
             Text(
               okunmamis > 0 ? '${sayiYaz(okunmamis)} okunmamış · ${sayiYaz(_toplam)} ileti' : '${sayiYaz(_toplam)} ileti',
@@ -484,11 +739,12 @@ class IletiListesiState extends State<IletiListesi> {
         ],
       ),
       actions: [
-        IconButton(icon: const Icon(Icons.search_rounded), tooltip: 'Ara', onPressed: _aramaAc),
+        IconButton(icon: const Icon(Icons.search_rounded), tooltip: 'Bu klasörde ara', onPressed: _aramaAc),
         PopupMenuButton<String>(
           tooltip: 'Liste seçenekleri',
           onSelected: (v) => switch (v) {
             'yenile' => _yukle(),
+            'sec' => setState(() => _secim.addAll(_ogeler.map((m) => m.id))),
             'okundu' => _klasorOkundu(),
             'hepsi' => _hepsiOkundu(),
             'bosalt' => _bosalt(),
@@ -499,6 +755,11 @@ class IletiListesiState extends State<IletiListesi> {
               value: 'yenile',
               child: ListTile(leading: Icon(Icons.refresh_rounded), title: Text('Yenile')),
             ),
+            if (_ogeler.isNotEmpty)
+              const PopupMenuItem(
+                value: 'sec',
+                child: ListTile(leading: Icon(Icons.checklist_rounded), title: Text('İleti seç')),
+              ),
             const PopupMenuItem(
               value: 'okundu',
               child: ListTile(leading: Icon(Icons.done_all_rounded), title: Text('Tümünü okundu işaretle')),
@@ -521,49 +782,103 @@ class IletiListesiState extends State<IletiListesi> {
     );
   }
 
-  Widget _filtreler() {
+  /// Arama seçenekleri: kapsam (bu klasör / tüm klasörler), alan, tarih aralığı.
+  Widget _aramaSecenekleri() {
     final r = context.r;
-    final ara = _aramaAcik && widget.konum.tur == KonumTur.klasor;
+    final bicim = DateFormat('d MMM y', 'tr_TR');
+    Widget cip(String t, bool secili, VoidCallback f, {IconData? ikon}) => Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        label: Text(t),
+        avatar: ikon == null ? null : Icon(ikon, size: 16),
+        selected: secili,
+        showCheckmark: false,
+        visualDensity: VisualDensity.compact,
+        selectedColor: r.vurgu,
+        labelStyle: TextStyle(color: secili ? Colors.white : r.metin, fontWeight: FontWeight.w600, fontSize: 12.5),
+        onSelected: (_) => f(),
+      ),
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            FilterChip(
-              label: const Text('Okunmamış'),
-              selected: _okunmamis,
-              visualDensity: VisualDensity.compact,
-              onSelected: (v) {
-                setState(() => _okunmamis = v);
-                _yukle();
-              },
+            if (widget.konum.tur == KonumTur.klasor && !widget.aramaSabit) ...[
+              cip('Bu klasörde', !_tumKlasorler, () {
+                setState(() => _tumKlasorler = false);
+                if (_arama.isNotEmpty) _yukle();
+              }),
+              cip('Tüm klasörlerde', _tumKlasorler, () {
+                setState(() => _tumKlasorler = true);
+                if (_arama.isNotEmpty) _yukle();
+              }),
+              Container(width: 1, height: 22, color: r.kenar, margin: const EdgeInsets.only(right: 6)),
+            ],
+            for (final a in AramaAlani.values)
+              cip(a.ad, _alan == a, () {
+                setState(() => _alan = a);
+                if (_arama.isNotEmpty) _yukle();
+              }),
+            Container(width: 1, height: 22, color: r.kenar, margin: const EdgeInsets.only(right: 6)),
+            cip(
+              _tarih == null ? 'Tarih' : '${bicim.format(_tarih!.start)} – ${bicim.format(_tarih!.end)}',
+              _tarih != null,
+              _tarihSec,
+              ikon: Icons.date_range_rounded,
             ),
-            if (ara) ...[
-              const SizedBox(width: 8),
-              FilterChip(
-                label: const Text('Tüm klasörlerde'),
-                selected: _tumKlasorler,
+            if (_tarih != null)
+              IconButton(
                 visualDensity: VisualDensity.compact,
-                onSelected: (v) {
-                  setState(() => _tumKlasorler = v);
-                  if (_arama.isNotEmpty) _yukle();
+                tooltip: 'Tarihi kaldır',
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () {
+                  setState(() => _tarih = null);
+                  _yukle();
                 },
               ),
-            ],
-            if (_arama.isNotEmpty) ...[
-              const SizedBox(width: 10),
-              Text('"$_arama" için ${sayiYaz(_toplam)} sonuç', style: TextStyle(color: r.silik, fontSize: 12.5)),
-            ],
           ],
         ),
       ),
     );
   }
 
+  Widget _ustAlan() {
+    final r = context.r;
+    final aramaVar = _arama.isNotEmpty || _tarih != null;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_aramaAcik) _aramaSecenekleri(),
+        if (!_filtreGizli && !_secimModu)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+            child: FiltreCubugu(
+              secili: _filtre,
+              degisti: _filtreSec,
+              sayilar: {if (!aramaVar && _okunmamisSayisi > 0) ListeFiltresi.okunmamis: _okunmamisSayisi},
+            ),
+          ),
+        if (aramaVar && !_yukleniyor)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: Text(
+              _arama.isNotEmpty ? '"$_arama" için ${sayiYaz(_toplam)} sonuç' : '${sayiYaz(_toplam)} sonuç',
+              style: TextStyle(color: r.silik, fontSize: 12.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+        if (_filtre != ListeFiltresi.tumu && !_filtreGizli)
+          FiltreBandi(filtre: _filtre, sonuc: _yukleniyor ? null : _toplam, temizle: () => _filtreSec(ListeFiltresi.tumu)),
+        Divider(height: 1, color: r.kenar),
+      ],
+    );
+  }
+
   String _bosMetin() {
-    if (_arama.isNotEmpty) return 'Aramanızla eşleşen ileti bulunamadı.';
-    if (_okunmamis) return 'Okunmamış ileti yok.';
+    if (_arama.isNotEmpty || _tarih != null) return 'Aramanızla eşleşen ileti bulunamadı.\nFarklı sözcükler deneyin veya süzgeçleri kaldırın.';
+    if (_filtre != ListeFiltresi.tumu) return _filtre.bosMetin;
     return switch (_klasor?.rol) {
       'inbox' => 'Gelen Kutunuz boş. Yeni postalar burada görünecek.',
       'drafts' => 'Kaydedilmiş taslak yok.',
@@ -572,7 +887,20 @@ class IletiListesiState extends State<IletiListesi> {
       'junk' => 'Gereksiz ileti yok.',
       'archive' => 'Arşiv boş.',
       'snoozed' => 'Ertelenmiş ileti yok.',
+      'templates' => 'Kayıtlı şablon yok.',
       _ => widget.konum.tur == KonumTur.gorunum ? 'Bu görünümde ileti yok.' : 'Bu klasörde ileti yok.',
+    };
+  }
+
+  IconData _bosSimge() {
+    if (_arama.isNotEmpty || _tarih != null) return Icons.search_off_rounded;
+    if (_filtre != ListeFiltresi.tumu) return _filtre.ikon;
+    return switch (_klasor?.rol) {
+      'inbox' => Icons.mark_email_read_outlined,
+      'trash' => Icons.delete_outline_rounded,
+      'drafts' => Icons.edit_note_rounded,
+      'sent' => Icons.send_rounded,
+      _ => Icons.inbox_rounded,
     };
   }
 
@@ -580,11 +908,11 @@ class IletiListesiState extends State<IletiListesi> {
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: {
-        if (_aramaAcik) const SingleActivator(LogicalKeyboardKey.escape): _aramaKapat,
+        if (_aramaAcik && !widget.aramaSabit) const SingleActivator(LogicalKeyboardKey.escape): _aramaKapat,
         if (_secimModu) const SingleActivator(LogicalKeyboardKey.escape): () => setState(_secim.clear),
       },
       child: PopScope(
-        canPop: !_aramaAcik && !_secimModu,
+        canPop: !(_aramaAcik && !widget.aramaSabit) && !_secimModu,
         onPopInvokedWithResult: (cikti, _) {
           if (cikti) return;
           if (_secimModu) {
@@ -594,12 +922,12 @@ class IletiListesiState extends State<IletiListesi> {
           }
         },
         child: Scaffold(
-          drawer: widget.cekmece,
           floatingActionButton: _secimModu ? null : widget.fab,
           appBar: _ustCubuk(),
+          bottomNavigationBar: _secimModu ? _secimEylemleri() : null,
           body: Column(
             children: [
-              _filtreler(),
+              _ustAlan(),
               Expanded(child: _liste()),
             ],
           ),
@@ -608,7 +936,77 @@ class IletiListesiState extends State<IletiListesi> {
     );
   }
 
+  Widget _aramaIpuclari() {
+    final r = context.r;
+    Widget ipucu(String ornek, String aciklama) => ListTile(
+      dense: true,
+      leading: Icon(Icons.tips_and_updates_outlined, color: r.vurgu, size: 20),
+      title: Text(
+        ornek,
+        style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(aciklama),
+      onTap: () {
+        _aramaMetni.text = ornek;
+        _ara(ornek);
+      },
+    );
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(8, 24, 8, 96),
+      children: [
+        Center(
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(color: r.vurguYumusak, shape: BoxShape.circle),
+            child: Icon(Icons.search_rounded, size: 34, color: r.vurgu),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Tüm postalarınızda arayın',
+          textAlign: TextAlign.center,
+          style: gosterim(18, agirlik: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Gönderen, alıcı, konu veya ileti metninde geçen bir sözcük yazın.\nAlanı ve tarih aralığını yukarıdan seçebilirsiniz.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: r.soluk, fontSize: 13.5),
+        ),
+        if (_kayitli.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Baslik('Kayıtlı aramalar')),
+          for (final k in _kayitli)
+            ListTile(
+              leading: Icon(Icons.bookmark_rounded, color: r.vurgu),
+              title: Text(k.ad, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(k.sorgu, style: const TextStyle(fontFamily: 'monospace')),
+              onTap: () => _kayitliAc(k),
+              trailing: IconButton(
+                tooltip: 'Kaydı sil',
+                icon: Icon(Icons.close_rounded, color: r.silik),
+                onPressed: () async {
+                  await islem(() => Hesap.kayitliAramaSil(k.id));
+                  await _kayitlilariYukle();
+                },
+              ),
+            ),
+        ],
+        const SizedBox(height: 16),
+        const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Baslik('Örnekler')),
+        ipucu('has:attachment', 'Ek içeren iletiler'),
+        ipucu('is:unread', 'Okunmamış iletiler'),
+        ipucu('is:starred', 'Yıldızlı iletiler'),
+        Center(
+          child: TextButton.icon(onPressed: _islecYardimi, icon: const Icon(Icons.manage_search_rounded), label: const Text('Tüm arama işleçleri')),
+        ),
+      ],
+    );
+  }
+
   Widget _liste() {
+    if (_aramaBekliyor) return _aramaIpuclari();
     if (_yukleniyor && _ogeler.isEmpty) return const ListeIskeleti();
     if (_hata != null && _ogeler.isEmpty) return Durum.hata(_hata!, tekrar: _yukle);
     if (_ogeler.isEmpty) {
@@ -619,7 +1017,18 @@ class IletiListesiState extends State<IletiListesi> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: SizedBox(
               height: k.maxHeight,
-              child: Durum.bos(_bosMetin(), ikon: _arama.isNotEmpty ? Icons.search_off_rounded : Icons.inbox_rounded),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(child: Durum.bos(_bosMetin(), ikon: _bosSimge())),
+                  if (_filtre != ListeFiltresi.tumu)
+                    OutlinedButton.icon(
+                      onPressed: () => _filtreSec(ListeFiltresi.tumu),
+                      icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                      label: const Text('Tüm iletileri göster'),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -655,13 +1064,14 @@ class IletiListesiState extends State<IletiListesi> {
             }
             final g = girdiler[i];
             if (g is String) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+              return Container(
+                color: c.r.zemin,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
                 child: Semantics(
                   header: true,
                   child: Text(
-                    g,
-                    style: TextStyle(color: c.r.silik, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: .4),
+                    g.toUpperCase(),
+                    style: TextStyle(color: c.r.silik, fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: .8),
                   ),
                 ),
               );

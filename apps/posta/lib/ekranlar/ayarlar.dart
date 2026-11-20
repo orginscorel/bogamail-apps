@@ -6,13 +6,15 @@ import 'package:intl/intl.dart';
 
 import '../oturum.dart';
 import '../veri/bildirim.dart';
-import '../veri/canli.dart';
 import '../veri/durum.dart';
 import '../veri/html_temizle.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/tercihler.dart';
 import '../veri/yardimci.dart';
+import 'hesap/araclar.dart';
+import 'hesap/imza.dart';
+import 'hesaplar.dart';
 
 class AyarlarEkrani extends StatefulWidget {
   const AyarlarEkrani({super.key});
@@ -24,7 +26,6 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
   PostaAyarlari? _a;
   String? _hata;
   final _ad = TextEditingController();
-  final _imza = TextEditingController();
   final _tatilKonu = TextEditingController();
   final _tatilMetin = TextEditingController();
   bool _tatil = false;
@@ -45,7 +46,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     super.initState();
     _yukle();
     _bildirimDurumu();
-    for (final c in [_ad, _imza]) {
+    for (final c in [_ad]) {
       c.addListener(() {
         if (!_profilKirli) setState(() => _profilKirli = true);
       });
@@ -59,7 +60,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
 
   @override
   void dispose() {
-    for (final c in [_ad, _imza, _tatilKonu, _tatilMetin]) {
+    for (final c in [_ad, _tatilKonu, _tatilMetin]) {
       c.dispose();
     }
     super.dispose();
@@ -74,7 +75,6 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       setState(() {
         _a = a;
         _ad.text = a.gorunenAd;
-        _imza.text = a.imza.isNotEmpty ? a.imza : (a.imzaHtml.isNotEmpty ? htmlMetne(a.imzaHtml) : '');
         _tatil = a.tatilAcik;
         _tatilKonu.text = a.tatilKonu;
         _tatilMetin.text = a.tatilMetin;
@@ -122,31 +122,10 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     }
   }
 
-  bool get _zenginImza {
-    final a = _a;
-    if (a == null || a.imzaHtml.trim().isEmpty) return false;
-    return a.imzaHtml.trim() != metindenHtml(a.imza.trim());
-  }
-
   Future<void> _profilKaydet() async {
     final a = _a!;
     final d = <String, dynamic>{};
     if (_ad.text.trim() != a.gorunenAd) d['display_name'] = _ad.text.trim();
-    final imza = _imza.text.trimRight();
-    final eskiImza = a.imza.isNotEmpty ? a.imza : htmlMetne(a.imzaHtml);
-    if (!a.imzaKilitli && imza != eskiImza) {
-      if (_zenginImza &&
-          !await onayla(
-            context,
-            'Biçimli imza değiştirilsin mi?',
-            mesaj: 'Web postasında tasarladığınız biçimli imza (görseller, renkler) bu düz metin imzayla değiştirilecek.',
-            evet: 'Değiştir',
-          )) {
-        return;
-      }
-      d['signature'] = imza;
-      d['signature_html'] = imza.isEmpty ? '' : metindenHtml(imza);
-    }
     if (d.isEmpty) {
       setState(() => _profilKirli = false);
       return;
@@ -190,16 +169,6 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     });
   }
 
-  Future<void> _cikis() async {
-    if (!await onayla(context, 'Çıkış yapılsın mı?', mesaj: 'Bu cihazdaki oturumunuz kapatılır ve bildirimler durur.', evet: 'Çıkış yap', tehlikeli: true)) {
-      return;
-    }
-    Canli.ben.durdur();
-    await Bildirim.temizle();
-    PostaDurum.ben.sifirla();
-    await Uyg.cikis();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -226,6 +195,11 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     return [
       const Baslik('Hesap'),
       _hesap(),
+      const Baslik('Hesaplar ve oturum'),
+      const Kutu(padding: EdgeInsets.symmetric(vertical: 6), child: HesapSecici(gomulu: true)),
+      const Baslik('Uygulama'),
+      GuncellemeKarti(api: Uyg.api),
+      AraclarBolumleri(ayarlar: a),
       const Baslik('Profil ve imza'),
       Kutu(
         child: Column(
@@ -237,40 +211,24 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
               decoration: const InputDecoration(labelText: 'Görünen ad', counterText: ''),
             ),
             const SizedBox(height: 12),
-            if (a.imzaKilitli) ...[
-              Text(
-                'İmza',
-                style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600),
+            ListTile(
+              key: const ValueKey('imza-ac'),
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.draw_outlined, color: r.vurgu),
+              title: const Text('İmza'),
+              subtitle: Text(
+                a.imzaKilitli
+                    ? 'Kurum şablonu (kilitli)'
+                    : (a.etkinImzaHtml.trim().isEmpty ? 'İmza yok · eklemek için dokunun' : htmlMetne(a.etkinImzaHtml).replaceAll(RegExp(r'\s+'), ' ').trim()),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12)),
-                child: Text(htmlMetne(a.etkinImzaHtml), style: TextStyle(color: r.soluk)),
-              ),
-              const SizedBox(height: 6),
-              Text('İmzanız kurumunuzun şablonuyla belirleniyor ve değiştirilemez.', style: TextStyle(color: r.silik, fontSize: 12.5)),
-            ] else ...[
-              TextField(
-                controller: _imza,
-                minLines: 3,
-                maxLines: 8,
-                decoration: const InputDecoration(labelText: 'İmza', alignLabelWithHint: true, hintText: 'Yeni iletilerin altına eklenir'),
-              ),
-              if (_zenginImza)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Web postasında biçimli bir imza tasarlamışsınız; burada düz metin hâli gösteriliyor.',
-                    style: TextStyle(color: r.silik, fontSize: 12.5),
-                  ),
-                ),
-              if (a.imzaKurumdan && !_zenginImza)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text('Kendi imzanız boşsa kurumunuzun imza şablonu kullanılır.', style: TextStyle(color: r.silik, fontSize: 12.5)),
-                ),
-            ],
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () async {
+                await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ImzaEkrani()));
+                _yukle();
+              },
+            ),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
@@ -317,7 +275,26 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       ),
       const Baslik('Bildirimler'),
       _bildirimler(),
-      const Baslik('Gönderim'),
+      const Baslik('Liste ve gönderim'),
+      Kutu(
+        child: Row(
+          children: [
+            const Expanded(child: Text('Sayfa başına ileti')),
+            DropdownButton<int>(
+              value: const [25, 50, 100, 200].contains(a.sayfaBoyutu) ? a.sayfaBoyutu : 50,
+              underline: const SizedBox.shrink(),
+              items: const [
+                DropdownMenuItem(value: 25, child: Text('25')),
+                DropdownMenuItem(value: 50, child: Text('50')),
+                DropdownMenuItem(value: 100, child: Text('100')),
+                DropdownMenuItem(value: 200, child: Text('200')),
+              ],
+              onChanged: _kaydediliyor ? null : (v) => _kaydet({'page_size': v ?? 50}, 'Sayfa boyutu kaydedildi'),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 10),
       Kutu(
         child: Row(
           children: [
@@ -352,24 +329,11 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
             ),
             if (a.sunucu.isNotEmpty)
               ListTile(leading: const Icon(Icons.settings_ethernet_rounded), title: const Text('IMAP/SMTP sunucusu'), subtitle: Text(a.sunucu)),
-            ListTile(
-              leading: const Icon(Icons.info_outline_rounded),
-              title: const Text('Uygulama sürümü'),
-              subtitle: Text(Uyg.api.surum.isEmpty ? '—' : Uyg.api.surum),
-            ),
           ],
         ),
       ),
-      const SizedBox(height: 20),
-      OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Marka.gul,
-          side: BorderSide(color: Marka.gul.withValues(alpha: .4)),
-        ),
-        onPressed: _cikis,
-        icon: const Icon(Icons.logout_rounded),
-        label: const Text('Çıkış yap'),
-      ),
+      const SizedBox(height: 16),
+      const SurumEtiketi(ortala: true),
     ];
   }
 

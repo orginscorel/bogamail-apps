@@ -10,6 +10,7 @@ import 'veri/tercihler.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  kimlikAyarla(Kimlik.posta);
   await initializeDateFormatting('tr_TR');
   Intl.defaultLocale = 'tr_TR';
   await Tercihler.yukle();
@@ -36,7 +37,7 @@ class PostaUygulamasi extends StatelessWidget {
         locale: const Locale('tr', 'TR'),
         supportedLocales: const [Locale('tr', 'TR')],
         localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
-        home: AcilisEkrani(alt: 'POSTA', isaret: AcilisIsaret.posta, hazirla: () async => await Uyg.yukle() ? const Kabuk() : Uyg.girisEkrani()),
+        home: AcilisEkrani(alt: 'POSTA', isaret: AcilisIsaret.posta, api: Uyg.api, hazirla: () async => await Uyg.yukle() ? const Kabuk() : Uyg.girisEkrani()),
       ),
     );
   }
