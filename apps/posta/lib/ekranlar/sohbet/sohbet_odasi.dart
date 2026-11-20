@@ -1,14 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:boga_ortak/boga_ortak.dart';
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../../ortak/izin.dart';
+import '../../ortak/simgeler.dart';
 import '../../veri/canli.dart';
 import '../../veri/modeller.dart';
 import '../../veri/sohbet_servisi.dart';
+import '../../veri/yardimci.dart';
 import 'ortak.dart';
+import 'sohbet_ekleri.dart';
 
 /// Bir sohbet odası: iletiler (eskiler yukarı kaydırınca yüklenir), yazma alanı, kendi iletisini silme, canlı güncelleme.
 /// Canlı akış bağlı değilken 10 saniyede bir yoklanır.
@@ -33,6 +42,12 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
   bool _eskiYukleniyor = false;
   bool _eskiBitti = false;
   bool _gonderiyor = false;
+
+  /// Gönderilmeyi bekleyen ekler (yükleniyor ya da yüklendi).
+  final _bekleyen = <_Yukleme>[];
+  bool get _yukleniyor_ => _bekleyen.any((y) => y.ek == null && y.hata == null);
+  List<String> get _hazirEkler => [for (final y in _bekleyen) ?y.ek?.id];
+  bool get _gonderilebilir => !_gonderiyor && !_yukleniyor_ && (_metin.text.trim().isNotEmpty || _hazirEkler.isNotEmpty);
   String? _hata;
   StreamSubscription<CanliOlay>? _abone;
   Timer? _yoklama;
@@ -74,6 +89,9 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
     SohbetDurum.ben.removeListener(_durum);
     _abone?.cancel();
     _yoklama?.cancel();
+    for (final y in _bekleyen) {
+      y.iptal.cancel();
+    }
     _metin.dispose();
     _odak.dispose();
     _kaydirma.dispose();
@@ -155,22 +173,24 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
   void _canli(CanliOlay o) {
     if ('${o.veri['room_id'] ?? ''}' != widget.odaId) return;
     if (o.tur == 'chat_message') _yeniler();
-    if (o.tur == 'chat_update') _tazele();
+    if (o.tur == 'chat_update' || o.tur == 'chat_reaction') _tazele();
   }
 
   Future<void> _gonder() async {
     final t = _metin.text.trim();
-    if (t.isEmpty || _gonderiyor) return;
+    if (!_gonderilebilir) return;
     if (t.characters.length > 4000) {
       bildir('İleti çok uzun', mesaj: 'En fazla 4000 karakter yazabilirsiniz.', tur: MesajTur.uyari);
       return;
     }
+    final ekler = _hazirEkler;
     setState(() => _gonderiyor = true);
     try {
-      final m = await Sohbet.gonder(widget.odaId, t);
+      final m = await Sohbet.gonder(widget.odaId, t, ekler: ekler);
       if (!mounted) return;
       _metin.clear();
       setState(() {
+        _bekleyen.removeWhere((y) => y.ek != null || y.hata != null);
         if (!_mesajlar.any((x) => x.id == m.id)) _mesajlar = [..._mesajlar, m];
       });
       if (_kaydirma.hasClients) _kaydirma.jumpTo(0);
@@ -181,6 +201,189 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
       if (mounted) setState(() => _gonderiyor = false);
       _odak.requestFocus();
     }
+  }
+
+  // ---- ekler ----
+
+  Future<void> _ekMenusu() async {
+    final mobil = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    final s = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(leading: const Icon(Icons.attach_file_rounded), title: const Text('Dosya'), onTap: () => Navigator.pop(c, 'dosya')),
+            ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Galeri'), onTap: () => Navigator.pop(c, 'galeri')),
+            if (mobil) ...[
+              ListTile(leading: const Icon(Icons.photo_camera_outlined), title: const Text('Kamerayla fotoğraf çek'), onTap: () => Navigator.pop(c, 'foto')),
+              ListTile(leading: const Icon(Icons.videocam_outlined), title: const Text('Kamerayla video çek'), onTap: () => Navigator.pop(c, 'video')),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Text('Dosya başına en çok 25 MB, iletide en çok 10 ek.', style: TextStyle(color: c.r.silik, fontSize: 12.5)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (s == null || !mounted) return;
+    final secilen = <({String ad, Future<Uint8List> Function() oku, int boyut})>[];
+    try {
+      if (s == 'dosya') {
+        final l = await FilePicker.pickFiles(dialogTitle: 'Dosya ekle');
+        for (final f in l) {
+          secilen.add((ad: f.name, oku: f.readAsBytes, boyut: f.lengthSync() ?? await f.length() ?? 0));
+        }
+      } else {
+        final p = ImagePicker();
+        final l = switch (s) {
+          'foto' => [?await p.pickImage(source: ImageSource.camera, imageQuality: 82, maxWidth: 2560, maxHeight: 2560)],
+          'video' => [?await p.pickVideo(source: ImageSource.camera, maxDuration: const Duration(minutes: 3))],
+          _ => await p.pickMultipleMedia(imageQuality: 82, maxWidth: 2560, maxHeight: 2560),
+        };
+        for (final f in l) {
+          secilen.add((ad: f.name, oku: f.readAsBytes, boyut: await f.length()));
+        }
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      if (e.code.contains('access_denied') || e.code.contains('permission')) {
+        await izinReddedildi(context, kamera: s == 'foto' || s == 'video');
+      } else {
+        bildir('Dosya alınamadı', mesaj: e.message, tur: MesajTur.hata);
+      }
+      return;
+    } catch (_) {
+      bildir('Dosya alınamadı', tur: MesajTur.hata);
+      return;
+    }
+    for (final f in secilen) {
+      _ekYuklemeyeBasla(f.ad, f.boyut, f.oku);
+    }
+  }
+
+  /// Bir dosyayı hemen yüklemeye başlar (ilerleme şeritte gösterilir).
+  void _ekYuklemeyeBasla(String ad, int boyut, Future<Uint8List> Function() oku) {
+    if (_bekleyen.length >= 10) {
+      bildir('En fazla 10 ek', mesaj: '"$ad" eklenmedi.', tur: MesajTur.uyari);
+      return;
+    }
+    final y = _Yukleme(ad, boyut);
+    if (boyut > Sohbet.azamiEk) {
+      y.hata = 'Dosya 25 MB sınırını aşıyor.';
+      setState(() => _bekleyen.add(y));
+      return;
+    }
+    setState(() => _bekleyen.add(y));
+    () async {
+      try {
+        final veri = await oku();
+        final ek = await Sohbet.ekYukle(
+          widget.odaId,
+          ad,
+          veri,
+          iptal: y.iptal,
+          ilerleme: (a, t) {
+            if (mounted && t > 0) setState(() => y.ilerleme = a / t);
+          },
+        );
+        if (mounted) setState(() => y.ek = ek);
+      } on ApiHata catch (e) {
+        if (e.kod == 'iptal') return;
+        if (mounted) setState(() => y.hata = e.mesaj);
+      } catch (e) {
+        if (mounted) setState(() => y.hata = hataMetni(e));
+      }
+    }();
+  }
+
+  Widget _ekSeridi() {
+    final r = context.r;
+    return SizedBox(
+      height: 58,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        itemCount: _bekleyen.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final y = _bekleyen[i];
+          final hata = y.hata != null;
+          return Tooltip(
+            message: y.hata ?? y.ad,
+            child: Container(
+              key: ValueKey('bekleyen-$i'),
+              width: 200,
+              padding: const EdgeInsets.fromLTRB(8, 4, 0, 4),
+              decoration: BoxDecoration(
+                color: hata ? Marka.gul.withValues(alpha: .08) : r.ic,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: hata ? Marka.gul.withValues(alpha: .4) : r.kenar),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: y.ek == null && !hata
+                        ? CircularProgressIndicator(strokeWidth: 2.5, value: y.ilerleme == 0 ? null : y.ilerleme)
+                        : Icon(hata ? Icons.error_outline_rounded : ekSimgesi(icerikTuru(y.ad), y.ad), color: hata ? Marka.gul : r.vurgu),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          y.ad,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          hata ? y.hata! : (y.ek == null ? '%${((y.ilerleme) * 100).round()} yükleniyor' : boyutYaz(y.boyut)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: hata ? Marka.gul : r.silik),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Kaldır',
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.close_rounded, size: 16, color: r.silik),
+                    onPressed: () => setState(() {
+                      y.iptal.cancel();
+                      _bekleyen.remove(y);
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ---- tepkiler ----
+
+  Future<void> _tepki(SohbetMesaji m, String emoji) async {
+    try {
+      final l = await Sohbet.tepki(widget.odaId, m.id, emoji);
+      if (mounted) setState(() => m.tepkiler = l);
+    } catch (e) {
+      bildir('Tepki verilemedi', mesaj: hataMetni(e), tur: MesajTur.hata);
+    }
+  }
+
+  Future<void> _tepkiEkle(SohbetMesaji m) async {
+    final e = await tepkiSec(context);
+    if (e != null) await _tepki(m, e);
   }
 
   Future<void> _sil(SohbetMesaji m) async {
@@ -201,14 +404,45 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.copy_rounded),
-              title: const Text('Kopyala'),
-              onTap: () {
-                Navigator.pop(c);
-                kopyala(m.metin, mesaj: 'İleti kopyalandı');
-              },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  for (final e in sikTepkiler.take(6))
+                    InkWell(
+                      key: ValueKey('hizli-tepki-$e'),
+                      customBorder: const CircleBorder(),
+                      onTap: () {
+                        Navigator.pop(c);
+                        _tepki(m, e);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Text(e, style: const TextStyle(fontSize: 26)),
+                      ),
+                    ),
+                  IconButton.filledTonal(
+                    tooltip: 'Diğer tepkiler',
+                    icon: const Icon(Icons.add_reaction_outlined),
+                    onPressed: () {
+                      Navigator.pop(c);
+                      _tepkiEkle(m);
+                    },
+                  ),
+                ],
+              ),
             ),
+            const Divider(),
+            if (m.metin.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: const Text('Kopyala'),
+                onTap: () {
+                  Navigator.pop(c);
+                  kopyala(m.metin, mesaj: 'İleti kopyalandı');
+                },
+              ),
             if (m.benim)
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded, color: Marka.gul),
@@ -394,7 +628,14 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
         return Column(
           children: [
             if (yeniGun) _gunAyraci(m.tarih),
-            MesajBalonu(mesaj: m, adGoster: grup && !m.benim && !ayniKisi, sikisik: ayniKisi, uzunBas: () => _iletiMenusu(m)),
+            MesajBalonu(
+              mesaj: m,
+              adGoster: grup && !m.benim && !ayniKisi,
+              sikisik: ayniKisi,
+              uzunBas: () => _iletiMenusu(m),
+              tepki: (e) => _tepki(m, e),
+              tepkiEkle: () => _tepkiEkle(m),
+            ),
           ],
         );
       },
@@ -436,57 +677,83 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
         color: r.kart,
         border: Border(top: BorderSide(color: r.kenar)),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(4, 0, 8, 8),
       child: SafeArea(
         top: false,
-        child: CallbackShortcuts(
-          bindings: {const SingleActivator(LogicalKeyboardKey.enter): _gonder},
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: TextField(
-                  key: const ValueKey('sohbet-yaz'),
-                  controller: _metin,
-                  focusNode: _odak,
-                  minLines: 1,
-                  maxLines: 6,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: oda?.kanal == true ? 'Kanala yazın (@ad ile birinden bahsedin)' : 'İleti yazın',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_bekleyen.isNotEmpty) _ekSeridi(),
+            const SizedBox(height: 8),
+            CallbackShortcuts(
+              bindings: {const SingleActivator(LogicalKeyboardKey.enter): _gonder},
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IconButton(
+                    key: const ValueKey('sohbet-ek'),
+                    tooltip: 'Ek ekle',
+                    onPressed: _gonderiyor ? null : _ekMenusu,
+                    icon: Icon(Icons.add_circle_outline_rounded, color: r.soluk),
+                    style: IconButton.styleFrom(minimumSize: const Size(44, 46)),
                   ),
-                  onChanged: (_) => setState(() {}),
-                ),
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('sohbet-yaz'),
+                      controller: _metin,
+                      focusNode: _odak,
+                      minLines: 1,
+                      maxLines: 6,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: oda?.kanal == true ? 'Kanala yazın (@ad ile birinden bahsedin)' : 'İleti yazın',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton.filled(
+                    key: const ValueKey('sohbet-gonder'),
+                    tooltip: 'Gönder (Enter)',
+                    style: IconButton.styleFrom(backgroundColor: r.vurgu, foregroundColor: Colors.white, minimumSize: const Size(46, 46)),
+                    onPressed: _gonderilebilir ? _gonder : null,
+                    icon: _gonderiyor
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.send_rounded, size: 20),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              IconButton.filled(
-                key: const ValueKey('sohbet-gonder'),
-                tooltip: 'Gönder (Enter)',
-                style: IconButton.styleFrom(backgroundColor: r.vurgu, foregroundColor: Colors.white, minimumSize: const Size(46, 46)),
-                onPressed: _metin.text.trim().isEmpty || _gonderiyor ? null : _gonder,
-                icon: _gonderiyor
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.send_rounded, size: 20),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+class _Yukleme {
+  _Yukleme(this.ad, this.boyut);
+  final String ad;
+  final int boyut;
+  final iptal = CancelToken();
+  double ilerleme = 0;
+  SohbetEki? ek;
+  String? hata;
+}
+
 /// Sohbet balonu: kendi iletileri sağda vurgu renginde, diğerleri solda kart renginde. @bahsetmeler vurgulanır.
 class MesajBalonu extends StatelessWidget {
-  const MesajBalonu({super.key, required this.mesaj, this.adGoster = false, this.sikisik = false, this.uzunBas});
+  const MesajBalonu({super.key, required this.mesaj, this.adGoster = false, this.sikisik = false, this.uzunBas, this.tepki, this.tepkiEkle});
   final SohbetMesaji mesaj;
   final bool adGoster;
   final bool sikisik;
   final VoidCallback? uzunBas;
+  final ValueChanged<String>? tepki;
+  final VoidCallback? tepkiEkle;
 
   static final _bahsetme = RegExp(r'(^|[\s(])(@[\p{L}\p{N}._%+-]+(?:@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+)?)', unicode: true);
 
@@ -516,73 +783,123 @@ class MesajBalonu extends StatelessWidget {
         mainAxisAlignment: ben ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          if (ben && tepkiEkle != null && !mesaj.silindi) _HizliTepki(ekle: tepkiEkle!),
           Flexible(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: GestureDetector(
-                onLongPress: uzunBas,
-                onSecondaryTap: uzunBas,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-                  decoration: BoxDecoration(
-                    color: mesaj.silindi ? r.ic : renk,
-                    border: ben || mesaj.silindi ? null : Border.all(color: r.kenar),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(18),
-                      topRight: const Radius.circular(18),
-                      bottomLeft: Radius.circular(ben ? 18 : 6),
-                      bottomRight: Radius.circular(ben ? 6 : 18),
-                    ),
-                    boxShadow: ben || mesaj.silindi ? null : r.hafifGolge,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (adGoster)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Text(
-                            mesaj.gonderenAd,
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Avatar.renkFor(mesaj.gonderenId ?? mesaj.gonderenAd)),
-                          ),
+            child: Column(
+              crossAxisAlignment: ben ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: GestureDetector(
+                    onLongPress: uzunBas,
+                    onSecondaryTap: uzunBas,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                      decoration: BoxDecoration(
+                        color: mesaj.silindi ? r.ic : renk,
+                        border: ben || mesaj.silindi ? null : Border.all(color: r.kenar),
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(18),
+                          topRight: const Radius.circular(18),
+                          bottomLeft: Radius.circular(ben ? 18 : 6),
+                          bottomRight: Radius.circular(ben ? 6 : 18),
                         ),
-                      if (mesaj.silindi)
-                        Text(
-                          'Bu ileti geri çekildi',
-                          style: TextStyle(fontStyle: FontStyle.italic, color: r.silik, fontSize: 14),
-                        )
-                      else
-                        SelectableText.rich(
-                          TextSpan(
-                            style: TextStyle(color: yazi, fontSize: 15, height: 1.35),
-                            children: _parcalar(
-                              mesaj.metin,
-                              TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: ben ? Colors.white : r.vurgu,
-                                backgroundColor: ben ? Colors.white24 : r.vurguYumusak,
+                        boxShadow: ben || mesaj.silindi ? null : r.hafifGolge,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (adGoster)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Text(
+                                mesaj.gonderenAd,
+                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Avatar.renkFor(mesaj.gonderenId ?? mesaj.gonderenAd)),
                               ),
                             ),
+                          if (!mesaj.silindi && mesaj.ekler.isNotEmpty) SohbetEkleri(ekler: mesaj.ekler, benim: ben),
+                          if (mesaj.silindi)
+                            Text(
+                              'Bu ileti geri çekildi',
+                              style: TextStyle(fontStyle: FontStyle.italic, color: r.silik, fontSize: 14),
+                            )
+                          else if (mesaj.metin.isNotEmpty)
+                            SelectableText.rich(
+                              TextSpan(
+                                style: TextStyle(color: yazi, fontSize: 15, height: 1.35),
+                                children: _parcalar(
+                                  mesaj.metin,
+                                  TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: ben ? Colors.white : r.vurgu,
+                                    backgroundColor: ben ? Colors.white24 : r.vurguYumusak,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 2),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            widthFactor: 1,
+                            child: Text(
+                              '$saat${mesaj.duzenlendi != null ? ' · düzenlendi' : ''}',
+                              style: TextStyle(fontSize: 10.5, color: ben && !mesaj.silindi ? Colors.white70 : r.silik),
+                            ),
                           ),
-                        ),
-                      const SizedBox(height: 2),
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        widthFactor: 1,
-                        child: Text(
-                          '$saat${mesaj.duzenlendi != null ? ' · düzenlendi' : ''}',
-                          style: TextStyle(fontSize: 10.5, color: ben && !mesaj.silindi ? Colors.white70 : r.silik),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                if (mesaj.tepkiler.isNotEmpty && tepki != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: TepkiHaplari(tepkiler: mesaj.tepkiler, degistir: tepki!, ekle: tepkiEkle),
+                  ),
+              ],
             ),
           ),
+          if (!ben && tepkiEkle != null && !mesaj.silindi) _HizliTepki(ekle: tepkiEkle!),
         ],
       ),
     );
   }
+}
+
+/// Masaüstünde fareyle üzerine gelince görünen "tepki ekle" düğmesi (dokunmatikte uzun basma menüsü).
+class _HizliTepki extends StatelessWidget {
+  const _HizliTepki({required this.ekle});
+  final VoidCallback ekle;
+  @override
+  Widget build(BuildContext context) {
+    final masaustu = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+    if (!masaustu) return const SizedBox.shrink();
+    return _UzerindeGorunur(
+      child: IconButton(
+        tooltip: 'Tepki ekle',
+        visualDensity: VisualDensity.compact,
+        icon: Icon(Icons.add_reaction_outlined, size: 18, color: context.r.silik),
+        onPressed: ekle,
+      ),
+    );
+  }
+}
+
+class _UzerindeGorunur extends StatefulWidget {
+  const _UzerindeGorunur({required this.child});
+  final Widget child;
+  @override
+  State<_UzerindeGorunur> createState() => _UzerindeGorunurState();
+}
+
+class _UzerindeGorunurState extends State<_UzerindeGorunur> {
+  bool _ustunde = false;
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    onEnter: (_) => setState(() => _ustunde = true),
+    onExit: (_) => setState(() => _ustunde = false),
+    child: AnimatedOpacity(opacity: _ustunde ? 1 : .25, duration: const Duration(milliseconds: 120), child: widget.child),
+  );
 }

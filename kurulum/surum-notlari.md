@@ -1,4 +1,12 @@
-## BogaMail 1.1.0
+## BogaMail 1.2.0
+
+**1.2.0 yenilikleri**
+- Sohbette dosya, fotoğraf ve kamera eki (virüs taramalı), resim önizleme
+- Sohbette emoji tepkileri
+- Yenilenen okuma ve yazma ekranları (konuşma görünümü, güvenlik uyarıları, ek şeridi, "Daha sonra gönder")
+- Yönetim: bayi ve yönetici silme
+
+## 1.1.0
 
 **Yeni tasarım**
 - Bogahost logosuyla yeni simgeler: BogaMail (indigo, zarf rozeti) ve BogaMail Yönetim (grafit, yeşil kontrol rozeti)

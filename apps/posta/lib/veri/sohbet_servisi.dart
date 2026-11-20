@@ -4,6 +4,7 @@
 import 'dart:async';
 
 import 'package:boga_ortak/boga_ortak.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../oturum.dart';
@@ -61,6 +62,53 @@ class SohbetKisi {
   String get altBilgi => [unvan, departman].where((s) => s.trim().isNotEmpty).join(' · ');
 }
 
+/// Sohbet eki (iletiye bağlı ya da yeni yüklenmiş).
+class SohbetEki {
+  const SohbetEki({required this.id, this.ad = '', this.boyut = 0, this.tur = '', this.url = '', this.kucukUrl});
+  final String id;
+  final String ad;
+  final int boyut;
+  final String tur;
+  final String url;
+
+  /// Yalnızca resimlerde.
+  final String? kucukUrl;
+  bool get resim => tur.startsWith('image/');
+
+  factory SohbetEki.json(Object? v) {
+    final m = _m(v);
+    final id = _s(m['id']);
+    final k = m['thumb_url'];
+    return SohbetEki(
+      id: id,
+      ad: _s(m['name']),
+      boyut: _i(m['size']),
+      tur: _s(m['content_type']),
+      url: _s(m['url']).isEmpty ? '/api/v1/mail/chat/attachments/$id' : _s(m['url']),
+      kucukUrl: k is String && k.isNotEmpty ? k : null,
+    );
+  }
+}
+
+/// Tepki (emoji) özeti.
+class Tepki {
+  const Tepki({required this.emoji, this.sayi = 0, this.benim = false, this.adlar = const []});
+  final String emoji;
+  final int sayi;
+  final bool benim;
+  final List<String> adlar;
+  factory Tepki.json(Object? v) {
+    final m = _m(v);
+    return Tepki(emoji: _s(m['emoji']), sayi: _i(m['count']), benim: _b(m['mine']), adlar: _l(m['names']).map(_s).toList());
+  }
+}
+
+const sikTepkiler = ['👍', '❤️', '😂', '🎉', '😮', '😢', '🙏', '✅'];
+const tumTepkiler = [
+  '👍', '👎', '❤️', '😂', '😊', '😍', '🎉', '👏', '🙌', '🔥', '💯', '✅', '❌', '👀', '🤔', '😮', '😢', '😡', '🙏', '💪', //
+  '🚀', '⭐', '☕', '🍰', '🤝', '👌', '😅', '🥳', '😴', '🤯', '📌', '📎', '⏰', '💡', '⚠️', '❓',
+];
+
 /// chatMessage
 class SohbetMesaji {
   SohbetMesaji({
@@ -73,7 +121,11 @@ class SohbetMesaji {
     this.duzenlendi,
     this.silindi = false,
     this.benim = false,
+    this.ekler = const [],
+    this.tepkiler = const [],
   });
+  final List<SohbetEki> ekler;
+  List<Tepki> tepkiler;
   final int id;
   final String odaId;
   final String? gonderenId;
@@ -97,6 +149,8 @@ class SohbetMesaji {
       duzenlendi: _t(m['edited_at']),
       silindi: _b(m['deleted']),
       benim: _b(m['mine']),
+      ekler: _l(m['attachments']).map(SohbetEki.json).toList(),
+      tepkiler: _l(m['reactions']).map(Tepki.json).where((t) => t.emoji.isNotEmpty && t.sayi > 0).toList(),
     );
   }
 }
@@ -254,7 +308,53 @@ class Sohbet {
     return _ogeler(v).map(SohbetMesaji.json).toList();
   }
 
-  static Future<SohbetMesaji> gonder(String oda, String metin) async => SohbetMesaji.json(await _api.post('$_k/rooms/$oda/messages', {'body': metin.trim()}));
+  /// [ekler]: önceden yüklenmiş ek kimlikleri (en çok 10); ek varsa metin boş olabilir.
+  static Future<SohbetMesaji> gonder(String oda, String metin, {List<String> ekler = const []}) async =>
+      SohbetMesaji.json(await _api.post('$_k/rooms/$oda/messages', {'body': metin.trim(), if (ekler.isNotEmpty) 'attachments': ekler}));
+
+  static const azamiEk = 25 * 1024 * 1024;
+
+  /// Çok parçalı yükleme (alan "file"). Virüs bulunursa ApiHata kodu "attachment_virus".
+  static Future<SohbetEki> ekYukle(String oda, String ad, Uint8List veri, {void Function(int, int)? ilerleme, CancelToken? iptal}) async {
+    final Response<dynamic> c;
+    try {
+      c = await _api.dio.post<dynamic>(
+        '$_k/rooms/$oda/attachments',
+        data: FormData.fromMap({'file': MultipartFile.fromBytes(veri, filename: ad)}),
+        onSendProgress: ilerleme,
+        cancelToken: iptal,
+        options: Options(sendTimeout: const Duration(minutes: 5), receiveTimeout: const Duration(minutes: 2)),
+      );
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) throw ApiHata(null, 'Yükleme iptal edildi.', kod: 'iptal');
+      throw ApiHata(null, 'Sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin.');
+    }
+    final d = c.statusCode ?? 0;
+    if (d >= 200 && d < 300) return SohbetEki.json(c.data);
+    if (d == 401) Uyg.oturumDustu();
+    final v = c.data;
+    final e = v is Map && v['error'] is Map ? Map<String, dynamic>.from(v['error'] as Map) : const <String, dynamic>{};
+    final kod = '${e['code'] ?? ''}';
+    final mesaj = switch (kod) {
+      'attachment_virus' => 'Dosyada virüs bulundu; yüklenmedi.',
+      _ when d == 413 => 'Dosya çok büyük (en fazla 25 MB).',
+      _ => '${e['message'] ?? 'Dosya yüklenemedi (HTTP $d).'}',
+    };
+    throw ApiHata(d, mesaj, kod: kod);
+  }
+
+  /// Tepkiyi aç/kapat; güncel tepkiler döner.
+  static Future<List<Tepki>> tepki(String oda, int mesaj, String emoji) async {
+    final v = _m(await _api.post('$_k/rooms/$oda/messages/$mesaj/reactions', {'emoji': emoji}));
+    return _l(v['reactions']).map(Tepki.json).where((t) => t.emoji.isNotEmpty && t.sayi > 0).toList();
+  }
+
+  /// Ek veya küçük resim baytları (oturum çereziyle).
+  static Future<Uint8List> ekIndir(String url, {void Function(int, int)? ilerleme}) {
+    final u = Uri.parse(url);
+    return _api.indir(u.path, q: u.queryParameters.isEmpty ? null : u.queryParameters, ilerleme: ilerleme);
+  }
+
   static Future<void> okundu(String oda) => _api.post('$_k/rooms/$oda/read');
   static Future<void> mesajSil(String oda, int id) => _api.delete('$_k/rooms/$oda/messages/$id');
 
@@ -389,7 +489,7 @@ class SohbetDurum extends ChangeNotifier {
 
   void _canli(CanliOlay o) {
     switch (o.tur) {
-      case 'chat_message' || 'chat_update' || 'chat_room' || 'chat_read' || 'chat_mention':
+      case 'chat_message' || 'chat_update' || 'chat_room' || 'chat_read' || 'chat_mention' || 'chat_reaction':
         _olaylar.add(o);
         _gecikmeliYenile();
       case 'presence':

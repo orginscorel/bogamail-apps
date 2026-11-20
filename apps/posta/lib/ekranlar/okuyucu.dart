@@ -20,6 +20,7 @@ import '../veri/tercihler.dart';
 import '../veri/yazma_hazirla.dart';
 import '../veri/yardimci.dart';
 import 'gorevler/gorevler_ekrani.dart';
+import 'okuyucu_parcalari.dart';
 import 'takvim/davet_karti.dart';
 import 'yazma.dart';
 
@@ -463,10 +464,23 @@ class OkuyucuState extends State<Okuyucu> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _baslik(d),
-        for (final t in d.tehditler) _uyari(t, Marka.gul, Icons.gpp_maybe_outlined),
+        for (final t in d.tehditler) GuvenlikBandi(tur: BantTuru.tehlike, baslik: 'Güvenlik uyarısı', metin: t, ikon: Icons.gpp_maybe_outlined),
+        ...sezgiselUyarilar(d),
         if (_rol == 'junk')
-          _uyari('Bu ileti gereksiz (spam) olarak sınıflandırıldı. Bağlantılara ve eklere dikkat edin.', Marka.kehribar, Icons.report_outlined),
-        if (v.kesik) _uyari('İleti çok uzun olduğu için kısaltıldı. Tamamı için iletiyi indirin.', Marka.kehribar, Icons.content_cut_rounded),
+          const GuvenlikBandi(
+            tur: BantTuru.uyari,
+            baslik: 'Gereksiz (spam) ileti',
+            metin: 'Bu ileti gereksiz olarak sınıflandırıldı. Bağlantılara ve eklere dikkat edin; görseller kendiliğinden yüklenmez.',
+            ikon: Icons.report_outlined,
+          ),
+        if (v.kesik)
+          const GuvenlikBandi(
+            tur: BantTuru.bilgi,
+            baslik: 'İleti kısaltıldı',
+            metin: 'İleti çok uzun olduğu için kısaltıldı. Tamamı için iletiyi indirin.',
+            ikon: Icons.content_cut_rounded,
+          ),
+        if (!_taslak) KonusmaSeridi(key: ValueKey('konusma-${d.ozet.id}'), iletiId: d.ozet.id, konu: v.konu, ac: (m) => okuyucuAc(context, m.id)),
         if (htmlVar && v.metin.trim().isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -492,7 +506,7 @@ class OkuyucuState extends State<Okuyucu> {
           ),
       ],
     );
-    final alt = (!widget.sayfa || _taslak) ? null : _yanitCubugu();
+    final alt = _taslak ? null : _yanitCubugu();
     if (htmlGoster) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -551,26 +565,6 @@ class OkuyucuState extends State<Okuyucu> {
     );
   }
 
-  Widget _uyari(String metin, Color renk, IconData ikon) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: renk.withValues(alpha: .1),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: renk.withValues(alpha: .3)),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(ikon, color: renk, size: 20),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(metin, style: TextStyle(fontSize: 13, color: context.r.metin)),
-        ),
-      ],
-    ),
-  );
-
   Widget _darBaslik(IletiDetay d) => InkWell(
     onTap: () => setState(() => _daralt = false),
     child: Padding(
@@ -597,7 +591,7 @@ class OkuyucuState extends State<Okuyucu> {
     final gonderen = v.kimden.isNotEmpty ? v.kimden.first : adresCoz(d.ozet.kimden);
     final tarih = v.tarih ?? d.ozet.tarih;
     final etiketler = d.ozet.etiketler.map(PostaDurum.ben.etiket).whereType<Etiket>().toList();
-    final alicilar = [...v.kime, ...v.bilgi].map((a) => a.eposta.toLowerCase() == Uyg.adres.toLowerCase() ? 'bana' : a.gorunen).join(', ');
+    final ekSayisi = v.dosyaEkleri.length;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
       child: Column(
@@ -616,7 +610,7 @@ class OkuyucuState extends State<Okuyucu> {
               ),
             ],
           ),
-          if (etiketler.isNotEmpty || d.ozet.onemli)
+          if (etiketler.isNotEmpty || d.ozet.onemli || ekSayisi > 0 || d.ozet.takip)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Wrap(
@@ -624,85 +618,104 @@ class OkuyucuState extends State<Okuyucu> {
                 runSpacing: 6,
                 children: [
                   if (d.ozet.onemli) const Rozet('Önemli', renk: Marka.kehribar, ikon: Icons.label_important_rounded),
+                  if (d.ozet.takip) Rozet('Takipte', renk: r.vurgu, ikon: Icons.notifications_active_outlined),
+                  if (ekSayisi > 0) Rozet('$ekSayisi ek', renk: r.silik, ikon: Icons.attach_file_rounded),
                   for (final e in etiketler) Rozet(e.ad, renk: etiketRengi(e.renk), ikon: Icons.label_rounded),
                 ],
               ),
             ),
-          const SizedBox(height: 14),
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => setState(() => _ayrinti = !_ayrinti),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Avatar(gonderen.gorunen, boyut: 42, tohum: gonderen.eposta),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                gonderen.gorunen,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                              ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: r.kart,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: r.kenar),
+              boxShadow: r.hafifGolge,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                key: const ValueKey('gonderen-karti'),
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => setState(() => _ayrinti = !_ayrinti),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Avatar(gonderen.gorunen, boyut: 44, tohum: gonderen.eposta),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        gonderen.gorunen,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: r.metin),
+                                      ),
+                                    ),
+                                    Tooltip(
+                                      message: tamZaman(tarih),
+                                      child: Text(
+                                        kisaZaman(tarih),
+                                        style: TextStyle(color: r.silik, fontSize: 12.5, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (gonderen.ad.isNotEmpty)
+                                  Text(
+                                    gonderen.eposta,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: r.soluk, fontSize: 12.5),
+                                  ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Tooltip(
-                              message: tamZaman(tarih),
-                              child: Text(kisaZaman(tarih), style: TextStyle(color: r.silik, fontSize: 12.5)),
-                            ),
-                          ],
-                        ),
-                        if (gonderen.ad.isNotEmpty)
-                          Text(
-                            gonderen.eposta,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: r.soluk, fontSize: 13),
                           ),
-                        Row(
+                          Icon(_ayrinti ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20, color: r.silik),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 56),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              child: Text(
-                                'Alıcı: ${alicilar.isEmpty ? '—' : alicilar}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: r.silik, fontSize: 12.5),
-                              ),
-                            ),
-                            Icon(_ayrinti ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 18, color: r.silik),
+                            AliciCipleri(etiket: 'Kime', adresler: v.kime),
+                            if (v.bilgi.isNotEmpty) AliciCipleri(etiket: 'Bilgi', adresler: v.bilgi),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      if (_ayrinti)
+                        Container(
+                          margin: const EdgeInsets.only(top: 10, right: 4),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _satir('Kimden', v.kimden.map(adresYaz).join(', ')),
+                              _satir('Kime', v.kime.map(adresYaz).join(', ')),
+                              if (v.bilgi.isNotEmpty) _satir('Bilgi', v.bilgi.map(adresYaz).join(', ')),
+                              if (v.yanitAdresi.isNotEmpty) _satir('Yanıt', v.yanitAdresi.map(adresYaz).join(', ')),
+                              _satir('Tarih', tamZaman(tarih)),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-          if (_ayrinti)
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _satir('Kimden', v.kimden.map(adresYaz).join(', ')),
-                  _satir('Kime', v.kime.map(adresYaz).join(', ')),
-                  if (v.bilgi.isNotEmpty) _satir('Bilgi', v.bilgi.map(adresYaz).join(', ')),
-                  if (v.yanitAdresi.isNotEmpty) _satir('Yanıt', v.yanitAdresi.map(adresYaz).join(', ')),
-                  _satir('Tarih', tamZaman(tarih)),
-                ],
-              ),
-            ),
         ],
       ),
     );
@@ -723,31 +736,9 @@ class OkuyucuState extends State<Okuyucu> {
   );
 
   Widget _yanitCubugu() {
-    final r = context.r;
-    Widget dugme(IconData i, String t, VoidCallback f) => Expanded(
-      child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44), padding: const EdgeInsets.symmetric(horizontal: 6)),
-        onPressed: f,
-        icon: Icon(i, size: 18),
-        label: Text(t, maxLines: 1, overflow: TextOverflow.ellipsis),
-      ),
-    );
-    return Container(
-      decoration: BoxDecoration(
-        color: r.kart,
-        border: Border(top: BorderSide(color: r.kenar)),
-      ),
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      child: Row(
-        children: [
-          dugme(Icons.reply_rounded, 'Yanıtla', yanitla),
-          const SizedBox(width: 8),
-          dugme(Icons.reply_all_rounded, 'Tümünü', () => yanitla(tumu: true)),
-          const SizedBox(width: 8),
-          dugme(Icons.forward_rounded, 'İlet', ilet),
-        ],
-      ),
-    );
+    final v = _d!.gorunum;
+    final cokAlici = v.kime.length + v.bilgi.length > 1;
+    return YanitCubugu(yanitla: yanitla, tumunu: () => yanitla(tumu: true), ilet: ilet, tumuGoster: cokAlici);
   }
 }
 

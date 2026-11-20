@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 
 import '../oturum.dart';
 import '../ortak/adres_alani.dart';
+import '../ortak/ek_listesi.dart';
 import '../ortak/izin.dart';
 import '../ortak/simgeler.dart';
 import '../veri/durum.dart';
@@ -686,7 +687,6 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
             leading: IconButton(icon: const Icon(Icons.close_rounded), tooltip: 'Kapat', onPressed: _kapat),
             title: Text(b.baslik),
             actions: [
-              IconButton(icon: const Icon(Icons.attach_file_rounded), tooltip: 'Dosya ekle', onPressed: _mesgul ? null : _ekSec),
               PopupMenuButton<String>(
                 tooltip: 'Diğer seçenekler',
                 enabled: !_mesgul,
@@ -760,11 +760,39 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
               ),
               Padding(
                 padding: const EdgeInsets.only(right: 8, left: 4),
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 16)),
-                  onPressed: _mesgul ? null : _gonder,
-                  icon: const Icon(Icons.send_rounded, size: 18),
-                  label: const Text('Gönder'),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FilledButton.icon(
+                      key: const ValueKey('gonder'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        backgroundColor: r.vurgu,
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(left: Radius.circular(20))),
+                      ),
+                      onPressed: _mesgul ? null : _gonder,
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: const Text('Gönder'),
+                    ),
+                    const SizedBox(width: 2),
+                    Tooltip(
+                      message: 'Daha sonra gönder',
+                      child: FilledButton(
+                        key: const ValueKey('planla'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(40, 40),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: r.vurgu,
+                          foregroundColor: Colors.white,
+                          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(right: Radius.circular(20))),
+                        ),
+                        onPressed: _mesgul ? null : _planla,
+                        child: const Icon(Icons.schedule_send_rounded, size: 18),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -775,6 +803,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                   )
                 : null,
           ),
+          bottomNavigationBar: _aracCubugu(r),
           body: AbsorbPointer(
             absorbing: _mesgul,
             child: ListView(
@@ -804,12 +833,25 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                         width: 52,
                         child: Text('Kimden', style: TextStyle(color: r.silik, fontSize: 14)),
                       ),
-                      Expanded(
-                        child: Text(
-                          kimden.isEmpty ? adres : '$kimden <$adres>',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: r.soluk, fontSize: 14),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+                          decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(24)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Avatar(kimden.isEmpty ? adres : kimden, boyut: 26, tohum: adres),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  kimden.isEmpty ? adres : '$kimden · $adres',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: r.metin, fontSize: 13.5, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -836,7 +878,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     controller: _konu,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.next,
-                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+                    style: gosterim(18, agirlik: FontWeight.w700),
                     decoration: const InputDecoration(
                       hintText: 'Konu',
                       filled: false,
@@ -898,52 +940,174 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     );
   }
 
+  /// Klavyenin üstünde duran araç çubuğu: ek, kamera, şablon, takip, öncelik, okundu bilgisi.
+  Widget _aracCubugu(Renkler r) {
+    final mobil = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    Widget arac(IconData i, String ipucu, VoidCallback? f, {bool etkin = false, Key? key}) => IconButton(
+      key: key,
+      tooltip: ipucu,
+      onPressed: _mesgul ? null : f,
+      isSelected: etkin,
+      style: IconButton.styleFrom(foregroundColor: r.soluk),
+      selectedIcon: Icon(i, color: r.vurgu),
+      icon: Icon(i),
+    );
+    return Material(
+      color: r.kart,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: r.kenar)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                arac(Icons.attach_file_rounded, 'Ek ekle', _ekSec, key: const ValueKey('ek-ekle')),
+                if (mobil) arac(Icons.photo_camera_outlined, 'Kamerayla çek', () => _medyaSec('foto')),
+                if (mobil) arac(Icons.photo_library_outlined, 'Galeriden ekle', () => _medyaSec('galeri')),
+                arac(Icons.description_outlined, 'Şablon ekle', _sablonEkle),
+                arac(
+                  Icons.notifications_active_outlined,
+                  _takipGun > 0 ? 'Yanıt gelmezse $_takipGun gün sonra hatırlat' : 'Yanıt gelmezse hatırlat',
+                  _takipSec,
+                  etkin: _takipGun > 0,
+                ),
+                arac(
+                  Icons.priority_high_rounded,
+                  'Yüksek öncelik',
+                  () => setState(() {
+                    _oncelik = _oncelik == 'high' ? null : 'high';
+                    _kirli = true;
+                  }),
+                  etkin: _oncelik == 'high',
+                ),
+                arac(
+                  Icons.mark_email_read_outlined,
+                  'Okundu bilgisi iste',
+                  () => setState(() {
+                    _okunduBilgisi = !_okunduBilgisi;
+                    _kirli = true;
+                  }),
+                  etkin: _okunduBilgisi,
+                ),
+                arac(Icons.save_outlined, 'Taslağı kaydet', _taslakKaydet),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Ek şeridi: yatay kartlar ve toplam boyut göstergesi.
   Widget _ekler(Renkler r) {
-    final limit = _azamiEk > 0 ? ' / ${boyutYaz(_azamiEk)}' : '';
+    final oran = _azamiEk > 0 ? (_ekToplam / _azamiEk).clamp(0.0, 1.0) : 0.0;
+    final kartlar = <Widget>[
+      for (final e in _yerel) _ekKarti(r, e.ad, icerikTuru(e.ad), e.boyut, () => setState(() => _yerel.remove(e))),
+      for (final e in _dahil)
+        _ekKarti(
+          r,
+          e.ad,
+          e.tur,
+          e.boyut,
+          () => setState(() {
+            _dahil.remove(e);
+            _kirli = true;
+          }),
+        ),
+    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Text(
-              'Ekler · ${boyutYaz(_ekToplam)}$limit',
-              style: TextStyle(color: r.silik, fontSize: 12.5, fontWeight: FontWeight.w600),
+            padding: const EdgeInsets.only(left: 4, bottom: 6, right: 4),
+            child: Row(
+              children: [
+                Icon(Icons.attach_file_rounded, size: 16, color: r.silik),
+                const SizedBox(width: 4),
+                Text(
+                  '${kartlar.length} ek · ${boyutYaz(_ekToplam)}${_azamiEk > 0 ? ' / ${boyutYaz(_azamiEk)}' : ''}',
+                  style: TextStyle(color: r.silik, fontSize: 12.5, fontWeight: FontWeight.w600),
+                ),
+                if (_azamiEk > 0) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: oran,
+                        minHeight: 5,
+                        backgroundColor: r.ic,
+                        color: oran > .9 ? Marka.gul : (oran > .75 ? Marka.kehribar : r.vurgu),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final e in _yerel) _ekCipi(r, e.ad, icerikTuru(e.ad), e.boyut, () => setState(() => _yerel.remove(e))),
-              for (final e in _dahil)
-                _ekCipi(
-                  r,
-                  e.ad,
-                  e.tur,
-                  e.boyut,
-                  () => setState(() {
-                    _dahil.remove(e);
-                    _kirli = true;
-                  }),
-                ),
-            ],
+          SizedBox(
+            height: 64,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: kartlar.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => kartlar[i],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _ekCipi(Renkler r, String ad, String tur, int boyut, VoidCallback kaldir) => InputChip(
-    avatar: Icon(ekSimgesi(tur, ad), size: 18, color: r.birincil),
-    label: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 220),
-      child: Text('$ad · ${boyutYaz(boyut)}', overflow: TextOverflow.ellipsis),
-    ),
-    deleteButtonTooltipMessage: 'Eki kaldır',
-    onDeleted: kaldir,
-  );
+  Widget _ekKarti(Renkler r, String ad, String tur, int boyut, VoidCallback kaldir) {
+    final renk = ekRengi(tur, ad);
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.fromLTRB(8, 8, 2, 8),
+      decoration: BoxDecoration(
+        color: r.kart,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: r.kenar),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: renk.withValues(alpha: .14), borderRadius: BorderRadius.circular(10)),
+            child: Icon(ekSimgesi(tur, ad), color: renk, size: 22),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ad,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: r.metin),
+                ),
+                Text(boyutYaz(boyut), style: TextStyle(fontSize: 11.5, color: r.silik)),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Eki kaldır',
+            icon: Icon(Icons.close_rounded, size: 18, color: r.silik),
+            onPressed: kaldir,
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _imzaKarti(Renkler r) {
     final kilitli = _ayar?.imzaKilitli ?? false;

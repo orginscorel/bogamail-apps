@@ -1,6 +1,9 @@
 // Sohbet: modeller, istek gövdeleri (sunucu katı JSON) ve ekranlar. Ağ yok: sahte API.
 
+import 'dart:typed_data';
+
 import 'package:boga_ortak/boga_ortak.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -76,10 +79,32 @@ void main() {
         {
           'items': [
             {'id': 8, 'room_id': 'dm1', 'sender_id': 'ben', 'sender_name': 'Ben', 'body': 'Selam', 'created_at': '2026-11-20T09:59:00Z', 'mine': true},
-            {'id': 9, 'room_id': 'dm1', 'sender_id': 'ayse', 'sender_name': 'Ayşe Yılmaz', 'body': 'Merhaba @ben', 'created_at': '2026-11-20T10:00:00Z'},
+            {
+              'id': 9,
+              'room_id': 'dm1',
+              'sender_id': 'ayse',
+              'sender_name': 'Ayşe Yılmaz',
+              'body': 'Merhaba @ben',
+              'created_at': '2026-11-20T10:00:00Z',
+              'attachments': [
+                {'id': 'f1', 'name': 'rapor.pdf', 'size': 1200, 'content_type': 'application/pdf', 'url': '/api/v1/mail/chat/attachments/f1'},
+              ],
+              'reactions': [
+                {'emoji': '👍', 'count': 2, 'mine': false, 'names': ['Ali Veli', 'Ayşe Yılmaz']},
+              ],
+            },
           ],
         },
       )
+      ..['POST $_k/rooms/dm1/messages/9/reactions'] = ((Istek i) => (
+        200,
+        {
+          'message_id': 9,
+          'reactions': [
+            {'emoji': i.json['emoji'], 'count': 3, 'mine': true, 'names': ['Ali Veli', 'Ayşe Yılmaz', 'Ben']},
+          ],
+        },
+      ))
       ..['POST $_k/rooms/dm1/messages'] = (Istek i) => (
         201,
         {'id': 10, 'room_id': 'dm1', 'sender_id': 'ben', 'sender_name': 'Ben', 'body': i.json['body'], 'created_at': '2026-11-20T10:01:00Z', 'mine': true},
@@ -146,6 +171,47 @@ void main() {
       expect(s.bul('GET', '$_k/rooms/dm1/messages').last.sorgu, {'before': 8});
     });
 
+    test('ekler ve tepkiler: çözümleme, yükleme, gönderim, aç/kapat', () async {
+      final m = SohbetMesaji.json({
+        'id': 1,
+        'body': '',
+        'attachments': [
+          {'id': 'a', 'name': 'foto.jpg', 'size': 10, 'content_type': 'image/jpeg', 'url': '/api/v1/mail/chat/attachments/a', 'thumb_url': '/api/v1/mail/chat/attachments/a?thumb=1'},
+          {'id': 'b', 'name': 'x.zip', 'size': 5, 'content_type': 'application/zip'},
+        ],
+        'reactions': [
+          {'emoji': '🎉', 'count': 1, 'mine': true, 'names': ['Ben']},
+          {'emoji': '', 'count': 1},
+        ],
+      });
+      expect(m.ekler.first.resim, isTrue);
+      expect(m.ekler.first.kucukUrl, contains('thumb=1'));
+      expect(m.ekler.last.url, '/api/v1/mail/chat/attachments/b');
+      expect(m.tepkiler.single.benim, isTrue);
+
+      s.yollar['POST $_k/rooms/dm1/attachments'] = (201, {'id': 'e1', 'name': 'a.txt', 'size': 3, 'content_type': 'text/plain'});
+      final ek = await Sohbet.ekYukle('dm1', 'a.txt', Uint8List.fromList([1, 2, 3]));
+      expect(ek.id, 'e1');
+      final g = s.bul('POST', '$_k/rooms/dm1/attachments').single.govde;
+      expect(g, isA<FormData>());
+      expect((g! as FormData).files.single.key, 'file');
+      expect((g as FormData).files.single.value.filename, 'a.txt');
+
+      s.yollar['POST $_k/rooms/dm1/attachments'] = (422, {'error': {'code': 'attachment_virus', 'message': 'virus'}});
+      await expectLater(
+        Sohbet.ekYukle('dm1', 'k.exe', Uint8List(1)),
+        throwsA(isA<ApiHata>().having((e) => e.kod, 'kod', 'attachment_virus').having((e) => e.mesaj, 'mesaj', contains('virüs'))),
+      );
+
+      await Sohbet.gonder('dm1', '', ekler: ['e1']);
+      expect(s.bul('POST', '$_k/rooms/dm1/messages').last.json, {'body': '', 'attachments': ['e1']});
+
+      final t = await Sohbet.tepki('dm1', 9, '👍');
+      expect(s.bul('POST', '$_k/rooms/dm1/messages/9/reactions').last.json, {'emoji': '👍'});
+      expect(t.single.sayi, 3);
+      expect(t.single.benim, isTrue);
+    });
+
     test('okunmamış toplamı ve okundu işaretleme', () async {
       await SohbetDurum.ben.yenile();
       expect(SohbetDurum.ben.okunmamis.value, 5);
@@ -186,6 +252,15 @@ void main() {
       expect(s.bul('POST', '$_k/rooms/dm1/read'), isNotEmpty);
       expect(find.text('Ayşe Yılmaz'), findsOneWidget);
       expect(find.text('Çevrimiçi'), findsOneWidget);
+      // ek kartı ve tepki hapı
+      expect(find.text('rapor.pdf'), findsOneWidget);
+      expect(find.text('👍 2'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('tepki-👍')));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 50));
+      expect(s.bul('POST', '$_k/rooms/dm1/messages/9/reactions').single.json, {'emoji': '👍'});
+      expect(find.text('👍 3'), findsOneWidget);
+      expect(find.byKey(const ValueKey('sohbet-ek')), findsOneWidget);
 
       await t.enterText(find.byKey(const ValueKey('sohbet-yaz')), 'Nasılsın?');
       await t.pump();

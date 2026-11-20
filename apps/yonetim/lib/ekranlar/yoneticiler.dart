@@ -124,6 +124,35 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
     if (v == true) _y.yenile();
   }
 
+  /// Kullanıcıyı kalıcı olarak siler (DELETE /users/{id}): oturumları, mobil bildirim cihazları ve API anahtarları
+  /// da silinir. Sunucu kendini silmeyi (cannot_delete_self) ve son süper yöneticiyi silmeyi (last_super_admin) reddeder.
+  Future<void> _sil(PanelKullanicisi u) async {
+    final ok = await onayla(
+      context,
+      'Kullanıcı silinsin mi?',
+      mesaj: '${u.eposta} kalıcı olarak silinir; açık oturumları kapatılır, mobil bildirim cihazları ve API anahtarları da silinir. '
+          'Bu işlem geri alınamaz ve denetim kaydına yazılır. Geçici olarak engellemek için "Askıya al"ı kullanın.',
+      evet: 'Kalıcı olarak sil',
+      tehlikeli: true,
+    );
+    if (!ok) return;
+    try {
+      await Uyg.api.delete('/api/v1/users/${u.id}');
+      bildir('Kullanıcı silindi', mesaj: u.eposta, tur: MesajTur.basari);
+      _y.yenile();
+    } on ApiHata catch (e) {
+      final mesaj = switch (e.kod) {
+        'cannot_delete_self' => 'Kendi hesabınızı silemezsiniz. Başka bir yöneticiden silmesini isteyin.',
+        'last_super_admin' => 'Bu, platformdaki son süper yönetici. Silmeden önce başka bir kullanıcıya süper yönetici rolü verin.',
+        'not_found' => 'Kullanıcı bulunamadı ya da yetki alanınızın dışında.',
+        _ => hataMetni(e),
+      };
+      bildir('Kullanıcı silinemedi', mesaj: mesaj, tur: MesajTur.hata);
+    } catch (e) {
+      bildir('Kullanıcı silinemedi', mesaj: hataMetni(e), tur: MesajTur.hata);
+    }
+  }
+
   void _oturumlar(PanelKullanicisi u) => showDialog<void>(
     context: context,
     builder: (_) => KullaniciOturumlariDialog(kullanici: u, kapatabilir: _yonetir && u.id != _benimId),
@@ -152,6 +181,7 @@ class _YoneticilerEkraniState extends State<YoneticilerEkrani> {
         ],
       ],
       (Icons.devices_rounded, 'Oturumlar', 'Açık oturumları gör${_yonetir && !ben ? ', kapat' : ''}', () => _oturumlar(u), false),
+      if (_yonetir && !ben) (Icons.delete_outline_rounded, 'Sil', 'Hesabı kalıcı olarak sil; oturumlar ve anahtarlar silinir', () => _sil(u), true),
     ];
   }
 

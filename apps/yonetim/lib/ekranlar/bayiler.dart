@@ -96,6 +96,44 @@ class _BayilerEkraniState extends State<BayilerEkrani> {
     if (ok != null) _y.yenile();
   }
 
+  /// Bayiyi siler (DELETE /resellers/{id}, yalnız süper yönetici). Bayiye bağlı müşteri varsa sunucu 409
+  /// reseller_has_customers döner; müşteriler başka bayiye taşınarak (?reassign_to=) ya da doğrudan platforma
+  /// bağlanarak (?detach=1) silinir. Bayi yöneticileri de silinir ve oturumları biter.
+  Future<void> _sil(BayiOzeti r) async {
+    if (r.musteri > 0) return _musteriliSil(r, r.musteri);
+    if (!await onayla(
+      context,
+      '"${r.ad}" silinsin mi?',
+      mesaj: 'Bayi ve bayi yöneticilerinin hesapları kalıcı olarak silinir, açık oturumları kapatılır. Bu işlem geri alınamaz '
+          've denetim kaydına yazılır.',
+      evet: 'Bayiyi sil',
+      tehlikeli: true,
+    )) {
+      return;
+    }
+    try {
+      await Uyg.api.delete('/api/v1/resellers/${r.id}');
+      bildir('Bayi silindi', tur: MesajTur.basari);
+      _y.yenile();
+    } on ApiHata catch (e) {
+      if (e.kod == 'reseller_has_customers') {
+        if (mounted) await _musteriliSil(r, null);
+      } else {
+        bildir('Bayi silinemedi', mesaj: hataMetni(e), tur: MesajTur.hata);
+      }
+    } catch (e) {
+      bildir('Bayi silinemedi', mesaj: hataMetni(e), tur: MesajTur.hata);
+    }
+  }
+
+  Future<void> _musteriliSil(BayiOzeti r, int? adet) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => BayiSilDialog(bayi: r, musteriSayisi: adet, digerleri: _hepsi.where((x) => x.id != r.id).toList()),
+    );
+    if (ok == true) _y.yenile();
+  }
+
   Future<void> _limitler(BayiOzeti? r) async {
     final ok = await showDialog<bool>(context: context, builder: (_) => _LimitDialog(bayi: r));
     if (ok == true) _y.yenile();
@@ -131,6 +169,7 @@ class _BayilerEkraniState extends State<BayilerEkrani> {
       r.durum == 'active'
           ? SatirEylemi(Icons.block_rounded, 'Askıya al', () => _durum(r, 'suspended'), tehlikeli: true)
           : SatirEylemi(Icons.check_circle_outline_rounded, 'Etkinleştir', () => _durum(r, 'active')),
+    if (_super && Uyg.taklit == null) SatirEylemi(Icons.delete_outline_rounded, 'Sil', () => _sil(r), tehlikeli: true),
   ];
 
   Widget _limitHucresi(BuildContext c, int kullanilan, int? enFazla, {bool bayt = false}) => Column(
@@ -518,6 +557,117 @@ class _MarkaDialogState extends State<_MarkaDialog> {
       actions: [
         TextButton(onPressed: _mesgul ? null : () => Navigator.pop(context, false), child: const Text('Vazgeç')),
         FilledButton(onPressed: _mesgul ? null : _kaydet, child: const Text('Kaydet')),
+      ],
+    );
+  }
+}
+
+/// Müşterisi olan bayiyi silme: müşteriler başka bir bayiye taşınır ya da doğrudan platforma bağlanır.
+class BayiSilDialog extends StatefulWidget {
+  const BayiSilDialog({super.key, required this.bayi, required this.digerleri, this.musteriSayisi});
+  final BayiOzeti bayi;
+  final List<BayiOzeti> digerleri;
+  final int? musteriSayisi;
+  @override
+  State<BayiSilDialog> createState() => _BayiSilDialogState();
+}
+
+class _BayiSilDialogState extends State<BayiSilDialog> {
+  late String _yol = widget.digerleri.isEmpty ? 'ayir' : 'tasi';
+  String? _hedef;
+  bool _onay = false, _mesgul = false;
+  String? _hata;
+
+  bool get _hazir => _onay && !_mesgul && (_yol == 'ayir' || _hedef != null);
+
+  Future<void> _sil() async {
+    setState(() {
+      _mesgul = true;
+      _hata = null;
+    });
+    try {
+      await Uyg.api.delete('/api/v1/resellers/${widget.bayi.id}', q: _yol == 'tasi' ? {'reassign_to': _hedef!} : {'detach': '1'});
+      final hedefAd = _yol == 'tasi' ? widget.digerleri.firstWhere((x) => x.id == _hedef).ad : null;
+      bildir('Bayi silindi', mesaj: hedefAd == null ? 'Müşteriler doğrudan platforma bağlandı.' : 'Müşteriler $hedefAd bayisine taşındı.', tur: MesajTur.basari);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _mesgul = false;
+          _hata = hataMetni(e);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    final n = widget.musteriSayisi;
+    final adetMetni = n == null ? 'Bu bayiye bağlı müşteriler var.' : 'Bu bayiye bağlı $n müşteri var.';
+    return AlertDialog(
+      scrollable: true,
+      icon: const Icon(Icons.delete_forever_rounded, color: Marka.gul, size: 30),
+      title: Text('"${widget.bayi.ad}" silinsin mi?', style: gosterim(19, agirlik: FontWeight.w700)),
+      content: SizedBox(
+        width: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '$adetMetni Bayi silinmeden önce müşterilerin nereye bağlanacağını seçin. Müşterilerin alan adları, posta kutuları ve '
+              'postaları etkilenmez. Bayi yöneticilerinin hesapları silinir ve oturumları kapatılır.',
+              style: TextStyle(color: r.soluk, fontSize: 13),
+            ),
+            const SizedBox(height: 14),
+            SegmentedButton<String>(
+              segments: [
+                if (widget.digerleri.isNotEmpty)
+                  const ButtonSegment(value: 'tasi', icon: Icon(Icons.swap_horiz_rounded), label: Text('Başka bayiye taşı')),
+                const ButtonSegment(value: 'ayir', icon: Icon(Icons.link_off_rounded), label: Text('Platforma bağla')),
+              ],
+              selected: {_yol},
+              onSelectionChanged: _mesgul ? null : (v) => setState(() => _yol = v.first),
+            ),
+            const SizedBox(height: 12),
+            if (_yol == 'tasi')
+              DropdownButtonFormField<String>(
+                initialValue: _hedef,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Müşterilerin taşınacağı bayi'),
+                items: [
+                  for (final b in widget.digerleri)
+                    DropdownMenuItem(value: b.id, child: Text(b.durum == 'active' ? b.ad : '${b.ad} (askıda)', overflow: TextOverflow.ellipsis)),
+                ],
+                onChanged: _mesgul ? null : (v) => setState(() => _hedef = v),
+              )
+            else
+              Text(
+                'Müşteriler bayisiz kalır ve doğrudan platform yönetimine bağlanır; bundan sonra yalnızca süper yönetici yönetir.',
+                style: TextStyle(color: r.soluk, fontSize: 13),
+              ),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              value: _onay,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              onChanged: _mesgul ? null : (v) => setState(() => _onay = v ?? false),
+              title: const Text('Bu işlemin geri alınamayacağını anlıyorum', style: TextStyle(fontSize: 13.5)),
+            ),
+            if (_hata != null) Bant(_hata!, renk: Marka.gul, ikon: Icons.error_outline_rounded),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: _mesgul ? null : () => Navigator.pop(context, false), child: const Text('Vazgeç')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Marka.gul),
+          onPressed: _hazir ? _sil : null,
+          child: _mesgul
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text(_yol == 'tasi' ? 'Taşı ve sil' : 'Platforma bağla ve sil'),
+        ),
       ],
     );
   }

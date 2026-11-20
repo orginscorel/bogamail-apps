@@ -150,8 +150,11 @@ class _EkKartiState extends State<_EkKarti> {
       button: true,
       label: 'Ek: ${e.ad}, ${boyutYaz(e.boyut)}. Açmak için dokunun.',
       child: Material(
-        color: r.ic,
-        borderRadius: BorderRadius.circular(12),
+        color: r.kart,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: r.kenar),
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: _ac,
@@ -170,7 +173,10 @@ class _EkKartiState extends State<_EkKarti> {
                           padding: const EdgeInsets.all(6),
                           child: CircularProgressIndicator(strokeWidth: 2.5, value: _ilerleme == 0 ? null : _ilerleme),
                         )
-                      : Icon(ekSimgesi(e.tur, e.ad), color: r.birincil, size: 26),
+                      : Container(
+                          decoration: BoxDecoration(color: ekRengi(e.tur, e.ad).withValues(alpha: .14), borderRadius: BorderRadius.circular(9)),
+                          child: Icon(ekSimgesi(e.tur, e.ad), color: ekRengi(e.tur, e.ad), size: 20),
+                        ),
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -219,4 +225,18 @@ class _EkKartiState extends State<_EkKarti> {
       ),
     );
   }
+}
+
+/// Ek türüne göre renk (PDF kırmızı, tablo yeşil, belge mavi, görsel mor, arşiv turuncu).
+Color ekRengi(String tur, String ad) {
+  final a = ad.toLowerCase();
+  final t = tur.toLowerCase();
+  if (t.contains('pdf') || a.endsWith('.pdf')) return const Color(0xFFDC2626);
+  if (RegExp(r'\.(xlsx?|csv|ods|xlsm)$').hasMatch(a) || t.contains('spreadsheet')) return const Color(0xFF16A34A);
+  if (RegExp(r'\.(docx?|odt|rtf|txt|docm)$').hasMatch(a) || t.contains('word')) return const Color(0xFF2563EB);
+  if (RegExp(r'\.(pptx?|odp|pptm)$').hasMatch(a) || t.contains('presentation')) return const Color(0xFFEA580C);
+  if (t.startsWith('image/')) return const Color(0xFF9333EA);
+  if (t.startsWith('video/') || t.startsWith('audio/')) return const Color(0xFFDB2777);
+  if (RegExp(r'\.(zip|rar|7z|tar|gz)$').hasMatch(a)) return const Color(0xFFB45309);
+  return const Color(0xFF64748B);
 }
