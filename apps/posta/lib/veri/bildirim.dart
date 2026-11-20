@@ -21,6 +21,8 @@ import 'yardimci.dart';
 const _gorevAdi = 'posta-yeni-ileti-denetimi';
 const _sonAnahtar = 'posta.bildirim.son';
 const _arkaPlanAnahtar = 'posta.bildirim.arkaplan';
+const _sesAnahtar = 'posta.bildirim.ses';
+const _masaustuAnahtar = 'posta.bildirim.masaustu';
 const _kanal = AndroidNotificationDetails(
   'yeni_posta',
   'Yeni e-postalar',
@@ -29,6 +31,16 @@ const _kanal = AndroidNotificationDetails(
   priority: Priority.high,
   category: AndroidNotificationCategory.email,
   color: Color(0xFF5443D2),
+);
+const _sessizKanal = AndroidNotificationDetails(
+  'yeni_posta',
+  'Yeni e-postalar',
+  channelDescription: 'Gelen Kutusu\'na yeni e-posta geldiğinde',
+  importance: Importance.high,
+  priority: Priority.high,
+  category: AndroidNotificationCategory.email,
+  color: Color(0xFF5443D2),
+  silent: true,
 );
 
 class Bildirim {
@@ -100,15 +112,34 @@ class Bildirim {
     }
   }
 
+  /// Sunucudaki posta ayarları (notify_desktop, notify_sound): cihazda saklanır ki arka plan görevi de uysun.
+  /// Masaüstü bildirimleri yalnızca Windows'taki canlı bildirimleri; ses tüm yerel bildirimleri etkiler.
+  static Future<void> tercihleriUygula({required bool masaustu, required bool ses}) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setBool(_masaustuAnahtar, masaustu);
+      await p.setBool(_sesAnahtar, ses);
+    } catch (_) {}
+  }
+
   static Future<void> goster({required String iletiId, required String baslik, required String metin}) async {
     await hazirla();
     if (!_hazir) return;
+    var ses = true;
+    try {
+      final p = await SharedPreferences.getInstance();
+      if (windows && !(p.getBool(_masaustuAnahtar) ?? true)) return;
+      ses = p.getBool(_sesAnahtar) ?? true;
+    } catch (_) {}
     try {
       await _p.show(
         id: iletiId.hashCode & 0x7fffffff,
         title: baslik,
         body: metin,
-        notificationDetails: const NotificationDetails(android: _kanal, windows: WindowsNotificationDetails()),
+        notificationDetails: NotificationDetails(
+          android: ses ? _kanal : _sessizKanal,
+          windows: WindowsNotificationDetails(audio: ses ? null : WindowsNotificationAudio.silent()),
+        ),
         payload: iletiId,
       );
     } catch (_) {}

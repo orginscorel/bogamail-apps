@@ -27,17 +27,68 @@ const imzaDegiskenleri = {
   'web': 'Web adresi',
 };
 
-/// Hazır biçimli imza şablonu (boş değişkenli satırlar gönderimde kendiliğinden düşer: data-optional).
-const imzaSablonu = '''<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1f2937;line-height:1.45">
-<div style="font-size:15px;font-weight:bold;color:#111827">{{ad}}</div>
-<div data-optional="unvan" style="color:#4b5563">{{unvan}}</div>
-<div data-optional="departman" style="color:#6b7280">{{departman}}</div>
-<div style="margin-top:6px;font-weight:bold;color:#5443d2">{{sirket}}</div>
-<div data-optional="telefon">Tel: {{telefon}}</div>
-<div data-optional="cep">Cep: {{cep}}</div>
-<div><a href="mailto:{{eposta}}" style="color:#5443d2">{{eposta}}</a></div>
-<div data-optional="web"><a href="{{web}}" style="color:#5443d2">{{web}}</a></div>
-</div>''';
+/// Hazır imza düzenleri (web lib/webmail-productivity.ts SIGNATURE_LAYOUTS ile aynı). Boş değişkenli satırlar
+/// gönderimde kendiliğinden düşer (data-optional).
+typedef ImzaDuzeni = ({String id, String ad, String Function(String? logo, String renk) html});
+
+final List<ImzaDuzeni> imzaDuzenleri = [
+  (
+    id: 'classic',
+    ad: 'Klasik',
+    html: (logo, renk) =>
+        '<table cellpadding="0" cellspacing="0" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#333333">'
+        '<tr>${logo != null ? '<td style="padding-right:14px;vertical-align:top"><img src="$logo" alt="" style="max-width:96px;max-height:96px"></td>' : ''}'
+        '<td style="vertical-align:top;border-left:3px solid $renk;padding-left:12px">'
+        '<div style="font-size:15px;font-weight:bold;color:$renk">{{ad}}</div>'
+        '<div data-optional="unvan">{{unvan}}</div><div data-optional="departman" style="color:#666666">{{departman}}</div>'
+        '<div style="margin-top:6px"><b>{{sirket}}</b></div>'
+        '<div data-optional="telefon">Tel: {{telefon}}</div><div data-optional="cep">Cep: {{cep}}</div>'
+        '<div><a href="mailto:{{eposta}}" style="color:$renk;text-decoration:none">{{eposta}}</a></div>'
+        '<div data-optional="web"><a href="{{web}}" style="color:$renk;text-decoration:none">{{web}}</a></div>'
+        '</td></tr></table>',
+  ),
+  (
+    id: 'modern',
+    ad: 'Modern',
+    html: (logo, renk) =>
+        '<div style="font-family:\'Segoe UI\',Arial,sans-serif;font-size:13px;line-height:1.5;color:#2b2b2b">'
+        '<div style="font-size:16px;font-weight:600">{{ad}}</div>'
+        '<div data-optional="unvan" style="color:$renk;font-weight:600">{{unvan}}</div>'
+        '<div style="height:2px;width:48px;background:$renk;margin:8px 0"></div>'
+        '${logo != null ? '<div style="margin:6px 0"><img src="$logo" alt="" style="max-height:48px"></div>' : ''}'
+        '<div>{{sirket}}<span data-optional="departman"> · {{departman}}</span></div>'
+        '<div><span data-optional="telefon">{{telefon}} · </span><a href="mailto:{{eposta}}" style="color:#2b2b2b">{{eposta}}</a></div>'
+        '<div data-optional="web"><a href="{{web}}" style="color:$renk">{{web}}</a></div>'
+        '<div style="margin-top:6px"><a data-optional="linkedin" href="{{linkedin}}" style="color:$renk;margin-right:8px">LinkedIn</a><a data-optional="x" href="{{x}}" style="color:$renk;margin-right:8px">X</a><a data-optional="instagram" href="{{instagram}}" style="color:$renk;margin-right:8px">Instagram</a></div>'
+        '</div>',
+  ),
+  (
+    id: 'compact',
+    ad: 'Kompakt',
+    html: (logo, renk) =>
+        '<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:#444444">'
+        '<b style="color:$renk">{{ad}}</b><span data-optional="unvan"> | {{unvan}}</span> | {{sirket}}<br>'
+        '<span data-optional="telefon">T: {{telefon}} | </span><a href="mailto:{{eposta}}" style="color:#444444">{{eposta}}</a><span data-optional="web"> | <a href="{{web}}" style="color:$renk">{{web}}</a></span>'
+        '</div>',
+  ),
+  (
+    id: 'corporate',
+    ad: 'Kurumsal (logo üstte)',
+    html: (logo, renk) =>
+        '<table cellpadding="0" cellspacing="0" style="font-family:Georgia,\'Times New Roman\',serif;font-size:13px;line-height:1.5;color:#222222">'
+        '${logo != null ? '<tr><td style="padding-bottom:8px"><img src="$logo" alt="" style="max-height:56px"></td></tr>' : ''}'
+        '<tr><td style="border-top:1px solid $renk;padding-top:8px">'
+        '<div style="font-size:15px"><b>{{ad}}</b></div><div data-optional="unvan"><i>{{unvan}}</i></div>'
+        '<div data-optional="departman">{{departman}}</div><div>{{sirket}}</div>'
+        '<div style="margin-top:4px;color:#555555"><span data-optional="telefon">T {{telefon}}&nbsp;&nbsp;</span><span data-optional="cep">M {{cep}}&nbsp;&nbsp;</span>E {{eposta}}</div>'
+        '<div data-optional="web"><a href="{{web}}" style="color:$renk">{{web}}</a></div>'
+        '<div style="margin-top:8px;font-size:10px;color:#888888">Bu e-posta ve ekleri yalnızca alıcısına yöneliktir. Yanlışlıkla size ulaştıysa lütfen gönderene bildirip siliniz.</div>'
+        '</td></tr></table>',
+  ),
+];
+
+/// İmza tasarımcısındaki vurgu renkleri (web SIGNATURE_COLORS + marka moru).
+const imzaRenkleri = ['#1d4ed8', '#5443d2', '#111827', '#6b7280', '#0e7490', '#047857', '#b45309', '#b91c1c', '#7c3aed'];
 
 /// İmza yönetimi: düz metin veya biçimli (HTML, görsel ve değişkenlerle), önizleme, kurum politikası, varsayılan kullanım.
 class ImzaEkrani extends StatefulWidget {
@@ -278,6 +329,17 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
               else
                 _bicimliDuzenleyici(r),
             ],
+            if (!kilitli && !_kirli && a.etkinImzaHtml.trim().isNotEmpty) ...[
+              const Baslik('Gönderilen imzanız'),
+              _onizleme(a.etkinImzaHtml, doldur: false),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                child: Text(
+                  a.imzaKurumdan ? 'Kendi imzanız boş olduğu için kurumunuzun varsayılan imzası kullanılıyor.' : 'Değişkenler bilgilerinizle doldurulmuş hâli.',
+                  style: TextStyle(color: r.silik, fontSize: 12.5),
+                ),
+              ),
+            ],
             const Baslik('Ne zaman eklensin?'),
             Kutu(
               padding: EdgeInsets.zero,
@@ -327,6 +389,125 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
     );
   }
 
+  /// İmza tasarımcısı: hazır düzen + vurgu rengi + isteğe bağlı logo, canlı önizlemeyle; seçilen düzen
+  /// biçimli düzenleyiciye yazılır (kaydetmeden önce düzenlenebilir).
+  Future<void> _tasarimSec() async {
+    var duzen = imzaDuzenleri.first;
+    var renk = imzaRenkleri.first;
+    String? logo;
+    final sonuc = await showDialog<String>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, ss) {
+          final r = c.r;
+          final html = duzen.html(logo, renk);
+          return AlertDialog(
+            title: const Text('İmza tasarımcısı'),
+            content: SizedBox(
+              width: 560,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final d in imzaDuzenleri)
+                          ChoiceChip(
+                            key: ValueKey('imza-duzen-${d.id}'),
+                            label: Text(d.ad),
+                            selected: d.id == duzen.id,
+                            onSelected: (_) => ss(() => duzen = d),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('Renk', style: TextStyle(color: r.soluk)),
+                        for (final h in imzaRenkleri)
+                          InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => ss(() => renk = h),
+                            child: CircleAvatar(
+                              radius: 13,
+                              backgroundColor: Color(int.parse('ff${h.substring(1)}', radix: 16)),
+                              child: h == renk ? const Icon(Icons.check_rounded, size: 16, color: Colors.white) : null,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final l = await _logoSec();
+                            if (l != null) ss(() => logo = l);
+                          },
+                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                          label: Text(logo == null ? 'Logo / fotoğraf ekle' : 'Logoyu değiştir'),
+                        ),
+                        if (logo != null) TextButton(onPressed: () => ss(() => logo = null), child: const Text('Kaldır')),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _onizleme(html),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Değişkenler (ör. {{unvan}}) profil bilgilerinizle doldurulur; boş kalan satırlar imzada görünmez.',
+                      style: TextStyle(color: r.silik, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Vazgeç')),
+              FilledButton(key: const ValueKey('imza-tasarim-uygula'), onPressed: () => Navigator.pop(c, html), child: const Text('Bu tasarımı kullan')),
+            ],
+          );
+        },
+      ),
+    );
+    if (sonuc == null || !mounted) return;
+    final sinir = _a?.azamiImza ?? 0;
+    if (sinir > 0 && utf8.encode(sonuc).length > sinir) {
+      bildir('Tasarım imza sınırını aşıyor', mesaj: 'En fazla ${boyutYaz(sinir)}. Daha küçük bir logo seçin.', tur: MesajTur.uyari);
+      return;
+    }
+    if (_html.text.trim().isNotEmpty && !await onayla(context, 'Mevcut imzanız bu tasarımla değiştirilsin mi?', evet: 'Değiştir')) return;
+    setState(() {
+      _bicimli = true;
+      _sekme = 1;
+      _html.text = sonuc;
+      _kirli = true;
+    });
+  }
+
+  /// Galeriden logo: küçültülür ve data: URI olarak döner (PNG/JPEG).
+  Future<String?> _logoSec() async {
+    try {
+      final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 240, maxHeight: 120, imageQuality: 85);
+      if (f == null) return null;
+      final b = await f.readAsBytes();
+      if (b.length > 200 * 1024) {
+        bildir('Görsel çok büyük', mesaj: 'İmza görseli küçük olmalı (en fazla ~200 KB).', tur: MesajTur.uyari);
+        return null;
+      }
+      final tur = f.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      return 'data:$tur;base64,${base64Encode(b)}';
+    } catch (e) {
+      bildir('Görsel eklenemedi', mesaj: hataMetni(e), tur: MesajTur.hata);
+      return null;
+    }
+  }
+
   Widget _bicimliDuzenleyici(Renkler r) {
     Widget arac(IconData i, String ipucu, VoidCallback f) =>
         IconButton(tooltip: ipucu, icon: Icon(i, size: 20), onPressed: f, visualDensity: VisualDensity.compact);
@@ -363,13 +544,7 @@ class _ImzaEkraniState extends State<ImzaEkrani> {
                   onSelected: (k) => _ekle('{{$k}}'),
                   itemBuilder: (_) => [for (final e in imzaDegiskenleri.entries) PopupMenuItem(value: e.key, child: Text('${e.value}  ·  {{${e.key}}}'))],
                 ),
-                arac(Icons.auto_awesome_outlined, 'Hazır şablon', () async {
-                  if (_html.text.trim().isNotEmpty &&
-                      !await onayla(context, 'Hazır şablon uygulansın mı?', mesaj: 'Mevcut biçimli imza değiştirilir.', evet: 'Uygula')) {
-                    return;
-                  }
-                  _html.text = imzaSablonu;
-                }),
+                arac(Icons.auto_awesome_outlined, 'Hazır tasarım', _tasarimSec),
               ],
             ),
           ),

@@ -170,8 +170,10 @@ void main() {
     });
 
     test('uzak görsel listesi', () {
-      expect(uzakGorseller('<img src="https://a.com/1.png"><img src="data:image/png;base64,AA"><table><tr><td background="//b.com/2.png">x</td></tr></table>'),
-          ['https://a.com/1.png', '//b.com/2.png']);
+      expect(
+        uzakGorseller('<img src="https://a.com/1.png"><img src="data:image/png;base64,AA"><table><tr><td background="//b.com/2.png">x</td></tr></table>'),
+        ['https://a.com/1.png', '//b.com/2.png'],
+      );
     });
 
     test('HTML → düz metin', () {
@@ -188,29 +190,29 @@ void main() {
 
   group('yazma hazırlığı', () {
     IletiDetay ileti() => IletiDetay.json({
-          'message': {'id': 'm1', 'subject': 'Teklif', 'from': 'Ali <ali@a.com>', 'seen': true},
-          'view': {
-            'subject': 'Teklif',
-            'from': [
-              {'name': 'Ali', 'email': 'ali@a.com'},
-            ],
-            'to': [
-              {'name': '', 'email': 'ben@firma.com'},
-            ],
-            'cc': [
-              {'name': 'Can', 'email': 'can@a.com'},
-            ],
-            'reply_to': [],
-            'date': '2026-11-19T10:00:00Z',
-            'message_id': '<abc@a.com>',
-            'text': 'Fiyat ekte.',
-            'html': '',
-            'attachments': [
-              {'index': 2, 'filename': 'teklif.pdf', 'content_type': 'application/pdf', 'size': 1200, 'inline': false},
-              {'index': 3, 'filename': 'logo.png', 'content_type': 'image/png', 'size': 10, 'inline': true, 'content_id': 'logo'},
-            ],
-          },
-        });
+      'message': {'id': 'm1', 'subject': 'Teklif', 'from': 'Ali <ali@a.com>', 'seen': true},
+      'view': {
+        'subject': 'Teklif',
+        'from': [
+          {'name': 'Ali', 'email': 'ali@a.com'},
+        ],
+        'to': [
+          {'name': '', 'email': 'ben@firma.com'},
+        ],
+        'cc': [
+          {'name': 'Can', 'email': 'can@a.com'},
+        ],
+        'reply_to': [],
+        'date': '2026-11-19T10:00:00Z',
+        'message_id': '<abc@a.com>',
+        'text': 'Fiyat ekte.',
+        'html': '',
+        'attachments': [
+          {'index': 2, 'filename': 'teklif.pdf', 'content_type': 'application/pdf', 'size': 1200, 'inline': false},
+          {'index': 3, 'filename': 'logo.png', 'content_type': 'image/png', 'size': 10, 'inline': true, 'content_id': 'logo'},
+        ],
+      },
+    });
 
     test('yanıt', () {
       final b = yanitHazirla(ileti(), ben: 'ben@firma.com', tumu: true);
@@ -249,7 +251,9 @@ void main() {
       expect(o.etiketler, isEmpty);
       final d = IletiDetay.json(null);
       expect(d.gorunum.ekler, isEmpty);
-      final a = PostaAyarlari.json({'settings': {'signature': 'Ali'}});
+      final a = PostaAyarlari.json({
+        'settings': {'signature': 'Ali'},
+      });
       expect(a.etkinImzaHtml, 'Ali');
       expect(Klasor.json({'id': 'k', 'role': 'inbox', 'name': 'INBOX'}).gorunenAd, 'Gelen Kutusu');
     });

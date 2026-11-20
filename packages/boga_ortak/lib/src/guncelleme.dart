@@ -62,12 +62,12 @@ class Guncelleme {
   static bool get magazadan => platform == 'ios' || platform == 'macos';
 
   static String get platformAdi => switch (platform) {
-        'ios' => 'iPhone / iPad',
-        'macos' => 'Mac',
-        'android' => 'Android',
-        'windows' => 'Windows',
-        _ => platform,
-      };
+    'ios' => 'iPhone / iPad',
+    'macos' => 'Mac',
+    'android' => 'Android',
+    'windows' => 'Windows',
+    _ => platform,
+  };
 
   /// Kullanıcıya gösterilecek sürüm metni: "Sürüm 1.1.0 (12)".
   static String get surumMetni => surum.isEmpty ? '' : 'Sürüm $surum ($derleme)';
@@ -148,13 +148,15 @@ class Guncelleme {
       if (platform == 'android') {
         final s = await OpenFilex.open(dosya.path, type: 'application/vnd.android.package-archive');
         if (s.type != ResultType.done) {
-          throw ApiHata(0, s.type == ResultType.permissionDenied
-              ? 'Kurulum izni verilmedi. Ayarlar → Bilinmeyen uygulamaları yükle bölümünden izin verin.'
-              : 'Kurulum başlatılamadı: ${s.message}');
+          throw ApiHata(
+            0,
+            s.type == ResultType.permissionDenied
+                ? 'Kurulum izni verilmedi. Ayarlar → Bilinmeyen uygulamaları yükle bölümünden izin verin.'
+                : 'Kurulum başlatılamadı: ${s.message}',
+          );
         }
       } else if (platform == 'windows') {
-        await Process.start(dosya.path, ['/SILENT', '/SP-', '/NOCANCEL', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'],
-            mode: ProcessStartMode.detached);
+        await Process.start(dosya.path, ['/SILENT', '/SP-', '/NOCANCEL', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'], mode: ProcessStartMode.detached);
         await Future<void>.delayed(const Duration(milliseconds: 400));
         exit(0);
       }
@@ -173,13 +175,13 @@ class SurumEtiketi extends StatelessWidget {
   final bool ortala;
   @override
   Widget build(BuildContext context) => FutureBuilder<void>(
-        future: Guncelleme._surumuOku(),
-        builder: (_, _) => Text(
-          Guncelleme.surumMetni,
-          textAlign: ortala ? TextAlign.center : null,
-          style: TextStyle(fontSize: 11.5, color: renk ?? context.r.silik, fontWeight: FontWeight.w600, letterSpacing: .2),
-        ),
-      );
+    future: Guncelleme._surumuOku(),
+    builder: (_, _) => Text(
+      Guncelleme.surumMetni,
+      textAlign: ortala ? TextAlign.center : null,
+      style: TextStyle(fontSize: 11.5, color: renk ?? context.r.silik, fontWeight: FontWeight.w600, letterSpacing: .2),
+    ),
+  );
 }
 
 /// Yeni sürüm varken ekranın üstünde ince şerit; dokununca güncellemeyi başlatır. Yoksa yer kaplamaz.
@@ -188,37 +190,42 @@ class GuncellemeBandi extends StatelessWidget {
   final BogaApi api;
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<SurumBilgisi?>(
-        valueListenable: Guncelleme.yeni,
-        builder: (context, b, _) {
-          if (b == null) return const SizedBox.shrink();
-          final r = context.r;
-          return Material(
-            color: r.vurguYumusak,
-            child: InkWell(
-              onTap: () => Guncelleme.kur(api, b),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                child: ValueListenableBuilder<double?>(
-                  valueListenable: Guncelleme.ilerleme,
-                  builder: (_, p, _) => Row(children: [
-                    Icon(Icons.system_update_rounded, size: 18, color: r.vurgu),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        p != null
-                            ? 'Güncelleme indiriliyor… %${(p * 100).round()}'
-                            : 'Yeni sürüm hazır: ${b.etiket}${Guncelleme.magazadan ? ' — TestFlight\'tan güncelleyin' : ''}',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: r.metin),
-                      ),
+    valueListenable: Guncelleme.yeni,
+    builder: (context, b, _) {
+      if (b == null) return const SizedBox.shrink();
+      final r = context.r;
+      return Material(
+        color: r.vurguYumusak,
+        child: InkWell(
+          onTap: () => Guncelleme.kur(api, b),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+            child: ValueListenableBuilder<double?>(
+              valueListenable: Guncelleme.ilerleme,
+              builder: (_, p, _) => Row(
+                children: [
+                  Icon(Icons.system_update_rounded, size: 18, color: r.vurgu),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      p != null
+                          ? 'Güncelleme indiriliyor… %${(p * 100).round()}'
+                          : 'Yeni sürüm hazır: ${b.etiket}${Guncelleme.magazadan ? ' — TestFlight\'tan güncelleyin' : ''}',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: r.metin),
                     ),
-                    Text(p != null ? '' : 'Güncelle', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: r.vurgu)),
-                  ]),
-                ),
+                  ),
+                  Text(
+                    p != null ? '' : 'Güncelle',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: r.vurgu),
+                  ),
+                ],
               ),
             ),
-          );
-        },
+          ),
+        ),
       );
+    },
+  );
 }
 
 /// Ayarlar'daki "Uygulama sürümü ve güncelleme" kartı.
@@ -256,72 +263,105 @@ class _GuncellemeKartiState extends State<GuncellemeKarti> {
     return ValueListenableBuilder<SurumBilgisi?>(
       valueListenable: Guncelleme.yeni,
       builder: (context, b, _) => Container(
-        decoration: BoxDecoration(color: r.kart, borderRadius: BorderRadius.circular(16), border: Border.all(color: r.kenar)),
+        decoration: BoxDecoration(
+          color: r.kart,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: r.kenar),
+        ),
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(12)),
-              alignment: Alignment.center,
-              child: const Icon(Icons.verified_rounded, color: Colors.white, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(kimlik == Kimlik.posta ? 'BogaMail' : 'BogaMail Yönetim', style: gosterim(16, agirlik: FontWeight.w700, renk: r.metin)),
-                const SizedBox(height: 2),
-                Text('${Guncelleme.surumMetni} · ${Guncelleme.platformAdi}', style: TextStyle(fontSize: 13, color: r.soluk)),
-              ]),
-            ),
-          ]),
-          const SizedBox(height: 14),
-          if (b != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: r.vurguYumusak, borderRadius: BorderRadius.circular(12)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Yeni sürüm: ${b.etiket}', style: TextStyle(fontWeight: FontWeight.w700, color: r.metin)),
-                if (b.notlar.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(b.notlar, maxLines: 6, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: r.soluk)),
-                ],
-              ]),
-            ),
-            const SizedBox(height: 12),
-            ValueListenableBuilder<double?>(
-              valueListenable: Guncelleme.ilerleme,
-              builder: (_, p, _) => p != null
-                  ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      LinearProgressIndicator(value: p, borderRadius: BorderRadius.circular(4), color: r.vurgu, backgroundColor: r.ic),
-                      const SizedBox(height: 6),
-                      Text('İndiriliyor… %${(p * 100).round()}', style: TextStyle(fontSize: 12.5, color: r.soluk)),
-                    ])
-                  : SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => Guncelleme.kur(widget.api, b),
-                        icon: const Icon(Icons.system_update_rounded),
-                        label: Text(Guncelleme.magazadan ? 'TestFlight\'ta güncelle' : 'İndir ve kur'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(12)),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.verified_rounded, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        kimlik == Kimlik.posta ? 'BogaMail' : 'BogaMail Yönetim',
+                        style: gosterim(16, agirlik: FontWeight.w700, renk: r.metin),
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      Text('${Guncelleme.surumMetni} · ${Guncelleme.platformAdi}', style: TextStyle(fontSize: 13, color: r.soluk)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ] else
-            Row(children: [
-              Icon(_bakildi ? Icons.check_circle_rounded : Icons.info_outline_rounded, size: 18, color: _bakildi ? Marka.zumrut : r.silik),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(_bakildi ? 'En güncel sürümü kullanıyorsunuz.' : 'Güncellemeler otomatik denetlenir.',
-                    style: TextStyle(fontSize: 13, color: r.soluk)),
+            const SizedBox(height: 14),
+            if (b != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: r.vurguYumusak, borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Yeni sürüm: ${b.etiket}',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: r.metin),
+                    ),
+                    if (b.notlar.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        b.notlar,
+                        maxLines: 6,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12.5, color: r.soluk),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              TextButton(
-                onPressed: _bakiyor ? null : _denetle,
-                child: _bakiyor ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Denetle'),
+              const SizedBox(height: 12),
+              ValueListenableBuilder<double?>(
+                valueListenable: Guncelleme.ilerleme,
+                builder: (_, p, _) => p != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          LinearProgressIndicator(value: p, borderRadius: BorderRadius.circular(4), color: r.vurgu, backgroundColor: r.ic),
+                          const SizedBox(height: 6),
+                          Text('İndiriliyor… %${(p * 100).round()}', style: TextStyle(fontSize: 12.5, color: r.soluk)),
+                        ],
+                      )
+                    : SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => Guncelleme.kur(widget.api, b),
+                          icon: const Icon(Icons.system_update_rounded),
+                          label: Text(Guncelleme.magazadan ? 'TestFlight\'ta güncelle' : 'İndir ve kur'),
+                        ),
+                      ),
               ),
-            ]),
-        ]),
+            ] else
+              Row(
+                children: [
+                  Icon(_bakildi ? Icons.check_circle_rounded : Icons.info_outline_rounded, size: 18, color: _bakildi ? Marka.zumrut : r.silik),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _bakildi ? 'En güncel sürümü kullanıyorsunuz.' : 'Güncellemeler otomatik denetlenir.',
+                      style: TextStyle(fontSize: 13, color: r.soluk),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _bakiyor ? null : _denetle,
+                    child: _bakiyor ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Denetle'),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -341,31 +381,37 @@ class ZorunluGuncellemeEkrani extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 420),
             child: Padding(
               padding: const EdgeInsets.all(28),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.system_update_rounded, size: 56, color: r.vurgu),
-                const SizedBox(height: 18),
-                Text('Güncelleme gerekli', style: gosterim(24, renk: r.metin)),
-                const SizedBox(height: 10),
-                Text('Bu sürüm (${Guncelleme.surumMetni}) artık desteklenmiyor. Devam etmek için uygulamayı güncelleyin.',
-                    textAlign: TextAlign.center, style: TextStyle(color: r.soluk, height: 1.45)),
-                const SizedBox(height: 24),
-                ValueListenableBuilder<SurumBilgisi?>(
-                  valueListenable: Guncelleme.yeni,
-                  builder: (_, b, _) => SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: b == null ? () => Guncelleme.denetle(api, sessiz: false, zorla: true) : () => Guncelleme.kur(api, b),
-                      icon: const Icon(Icons.download_rounded),
-                      label: Text(b == null ? 'Yeniden denetle' : 'Güncelle (${b.etiket})'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.system_update_rounded, size: 56, color: r.vurgu),
+                  const SizedBox(height: 18),
+                  Text('Güncelleme gerekli', style: gosterim(24, renk: r.metin)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Bu sürüm (${Guncelleme.surumMetni}) artık desteklenmiyor. Devam etmek için uygulamayı güncelleyin.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: r.soluk, height: 1.45),
+                  ),
+                  const SizedBox(height: 24),
+                  ValueListenableBuilder<SurumBilgisi?>(
+                    valueListenable: Guncelleme.yeni,
+                    builder: (_, b, _) => SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: b == null ? () => Guncelleme.denetle(api, sessiz: false, zorla: true) : () => Guncelleme.kur(api, b),
+                        icon: const Icon(Icons.download_rounded),
+                        label: Text(b == null ? 'Yeniden denetle' : 'Güncelle (${b.etiket})'),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                ValueListenableBuilder<double?>(
-                  valueListenable: Guncelleme.ilerleme,
-                  builder: (_, p, _) => p == null ? const SizedBox.shrink() : LinearProgressIndicator(value: p, color: r.vurgu),
-                ),
-              ]),
+                  const SizedBox(height: 12),
+                  ValueListenableBuilder<double?>(
+                    valueListenable: Guncelleme.ilerleme,
+                    builder: (_, p, _) => p == null ? const SizedBox.shrink() : LinearProgressIndicator(value: p, color: r.vurgu),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

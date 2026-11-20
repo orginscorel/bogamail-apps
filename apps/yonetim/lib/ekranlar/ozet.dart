@@ -223,13 +223,22 @@ class _OzetEkraniState extends State<OzetEkrani> {
               runSpacing: 8,
               children: [
                 for (final (i, e, f) in hizli)
-                  ActionChip(
-                    avatar: Icon(i, size: 17, color: Colors.white),
-                    label: Text(e),
-                    labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12.5),
-                    backgroundColor: Colors.white.withValues(alpha: .12),
-                    side: BorderSide(color: Colors.white.withValues(alpha: .22)),
-                    onPressed: f,
+                  // Koyu bant üzerinde yarı saydam hap düğme (tema çip renklerinden bağımsız; yazı her zaman okunur).
+                  Material(
+                    color: Colors.white.withValues(alpha: .10),
+                    shape: StadiumBorder(side: BorderSide(color: Colors.white.withValues(alpha: .24))),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: f,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(i, size: 17, color: Marka.yesil),
+                          const SizedBox(width: 8),
+                          Text(e, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                        ]),
+                      ),
+                    ),
                   ),
               ],
             ),

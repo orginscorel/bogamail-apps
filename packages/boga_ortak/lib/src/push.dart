@@ -85,13 +85,7 @@ class Push {
     final t = await anahtar();
     if (t == null) return false;
     try {
-      await api.post(yol, {
-        'platform': Platform.isIOS ? 'ios' : 'macos',
-        'token': t,
-        'topic': konu,
-        'sandbox': kDebugMode,
-        'device_name': await _cihazAdi(),
-      });
+      await api.post(yol, {'platform': Platform.isIOS ? 'ios' : 'macos', 'token': t, 'topic': konu, 'sandbox': kDebugMode, 'device_name': await _cihazAdi()});
       final p = await SharedPreferences.getInstance();
       await p.setString('${api.uygulama}.push', t);
       return true;

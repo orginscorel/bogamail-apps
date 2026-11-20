@@ -44,10 +44,13 @@ class _Logo {
 
 /// Uygulamanın imza degradesi (açılış/simge). [Marka.grad]'dan bağımsızdır: simge üretiminde kimlik ayarlı olmayabilir.
 LinearGradient isaretDegradesi(AcilisIsaret i) => i == AcilisIsaret.posta
-    ? const LinearGradient(
-        begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF7B6DF0), Marka.mor, Color(0xFF3624A6)], stops: [0, .5, 1])
+    ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF7B6DF0), Marka.mor, Color(0xFF3624A6)], stops: [0, .5, 1])
     : const LinearGradient(
-        begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF353D5C), Marka.grafit, Color(0xFF10131E)], stops: [0, .55, 1]);
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF353D5C), Marka.grafit, Color(0xFF10131E)],
+        stops: [0, .55, 1],
+      );
 
 /// [a, b] aralığını 0..1'e eşler ve eğriyi uygular.
 double _aralik(double t, double a, double b, [Curve e = Curves.linear]) {
@@ -117,11 +120,12 @@ void _rozetCiz(Canvas c, Offset m, double y, AcilisIsaret i, {required Color hal
       ..strokeCap = StrokeCap.round;
     c.drawRRect(RRect.fromRectAndRadius(r, Radius.circular(y * .12)), kalem);
     c.drawPath(
-        Path()
-          ..moveTo(r.left + y * .06, r.top + y * .08)
-          ..lineTo(0, r.center.dy + y * .1)
-          ..lineTo(r.right - y * .06, r.top + y * .08),
-        kalem);
+      Path()
+        ..moveTo(r.left + y * .06, r.top + y * .08)
+        ..lineTo(0, r.center.dy + y * .1)
+        ..lineTo(r.right - y * .06, r.top + y * .08),
+      kalem,
+    );
   } else {
     c.drawCircle(Offset.zero, y, Paint()..color = Marka.yesil);
     final kalem = Paint()
@@ -158,7 +162,11 @@ class BogaIsaret extends StatelessWidget {
   final double boyut;
   final AcilisIsaret isaret;
   @override
-  Widget build(BuildContext context) => SizedBox(width: boyut, height: boyut, child: CustomPaint(painter: _IsaretBoyayici(isaret)));
+  Widget build(BuildContext context) => SizedBox(
+    width: boyut,
+    height: boyut,
+    child: CustomPaint(painter: _IsaretBoyayici(isaret)),
+  );
 }
 
 class _IsaretBoyayici extends CustomPainter {
@@ -199,7 +207,10 @@ class AcilisEkrani extends StatefulWidget {
 
 class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMixin {
   static const _sure = 1900;
-  late final _giris = AnimationController(vsync: this, duration: const Duration(milliseconds: _sure))..forward();
+  late final _giris = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: _sure),
+  )..forward();
   late final _akis = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300))..repeat();
   late final _cikis = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
   String? _hata;
@@ -244,14 +255,19 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
     await _cikis.forward();
     if (!mounted) return;
     final hedef = sonraki;
-    Navigator.of(context).pushReplacement(PageRouteBuilder(
-      transitionDuration: Duration(milliseconds: hareketAzalt(context) ? 0 : 380),
-      pageBuilder: (_, _, _) => hedef,
-      transitionsBuilder: (_, a, _, child) {
-        final e = Curves.easeOutCubic.transform(a.value);
-        return Opacity(opacity: e, child: Transform.scale(scale: .965 + .035 * e, child: child));
-      },
-    ));
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: Duration(milliseconds: hareketAzalt(context) ? 0 : 380),
+        pageBuilder: (_, _, _) => hedef,
+        transitionsBuilder: (_, a, _, child) {
+          final e = Curves.easeOutCubic.transform(a.value);
+          return Opacity(
+            opacity: e,
+            child: Transform.scale(scale: .965 + .035 * e, child: child),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -282,91 +298,126 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
             final yaziA = _aralik(t, .62, .92, Curves.easeOutCubic);
             final rozet = _aralik(t, .70, .98, Curves.elasticOut);
             final bekliyor = _hata == null && t >= 1;
-            return Stack(children: [
-              Positioned.fill(child: CustomPaint(painter: _Zemin(aksan: aksan, koyu: koyu, t: t))),
-              Center(
-                child: Opacity(
-                  opacity: 1 - cik,
-                  child: Transform.scale(
-                    scale: 1 - .06 * cik,
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      SizedBox(
-                        width: 150,
-                        height: 150,
-                        child: CustomPaint(
-                          painter: _AcilisLogo(t: t, rozet: rozet, isaret: widget.isaret, renk: koyu ? Colors.white : Marka.mor, halka: zemin),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      Opacity(
-                        opacity: yaziA,
-                        child: Transform.translate(
-                          offset: Offset(0, 10 * (1 - yaziA)),
-                          child: Column(children: [
-                            Text.rich(TextSpan(children: [
-                              TextSpan(text: 'Boga', style: gosterim(34, renk: yazi)),
-                              TextSpan(text: 'Mail', style: gosterim(34, renk: aksan)),
-                            ])),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                              decoration: BoxDecoration(color: aksan.withValues(alpha: koyu ? .16 : .10), borderRadius: BorderRadius.circular(99)),
-                              child: Text(
-                                widget.alt,
-                                style: TextStyle(
-                                  fontFamily: 'packages/boga_ortak/Poppins',
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 3.2,
-                                  color: aksan,
-                                ),
-                              ),
-                            ),
-                          ]),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      SizedBox(
-                        width: 120,
-                        height: 3,
-                        child: AnimatedOpacity(
-                          opacity: bekliyor ? 1 : 0,
-                          duration: const Duration(milliseconds: 250),
-                          child: CustomPaint(painter: _Akis(faz: _akis.value, renk: aksan, iz: soluk.withValues(alpha: .18))),
-                        ),
-                      ),
-                      if (_hata != null) ...[
-                        const SizedBox(height: 8),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 320),
-                          child: Text(_hata!, textAlign: TextAlign.center, style: TextStyle(color: yazi.withValues(alpha: .85), fontSize: 14, height: 1.4)),
-                        ),
-                        const SizedBox(height: 14),
-                        FilledButton.icon(
-                          style: FilledButton.styleFrom(backgroundColor: aksan, foregroundColor: koyu ? Marka.grafit : Colors.white),
-                          onPressed: _basla,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('Tekrar dene'),
-                        ),
-                      ],
-                    ]),
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _Zemin(aksan: aksan, koyu: koyu, t: t),
                   ),
                 ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: MediaQuery.paddingOf(context).bottom + 22,
-                child: Opacity(
-                  opacity: yaziA * (1 - cik),
-                  child: Column(children: [
-                    Text('BOGAHOST', style: TextStyle(fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w700, color: soluk)),
-                    const SizedBox(height: 4),
-                    SurumEtiketi(renk: soluk, ortala: true),
-                  ]),
+                Center(
+                  child: Opacity(
+                    opacity: 1 - cik,
+                    child: Transform.scale(
+                      scale: 1 - .06 * cik,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 150,
+                            height: 150,
+                            child: CustomPaint(
+                              painter: _AcilisLogo(t: t, rozet: rozet, isaret: widget.isaret, renk: koyu ? Colors.white : Marka.mor, halka: zemin),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Opacity(
+                            opacity: yaziA,
+                            child: Transform.translate(
+                              offset: Offset(0, 10 * (1 - yaziA)),
+                              child: Column(
+                                children: [
+                                  Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: 'Boga',
+                                          style: gosterim(34, renk: yazi),
+                                        ),
+                                        TextSpan(
+                                          text: 'Mail',
+                                          style: gosterim(34, renk: aksan),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: aksan.withValues(alpha: koyu ? .16 : .10),
+                                      borderRadius: BorderRadius.circular(99),
+                                    ),
+                                    child: Text(
+                                      widget.alt,
+                                      style: TextStyle(
+                                        fontFamily: 'packages/boga_ortak/Poppins',
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 3.2,
+                                        color: aksan,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          SizedBox(
+                            width: 120,
+                            height: 3,
+                            child: AnimatedOpacity(
+                              opacity: bekliyor ? 1 : 0,
+                              duration: const Duration(milliseconds: 250),
+                              child: CustomPaint(
+                                painter: _Akis(faz: _akis.value, renk: aksan, iz: soluk.withValues(alpha: .18)),
+                              ),
+                            ),
+                          ),
+                          if (_hata != null) ...[
+                            const SizedBox(height: 8),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: Text(
+                                _hata!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: yazi.withValues(alpha: .85), fontSize: 14, height: 1.4),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            FilledButton.icon(
+                              style: FilledButton.styleFrom(backgroundColor: aksan, foregroundColor: koyu ? Marka.grafit : Colors.white),
+                              onPressed: _basla,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Tekrar dene'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ]);
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: MediaQuery.paddingOf(context).bottom + 22,
+                  child: Opacity(
+                    opacity: yaziA * (1 - cik),
+                    child: Column(
+                      children: [
+                        Text(
+                          'BOGAHOST',
+                          style: TextStyle(fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w700, color: soluk),
+                        ),
+                        const SizedBox(height: 4),
+                        SurumEtiketi(renk: soluk, ortala: true),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
           },
         ),
       ),
@@ -403,11 +454,7 @@ class _Zemin extends CustomPainter {
     final m = Offset(s.width / 2, s.height / 2 - 40);
     final r = math.max(s.width, s.height) * .55;
     final isik = _aralik(t, 0, .6, Curves.easeOut);
-    c.drawCircle(
-      m,
-      r,
-      Paint()..shader = ui.Gradient.radial(m, r, [aksan.withValues(alpha: (koyu ? .22 : .10) * isik), aksan.withValues(alpha: 0)]),
-    );
+    c.drawCircle(m, r, Paint()..shader = ui.Gradient.radial(m, r, [aksan.withValues(alpha: (koyu ? .22 : .10) * isik), aksan.withValues(alpha: 0)]));
     final taban = koyu ? Colors.white : const Color(0xFF111427);
     final nokta = Paint();
     const ara = 26.0;

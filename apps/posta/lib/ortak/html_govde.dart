@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,23 @@ import '../veri/posta_servisi.dart';
 
 final _cidTurleri = RegExp(r'^image/(png|jpeg|gif|webp)$', caseSensitive: false);
 const _cidSiniri = 5 * 1024 * 1024;
+
+HeadlessInAppWebView? _isitici;
+
+/// Telefonlarda web görünümü motorunu uygulama açılışında ısıtır (ilk ileti açılışındaki motor başlatma gecikmesi
+/// ortadan kalkar). Ağ ve JavaScript kapalı, boş bir belge; uygulama boyunca yaşar.
+Future<void> webGorunumunuIsit() async {
+  if (kIsWeb || _isitici != null || !(Platform.isAndroid || Platform.isIOS)) return;
+  try {
+    _isitici = HeadlessInAppWebView(
+      initialData: InAppWebViewInitialData(data: '<!doctype html><html><body></body></html>', baseUrl: WebUri('about:blank')),
+      initialSettings: InAppWebViewSettings(javaScriptEnabled: false, blockNetworkLoads: true, cacheEnabled: false, isInspectable: false),
+    );
+    await _isitici!.run();
+  } catch (_) {
+    _isitici = null;
+  }
+}
 
 /// İzolatta çalışan hazırlık (büyük bültenler arayüzü dondurmasın).
 ({String belge, int engellenen}) _hazirla(({String html, Map<String, String> baglantilar, Map<String, String> uzak, Map<String, String> cid, String kok}) a) {
@@ -34,6 +52,7 @@ class HtmlGovde extends StatefulWidget {
     this.otomatikGorsel = false,
     this.kaydirma,
     this.epostaBaglantisi,
+    this.ekIndir,
   });
 
   final String iletiId;
@@ -43,6 +62,9 @@ class HtmlGovde extends StatefulWidget {
   final bool otomatikGorsel;
   final ValueChanged<double>? kaydirma;
   final ValueChanged<Uri>? epostaBaglantisi;
+
+  /// Gömülü (cid:) görsel indirme; verilmezse oturumdaki hesabın eki.
+  final Future<Uint8List> Function(int sira)? ekIndir;
 
   @override
   State<HtmlGovde> createState() => _HtmlGovdeState();
@@ -65,6 +87,20 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     unawaited(_baslat());
   }
 
+  /// Aynı görüntüleyici başka bir iletiye geçti (geniş ekranda okuma bölmesi): web görünümü korunur, yalnız belge
+  /// değişir (her açılışta yeni web görünümü kurma maliyeti yok).
+  @override
+  void didUpdateWidget(HtmlGovde eski) {
+    super.didUpdateWidget(eski);
+    if (eski.iletiId == widget.iletiId && eski.html == widget.html) return;
+    _cid = const {};
+    _uzak = const {};
+    _engellenen = 0;
+    _gorseller = widget.otomatikGorsel;
+    _gorselYukleniyor = false;
+    unawaited(_baslat());
+  }
+
   Future<void> _baslat() async {
     await _yenidenOlustur();
     unawaited(_cidYukle());
@@ -72,6 +108,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   }
 
   Future<void> _yenidenOlustur() async {
+    final id = widget.iletiId;
     final r = await compute(_hazirla, (
       html: widget.html,
       baglantilar: widget.baglantilar,
@@ -79,7 +116,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
       cid: _cid,
       kok: Uyg.api.sunucu,
     ));
-    if (!mounted) return;
+    if (!mounted || id != widget.iletiId) return;
     setState(() {
       _belge = r.belge;
       if (!_gorseller || _uzak.isEmpty) _engellenen = r.engellenen;
@@ -91,6 +128,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   }
 
   Future<void> _cidYukle() async {
+    final kimlik = widget.iletiId;
     final h = widget.html.toLowerCase();
     final istenen = widget.ekler
         .where((a) => a.icerikId.isNotEmpty && _cidTurleri.hasMatch(a.tur) && a.boyut <= _cidSiniri && h.contains('cid:${a.icerikId.toLowerCase()}'))
@@ -100,24 +138,25 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     await Future.wait(
       istenen.map((a) async {
         try {
-          final b = await Posta.ekIndir(widget.iletiId, a.sira);
+          final b = await (widget.ekIndir ?? (int s) => Posta.ekIndir(widget.iletiId, s))(a.sira);
           out[a.icerikId.toLowerCase()] = 'data:${a.tur.toLowerCase()};base64,${base64Encode(b)}';
         } catch (_) {}
       }),
     );
-    if (!mounted || out.isEmpty) return;
+    if (!mounted || out.isEmpty || kimlik != widget.iletiId) return;
     _cid = out;
     await _yenidenOlustur();
   }
 
   Future<void> _uzakYukle() async {
+    final kimlik = widget.iletiId;
     final adresler = await compute(uzakGorseller, widget.html);
     if (adresler.isEmpty || !mounted) return;
     setState(() => _gorselYukleniyor = true);
     final kuyruk = [...adresler];
     final bulunan = <String, String>{};
     Future<void> isci() async {
-      while (kuyruk.isNotEmpty && mounted) {
+      while (kuyruk.isNotEmpty && mounted && kimlik == widget.iletiId) {
         final u = kuyruk.removeAt(0);
         final d = await Posta.uzakGorselVeri(u);
         if (d != null) bulunan[u] = d;
@@ -125,7 +164,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     }
 
     await Future.wait(List.generate(adresler.length < 6 ? adresler.length : 6, (_) => isci()));
-    if (!mounted) return;
+    if (!mounted || kimlik != widget.iletiId) return;
     _uzak = bulunan;
     setState(() => _gorselYukleniyor = false);
     await _yenidenOlustur();

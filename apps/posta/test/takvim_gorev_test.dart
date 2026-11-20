@@ -64,7 +64,10 @@ void main() {
   });
 
   test('etkinlik kaydet / sil / aralık istekleri', () async {
-    s.yollar['POST /api/v1/mail/calendar/events'] = (201, {'id': 'e9', 'title': 'X', 'starts_at': '2026-11-20T09:00:00Z', 'ends_at': '2026-11-20T10:00:00Z', 'invites_sent': true});
+    s.yollar['POST /api/v1/mail/calendar/events'] = (
+      201,
+      {'id': 'e9', 'title': 'X', 'starts_at': '2026-11-20T09:00:00Z', 'ends_at': '2026-11-20T10:00:00Z', 'invites_sent': true},
+    );
     s.yollar['DELETE /api/v1/mail/calendar/events/e9'] = (204, null);
     s.yollar['GET /api/v1/mail/calendar/events'] = (200, {'items': []});
     final r = await TakvimApi.kaydet(Etkinlik(baslik: 'X', baslangic: DateTime.utc(2026, 11, 20, 9), bitis: DateTime.utc(2026, 11, 20, 10)), davetGonder: true);
@@ -83,9 +86,15 @@ void main() {
     expect(v.yanitlandi, isTrue);
     expect(s.istekler.last.json, {'partstat': 'ACCEPTED', 'no_reply': false});
     final d = Davet.json({
-      'invite': {'method': 'request', 'title': 'Kurul', 'attendees': [
-        {'name': 'A', 'email': 'a@x.com', 'partstat': 'ACCEPTED'},
-      ], 'outdated': false, 'is_organizer': false},
+      'invite': {
+        'method': 'request',
+        'title': 'Kurul',
+        'attendees': [
+          {'name': 'A', 'email': 'a@x.com', 'partstat': 'ACCEPTED'},
+        ],
+        'outdated': false,
+        'is_organizer': false,
+      },
     });
     expect(d.yontem, 'REQUEST');
     expect(d.katilimcilar.single.yanit, 'ACCEPTED');
@@ -94,12 +103,27 @@ void main() {
   test('görev: oluştur, atanan yalnızca durum, yorum', () async {
     s.yollar['POST /api/v1/mail/tasks'] = (201, {'id': 't1', 'title': 'Rapor', 'status': 'todo', 'priority': 'high', 'can_edit': true});
     s.yollar['PATCH /api/v1/mail/tasks/t1'] = (200, {});
-    s.yollar['POST /api/v1/mail/tasks/t1/comments'] = (201, {'id': 3, 'body': 'Tamam', 'author': {'id': 'a', 'address': 'a@x.com', 'name': 'A'}});
+    s.yollar['POST /api/v1/mail/tasks/t1/comments'] = (
+      201,
+      {
+        'id': 3,
+        'body': 'Tamam',
+        'author': {'id': 'a', 'address': 'a@x.com', 'name': 'A'},
+      },
+    );
     s.yollar['GET /api/v1/mail/tasks'] = (200, {'items': []});
 
     final g = await GorevApi.olustur(baslik: ' Rapor ', oncelik: 'high', atananId: 'u2', iletiId: 'm5');
     expect(g.oncelik, 'high');
-    expect(s.istekler.last.json, {'title': 'Rapor', 'notes': '', 'due_at': null, 'priority': 'high', 'status': 'todo', 'assignee_id': 'u2', 'message_id': 'm5'});
+    expect(s.istekler.last.json, {
+      'title': 'Rapor',
+      'notes': '',
+      'due_at': null,
+      'priority': 'high',
+      'status': 'todo',
+      'assignee_id': 'u2',
+      'message_id': 'm5',
+    });
     await GorevApi.olustur(baslik: 'B');
     expect(s.istekler.last.json.containsKey('message_id'), isFalse);
     expect(s.istekler.last.json['assignee_id'], isNull);
@@ -115,7 +139,14 @@ void main() {
   });
 
   test('görev çözümleme: gecikme, eksik alanlar', () {
-    final g = Gorev.json({'id': 't', 'title': 'X', 'due_at': '2020-01-01T00:00:00Z', 'status': 'doing', 'assignee': null, 'message': {'id': null, 'subject': 'Konu'}});
+    final g = Gorev.json({
+      'id': 't',
+      'title': 'X',
+      'due_at': '2020-01-01T00:00:00Z',
+      'status': 'doing',
+      'assignee': null,
+      'message': {'id': null, 'subject': 'Konu'},
+    });
     expect(g.gecikti, isTrue);
     expect(g.atanan, isNull);
     expect(g.iletiId, isNull);

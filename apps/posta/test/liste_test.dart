@@ -14,6 +14,7 @@ import 'package:posta/oturum.dart';
 import 'package:posta/ortak/liste_filtresi.dart';
 import 'package:posta/veri/durum.dart';
 import 'package:posta/veri/modeller.dart';
+import 'package:posta/veri/onyukleme.dart';
 
 /// İstekleri kaydeder ve sahte ileti sayfası döndürür.
 class SahteSunucu implements HttpClientAdapter {
@@ -66,6 +67,7 @@ void main() {
   final sunucu = SahteSunucu();
 
   setUpAll(() async {
+    Onyukleme.etkin = false; // istek sırasını denetleyen testler; önyükleme onbellek_test'te
     await initializeDateFormatting('tr_TR');
     Uyg.api.dio = Dio(BaseOptions(baseUrl: 'http://sahte.invalid', validateStatus: (_) => true))..httpClientAdapter = sunucu;
   });

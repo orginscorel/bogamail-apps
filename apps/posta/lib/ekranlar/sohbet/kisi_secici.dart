@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../veri/sohbet_servisi.dart';
 import 'ortak.dart';
+import '../../ortak/uyarlanir.dart';
 
 /// Kurum rehberi: arama, çevrimiçi durumu. [coklu] ise birden fazla kişi seçilip grup adı girilir.
 class KisiSecici extends StatefulWidget {
@@ -12,8 +13,7 @@ class KisiSecici extends StatefulWidget {
   final bool coklu;
 
   /// Tek kişi → birebir sohbet; çoklu → grup. Oluşan oda kimliğini döndürür.
-  static Future<String?> ac(BuildContext context, {bool coklu = false}) =>
-      Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => KisiSecici(coklu: coklu)));
+  static Future<String?> ac(BuildContext context, {bool coklu = false}) => uyarlanirAc<String>(context, (_) => KisiSecici(coklu: coklu), genislik: 560);
 
   @override
   State<KisiSecici> createState() => _KisiSeciciState();

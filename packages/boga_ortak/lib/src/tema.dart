@@ -133,9 +133,7 @@ class Renkler {
       : const [BoxShadow(color: Color(0x1A111427), blurRadius: 24, offset: Offset(0, 8), spreadRadius: -12)];
 
   /// Hafif kart gölgesi (listeler, tablolar).
-  List<BoxShadow> get hafifGolge => koyu
-      ? const []
-      : const [BoxShadow(color: Color(0x0F111427), blurRadius: 10, offset: Offset(0, 2), spreadRadius: -2)];
+  List<BoxShadow> get hafifGolge => koyu ? const [] : const [BoxShadow(color: Color(0x0F111427), blurRadius: 10, offset: Offset(0, 2), spreadRadius: -2)];
 }
 
 extension RenkX on BuildContext {
@@ -149,15 +147,15 @@ final temaKipi = ValueNotifier<ThemeMode>(ThemeMode.light);
 
 /// Büyük rakam/başlık yazı stili (Plus Jakarta).
 TextStyle gosterim(double boyut, {FontWeight agirlik = FontWeight.w800, Color? renk, double? satir}) => TextStyle(
-      fontFamily: _gosterimFont,
-      fontSize: boyut,
-      fontWeight: agirlik,
-      fontVariations: [FontVariation('wght', agirlik.value.toDouble())],
-      letterSpacing: -0.02 * boyut,
-      height: satir,
-      color: renk,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+  fontFamily: _gosterimFont,
+  fontSize: boyut,
+  fontWeight: agirlik,
+  fontVariations: [FontVariation('wght', agirlik.value.toDouble())],
+  letterSpacing: -0.02 * boyut,
+  height: satir,
+  color: renk,
+  fontFeatures: const [FontFeature.tabularFigures()],
+);
 
 ThemeData temaKur(Brightness parlaklik) {
   final r = parlaklik == Brightness.dark ? Renkler.karanlik : Renkler.acik;
@@ -173,12 +171,14 @@ ThemeData temaKur(Brightness parlaklik) {
       surface: r.kart,
     ),
     splashFactory: InkRipple.splashFactory,
-    pageTransitionsTheme: const PageTransitionsTheme(builders: {
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
-    }),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+      },
+    ),
   );
   return temel.copyWith(
     textTheme: temel.textTheme.apply(bodyColor: r.metin, displayColor: r.metin),
@@ -196,7 +196,10 @@ ThemeData temaKur(Brightness parlaklik) {
       color: r.kart,
       elevation: 0,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: r.kenar)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: r.kenar),
+      ),
     ),
     dividerTheme: DividerThemeData(color: r.kenar, space: 1, thickness: 1),
     inputDecorationTheme: InputDecorationTheme(
@@ -250,7 +253,14 @@ ThemeData temaKur(Brightness parlaklik) {
       surfaceTintColor: Colors.transparent,
       indicatorColor: r.vurguYumusak,
       iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(color: s.contains(WidgetState.selected) ? r.vurgu : r.soluk)),
-      labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(fontFamily: _font, fontSize: 11.5, color: s.contains(WidgetState.selected) ? r.metin : r.soluk, fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500)),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (s) => TextStyle(
+          fontFamily: _font,
+          fontSize: 11.5,
+          color: s.contains(WidgetState.selected) ? r.metin : r.soluk,
+          fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: r.kart,

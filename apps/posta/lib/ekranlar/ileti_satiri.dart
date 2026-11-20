@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../ortak/simgeler.dart';
+import '../ortak/surukle.dart';
 import '../veri/durum.dart';
 import '../veri/modeller.dart';
 import '../veri/yardimci.dart';
@@ -26,7 +27,13 @@ class IletiSatiri extends StatefulWidget {
     required this.yildiz,
     required this.arsivle,
     required this.sil,
+    this.hesapRengi,
+    this.hesapEtiketi,
+    this.surukle,
   });
+
+  /// Masaüstü: satır kenar menüsündeki klasör/etiketlere sürüklenebilir (seçiliyse tüm seçim).
+  final IletiSurukleme? surukle;
 
   final IletiOzet ileti;
   final bool secili;
@@ -40,6 +47,10 @@ class IletiSatiri extends StatefulWidget {
   final VoidCallback yildiz;
   final VoidCallback arsivle;
   final VoidCallback sil;
+
+  /// Birleşik görünüm: iletinin ait olduğu hesabın rengi ve kısa adı.
+  final Color? hesapRengi;
+  final String? hesapEtiketi;
 
   @override
   State<IletiSatiri> createState() => _IletiSatiriState();
@@ -139,6 +150,35 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                 style: TextStyle(fontSize: 14.5, fontWeight: okunmamis ? FontWeight.w800 : FontWeight.w400, color: adRengi),
                               ),
                             ),
+                            if (widget.hesapRengi != null)
+                              Container(
+                                key: const ValueKey('hesap-etiketi'),
+                                constraints: const BoxConstraints(maxWidth: 130),
+                                margin: const EdgeInsets.only(left: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                                decoration: BoxDecoration(color: widget.hesapRengi!.withValues(alpha: .13), borderRadius: BorderRadius.circular(20)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 7,
+                                      height: 7,
+                                      decoration: BoxDecoration(color: widget.hesapRengi, shape: BoxShape.circle),
+                                    ),
+                                    if ((widget.hesapEtiketi ?? '').isNotEmpty) ...[
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          widget.hesapEtiketi!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: widget.hesapRengi),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
                             if (m.onemli) simge(Icons.label_important_rounded, 'Önemli', renk: Marka.kehribar, boyut: 16),
                             if (m.ekVar) simge(Icons.attach_file_rounded, 'Ekli'),
                             if (m.yanitlandi) simge(Icons.reply_rounded, 'Yanıtlandı'),
@@ -179,7 +219,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                   child: Icon(
                                     m.yildizli ? Icons.star_rounded : Icons.star_border_rounded,
                                     size: 21,
-                                    color: m.yildizli ? Marka.kehribar : r.silik.withValues(alpha: .6),
+                                    color: m.yildizli ? yildizRengi : r.silik.withValues(alpha: .6),
                                   ),
                                 ),
                               ),
@@ -244,6 +284,17 @@ class _IletiSatiriState extends State<IletiSatiri> {
       ),
     );
 
+    final s = widget.surukle;
+    if (s != null) {
+      // Fareyle sürükleme; kaydırma eylemleri yerine fare üzerindeki düğmeler kullanılır.
+      return Draggable<IletiSurukleme>(
+        data: s,
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedback: _SuruklemeGorseli(sayi: s.idler.length, konu: m.konu, r: r),
+        childWhenDragging: Opacity(opacity: .5, child: satir),
+        child: satir,
+      );
+    }
     if (widget.secimModu) return satir;
     return Slidable(
       key: ValueKey('kaydir-${m.id}'),
@@ -288,6 +339,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
   }
 
   List<Widget> _fareEylemleri(Renkler r) {
+    if (widget.secimModu) return const [];
     Widget d(IconData i, String t, VoidCallback f) => SizedBox(
       width: 30,
       height: 22,
@@ -306,4 +358,37 @@ class _IletiSatiriState extends State<IletiSatiri> {
       d(Icons.delete_outline_rounded, widget.copte ? 'Kalıcı sil' : 'Sil', widget.sil),
     ];
   }
+}
+
+class _SuruklemeGorseli extends StatelessWidget {
+  const _SuruklemeGorseli({required this.sayi, required this.konu, required this.r});
+  final int sayi;
+  final String konu;
+  final Renkler r;
+  @override
+  Widget build(BuildContext context) => Material(
+    key: const ValueKey('surukleme-gorseli'),
+    color: r.kart,
+    elevation: 6,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: 280),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.drive_file_move_outlined, size: 18, color: r.vurgu),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              sayi > 1 ? '$sayi ileti' : (konu.trim().isEmpty ? '(konu yok)' : konu),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: r.metin, fontSize: 13.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

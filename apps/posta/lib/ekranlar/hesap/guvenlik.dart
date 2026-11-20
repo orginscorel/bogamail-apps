@@ -2,6 +2,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../veri/ayar_servisi.dart';
 import '../../veri/hesap_servisi.dart';
 import 'ortak.dart';
 
@@ -505,6 +506,64 @@ class YoneticiErisimiEkrani extends StatelessWidget {
                 ),
             ],
           ),
+      ];
+    },
+  );
+}
+
+// ---------------------------------------------------------------- kayıtlı cihazlar
+
+/// Bu posta kutusunun "Kayıtlı postalarınız" listesinde durduğu tarayıcı ve uygulamalar (web SavedDevicesSection).
+class KayitliCihazlarEkrani extends StatelessWidget {
+  const KayitliCihazlarEkrani({super.key});
+
+  @override
+  Widget build(BuildContext context) => YukleyiciSayfa<List<KayitliCihaz>>(
+    baslik: 'Kayıtlı cihazlar',
+    altBaslik:
+        'Bu posta kutusunun kayıtlı olduğu tarayıcı ve uygulamalar; buralardan şifresiz girilebilir. Tanımadığınız cihazı kaldırın. '
+        'Şifrenizi değiştirmek tüm diğer cihazlardan kaldırır.',
+    yukle: Ayar.kayitliCihazlar,
+    govde: (context, l, yenile) {
+      if (l.isEmpty) return [const BosKart('Kayıtlı cihaz yok.', ikon: Icons.devices_other_outlined)];
+      final r = context.r;
+      return [
+        KartListe(
+          children: [
+            for (final c in l)
+              ListTile(
+                key: ValueKey('kayitli-${c.id}'),
+                leading: Icon(c.ad.contains('uygulama') ? Icons.smartphone_rounded : Icons.laptop_rounded, color: r.soluk),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(c.ad, overflow: TextOverflow.ellipsis)),
+                    if (c.buCihaz) ...[const SizedBox(width: 8), const Rozet('Bu cihaz', renk: Marka.zumrut)],
+                    if (c.cikisYapildi) ...[const SizedBox(width: 8), Rozet('Çıkış yapıldı', renk: r.silik)],
+                  ],
+                ),
+                subtitle: Text(['Eklendi: ${_z(c.eklendi)}', 'Son kullanım: ${_z(c.sonKullanim)}', if (c.ip.isNotEmpty) c.ip].join(' · ')),
+                trailing: c.buCihaz
+                    ? null
+                    : IconButton(
+                        tooltip: 'Kaldır',
+                        icon: const Icon(Icons.delete_outline_rounded, color: Marka.gul),
+                        onPressed: () async {
+                          if (!await onayla(
+                            context,
+                            'Cihaz kaldırılsın mı?',
+                            mesaj: '${c.ad} bu posta kutusunu kayıtlı hesaplarından çıkarır ve oradaki oturum kapanır.',
+                            evet: 'Kaldır',
+                            tehlikeli: true,
+                          )) {
+                            return;
+                          }
+                          await islem(() => Ayar.kayitliCihazSil(c.id), tamam: 'Cihaz kaldırıldı');
+                          await yenile();
+                        },
+                      ),
+              ),
+          ],
+        ),
       ];
     },
   );

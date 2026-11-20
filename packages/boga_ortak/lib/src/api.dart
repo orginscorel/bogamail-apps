@@ -70,30 +70,36 @@ class BogaApi {
     final platform = kIsWeb
         ? 'Web'
         : Platform.isIOS
-            ? 'iOS'
-            : Platform.isMacOS
-                ? 'macOS'
-                : Platform.isAndroid
-                    ? 'Android'
-                    : Platform.isWindows
-                        ? 'Windows'
-                        : Platform.operatingSystem;
-    dio = Dio(BaseOptions(
-      baseUrl: sunucu,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 60),
-      sendTimeout: const Duration(seconds: 120),
-      headers: {'User-Agent': 'BogaMail-${uygulama == 'posta' ? 'Posta' : 'Yonetim'}/$surum ($platform)', 'Accept': 'application/json'},
-      validateStatus: (_) => true,
-    ));
+        ? 'iOS'
+        : Platform.isMacOS
+        ? 'macOS'
+        : Platform.isAndroid
+        ? 'Android'
+        : Platform.isWindows
+        ? 'Windows'
+        : Platform.operatingSystem;
+    dio = Dio(
+      BaseOptions(
+        baseUrl: sunucu,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 60),
+        sendTimeout: const Duration(seconds: 120),
+        headers: {'User-Agent': 'BogaMail-${uygulama == 'posta' ? 'Posta' : 'Yonetim'}/$surum ($platform)', 'Accept': 'application/json'},
+        validateStatus: (_) => true,
+      ),
+    );
     dio.interceptors.add(CookieManager(_jar));
-    dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) async {
-      if (o.method != 'GET' && o.method != 'HEAD') {
-        final csrf = await _csrf();
-        if (csrf != null) o.headers['X-CSRF-Token'] = csrf;
-      }
-      h.next(o);
-    }));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (o, h) async {
+          if (o.method != 'GET' && o.method != 'HEAD') {
+            final csrf = await _csrf();
+            if (csrf != null) o.headers['X-CSRF-Token'] = csrf;
+          }
+          h.next(o);
+        },
+      ),
+    );
   }
 
   Future<String?> _csrf() async {
@@ -133,7 +139,12 @@ class BogaApi {
   Future<Uint8List> indir(String yol, {Map<String, dynamic>? q, void Function(int, int)? ilerleme}) async {
     final Response<List<int>> c;
     try {
-      c = await dio.get<List<int>>(yol, queryParameters: q, options: Options(responseType: ResponseType.bytes), onReceiveProgress: ilerleme);
+      c = await dio.get<List<int>>(
+        yol,
+        queryParameters: q,
+        options: Options(responseType: ResponseType.bytes),
+        onReceiveProgress: ilerleme,
+      );
     } on DioException catch (e) {
       throw _agHatasi(e);
     }
@@ -153,7 +164,12 @@ class BogaApi {
   Future<dynamic> _istek(String yontem, String yol, {Object? govde, Map<String, dynamic>? q}) async {
     final Response<dynamic> c;
     try {
-      c = await dio.request<dynamic>(yol, data: govde, queryParameters: q, options: Options(method: yontem));
+      c = await dio.request<dynamic>(
+        yol,
+        data: govde,
+        queryParameters: q,
+        options: Options(method: yontem),
+      );
     } on DioException catch (e) {
       throw _agHatasi(e);
     }

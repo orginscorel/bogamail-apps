@@ -28,7 +28,14 @@ Future<Klasor?> klasorSec(BuildContext context, {String? haricId}) {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                children: [for (final k in hedefler) ListTile(leading: Icon(klasorSimgesi(k.rol)), title: Text(k.gorunenAd), onTap: () => Navigator.pop(c, k))],
+                children: [
+                  for (final k in hedefler)
+                    ListTile(
+                      leading: Icon(klasorSimgesi(k.rol), color: klasorRengi(k.rol)),
+                      title: Text(k.gorunenAd),
+                      onTap: () => Navigator.pop(c, k),
+                    ),
+                ],
               ),
             ),
           ],

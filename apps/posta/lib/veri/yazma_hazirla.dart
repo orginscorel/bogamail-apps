@@ -39,6 +39,7 @@ class YazmaBaslangic {
     this.dahilEkler = const [],
     this.imzaEkle = true,
     this.htmlTaslak = false,
+    this.htmlGovde,
     this.oncelik,
     this.okunduBilgisi = false,
     this.takipGun = 0,
@@ -66,6 +67,9 @@ class YazmaBaslangic {
 
   /// Taslak HTML biçimliydi: düz metin düzenleyicide biçimlendirme kaybolur (kullanıcıya bildirilir).
   final bool htmlTaslak;
+
+  /// Biçimli taslağın HTML gövdesi (düzenleyici bununla açılır).
+  final String? htmlGovde;
 
   /// Geri alınan gönderimden korunan seçenekler.
   final String? oncelik;
@@ -152,6 +156,7 @@ YazmaBaslangic taslakHazirla(IletiDetay d, {String? taslakId, Map<String, dynami
     dahilEkler: _ekler(d, d.ozet.id),
     imzaEkle: false,
     htmlTaslak: v.html.trim().isNotEmpty,
+    htmlGovde: v.html.trim().isNotEmpty ? v.html : null,
     inReplyTo: s('in_reply_to'),
     references: s('references'),
     yanitlananId: s('reply_to_id'),

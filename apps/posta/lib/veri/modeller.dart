@@ -272,7 +272,17 @@ class PostaAyarlari {
     this.imzaKilitli = false,
     this.imzaKurumdan = false,
     this.sunucu = '',
+    this.bildirimMasaustu = true,
+    this.bildirimSes = true,
+    this.bicimliYazma = true,
   });
+
+  /// compose_html: yeni iletiler biçimli (HTML) düzenleyicide mi başlar (web ile ortak ayar).
+  final bool bicimliYazma;
+
+  /// notify_desktop / notify_sound (webmail ile ortak; yerel bildirimler de uyar).
+  final bool bildirimMasaustu;
+  final bool bildirimSes;
 
   final String gorunenAd;
   final String imza;
@@ -335,6 +345,9 @@ class PostaAyarlari {
       imzaKilitli: g != null && _b(g['locked']),
       imzaKurumdan: g != null && _b(g['from_org']),
       sunucu: _s(baglanti['host']),
+      bildirimMasaustu: s['notify_desktop'] == null || _b(s['notify_desktop']),
+      bildirimSes: s['notify_sound'] == null || _b(s['notify_sound']),
+      bicimliYazma: s['compose_html'] == null || _b(s['compose_html']),
     );
   }
 

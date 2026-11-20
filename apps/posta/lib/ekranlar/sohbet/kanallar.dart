@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../../veri/sohbet_servisi.dart';
 import '../hesap/ortak.dart';
+import '../../ortak/uyarlanir.dart';
 
 /// Kurum kanalları: göz at, katıl, ayrıl, oluştur; yetkiliyse düzenle/arşivle. Bir kanala dokununca oda kimliği döner.
 class KanallarEkrani extends StatelessWidget {
   const KanallarEkrani({super.key});
 
-  static Future<String?> ac(BuildContext context) => Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const KanallarEkrani()));
+  static Future<String?> ac(BuildContext context) => uyarlanirAc<String>(context, (_) => const KanallarEkrani(), genislik: 640);
 
   Future<({String ad, String aciklama})?> _form(BuildContext context, {String ad = '', String aciklama = '', required String baslik}) async {
     final a = TextEditingController(text: ad);

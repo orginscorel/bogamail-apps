@@ -2,6 +2,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../oturum.dart';
 import '../../veri/sohbet_servisi.dart';
 import 'kanallar.dart';
 import 'kisi_secici.dart';
@@ -43,6 +44,119 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
   SohbetSekmesi _sekme = SohbetSekmesi.tumu;
   final _ara = TextEditingController();
   bool _aramaAcik = false;
+
+  /// Kişiler sekmesi: kurumdaki tüm iş arkadaşları (GET /chat/people) + en üstte siz.
+  List<SohbetKisi>? _rehber;
+  String? _rehberHata;
+  bool _rehberYukleniyor = false;
+
+  Future<void> _rehberYukle() async {
+    if (_rehberYukleniyor) return;
+    _rehberYukleniyor = true;
+    try {
+      final v = await Sohbet.kisiler();
+      if (mounted) {
+        setState(() {
+          _rehber = v.kisiler;
+          _rehberHata = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _rehberHata = e is ApiHata ? e.mesaj : 'Kişiler yüklenemedi.');
+    } finally {
+      _rehberYukleniyor = false;
+    }
+  }
+
+  Future<void> _kisiyeYaz(SohbetKisi k) async {
+    final benId = SohbetDurum.benId;
+    for (final o in SohbetDurum.ben.odalar) {
+      if (o.birebir && o.karsi(benId)?.id == k.id) return _ac(o.id);
+    }
+    try {
+      final id = await Sohbet.odaOlustur([k.id]);
+      await SohbetDurum.ben.yenile();
+      if (mounted) _ac(id);
+    } catch (e) {
+      bildir(e is ApiHata ? e.mesaj : 'Sohbet açılamadı.', tur: MesajTur.hata);
+    }
+  }
+
+  Widget _kisilerListesi() {
+    final r = context.r;
+    final q = _ara.text.trim().toLowerCase();
+    if (_rehber == null) {
+      if (_rehberHata != null) return Durum.hata(_rehberHata!, tekrar: _rehberYukle);
+      if (!_rehberYukleniyor) _rehberYukle();
+      return const Durum.yukleniyor();
+    }
+    bool uyar(SohbetKisi k) => q.isEmpty || '${k.gorunen} ${k.adres} ${k.unvan} ${k.departman}'.toLowerCase().contains(q);
+    final ben = SohbetKisi(id: SohbetDurum.benId, adres: Uyg.adres, ad: Uyg.ad, cevrimici: 'online');
+    final digerleri = _rehber!.where((k) => k.id != ben.id && uyar(k)).toList()
+      ..sort((a, b) {
+        int p(SohbetKisi k) => k.cevrimici == 'online' ? 0 : (k.cevrimici == 'away' ? 1 : 2);
+        final c = p(a).compareTo(p(b));
+        return c != 0 ? c : a.gorunen.toLowerCase().compareTo(b.gorunen.toLowerCase());
+      });
+    final beniGoster = uyar(ben);
+    final okunmamis = <String, int>{};
+    for (final o in SohbetDurum.ben.odalar.where((o) => o.birebir)) {
+      final k = o.karsi(SohbetDurum.benId);
+      if (k != null) okunmamis[k.id] = o.okunmamis;
+    }
+    Widget satir(SohbetKisi k, {bool benim = false}) {
+      final v = varlikMetni(k);
+      final alt = [if (k.unvan.isNotEmpty) k.unvan, if (k.departman.isNotEmpty) k.departman].join(' · ');
+      final n = okunmamis[k.id] ?? 0;
+      return ListTile(
+        leading: VarlikAvatari(kisi: k, boyut: 42),
+        title: Text(
+          benim ? '${k.gorunen} (Siz)' : k.gorunen,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontWeight: n > 0 ? FontWeight.w800 : FontWeight.w600, color: r.metin),
+        ),
+        subtitle: Text(
+          [if (alt.isNotEmpty) alt else k.adres, if (!benim && v.metin.isNotEmpty) v.metin].join(' · '),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: r.soluk, fontSize: 12.5),
+        ),
+        trailing: benim
+            ? TextButton(onPressed: _durumum, child: const Text('Durumum'))
+            : (n > 0 ? SayiHapi(n) : Icon(Icons.chat_bubble_outline_rounded, size: 20, color: r.silik)),
+        onTap: benim ? _durumum : () => _kisiyeYaz(k),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _rehberYukle,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 96),
+        children: [
+          if (beniGoster) satir(ben, benim: true),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Text(
+              'İŞ ARKADAŞLARI · ${digerleri.length}',
+              style: TextStyle(color: r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: .8),
+            ),
+          ),
+          if (digerleri.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                q.isNotEmpty ? 'Aramanızla eşleşen kişi yok.' : 'Kurumunuzda sohbet kullanabilen başka kişi yok.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: r.soluk),
+              ),
+            ),
+          for (final k in digerleri) satir(k),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -201,6 +315,8 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
       govde = const Durum.yukleniyor();
     } else if (d.hata != null && d.odalar.isEmpty) {
       govde = Durum.hata(d.hata!, tekrar: d.yenile);
+    } else if (_sekme == SohbetSekmesi.kisiler) {
+      govde = _kisilerListesi();
     } else {
       govde = RefreshIndicator(
         onRefresh: d.yenile,
@@ -237,7 +353,11 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
             ? TextField(
                 controller: _ara,
                 autofocus: true,
-                decoration: const InputDecoration(hintText: 'Sohbetlerde ara', isDense: true, prefixIcon: Icon(Icons.search_rounded, size: 20)),
+                decoration: InputDecoration(
+                  hintText: _sekme == SohbetSekmesi.kisiler ? 'Kişilerde ara' : 'Sohbetlerde ara',
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                ),
                 onChanged: (_) => setState(() {}),
               )
             : Row(

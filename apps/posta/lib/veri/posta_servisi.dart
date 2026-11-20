@@ -1,5 +1,6 @@
 // /api/v1/mail/* uç noktalarının ince sarmalayıcısı. JSON biçimleri internal/api/webmail*.go ile birebir.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -7,7 +8,9 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:dio/dio.dart';
 
 import '../oturum.dart';
+import 'bildirim.dart';
 import 'modeller.dart';
+import 'onbellek.dart';
 
 /// Gönderim/taslak hatası: DLP raporu veya alan bilgisiyle.
 class GonderimHatasi implements Exception {
@@ -55,6 +58,20 @@ String _dogrulamaCevir(String m) {
   return m;
 }
 
+/// Liste sıralaması (web ile aynı seçenekler; sunucu: sort=date|from|subject|size, order=asc|desc).
+enum Siralama {
+  yeni('Tarih (yeniden eskiye)', 'date', 'desc'),
+  eski('Tarih (eskiden yeniye)', 'date', 'asc'),
+  gonderen('Gönderen (A–Z)', 'from', 'asc'),
+  konu('Konu (A–Z)', 'subject', 'asc'),
+  boyut('Boyut (büyükten küçüğe)', 'size', 'desc');
+
+  const Siralama(this.ad, this.alan, this.yon);
+  final String ad;
+  final String alan;
+  final String yon;
+}
+
 class Posta {
   Posta._();
   static BogaApi get _api => Uyg.api;
@@ -63,12 +80,24 @@ class Posta {
 
   static Future<List<Klasor>> klasorler() async {
     final v = await _api.get('/api/v1/mail/folders');
-    return ((v is Map ? v['items'] : null) as List? ?? const []).map(Klasor.json).toList();
+    unawaited(Onbellek.ben.yaz('klasorler', v));
+    return _klasorListesi(v);
   }
 
   static Future<List<Etiket>> etiketler() async {
     final v = await _api.get('/api/v1/mail/labels');
-    return ((v is Map ? v['items'] : null) as List? ?? const []).map(Etiket.json).toList();
+    unawaited(Onbellek.ben.yaz('etiketler', v));
+    return _etiketListesi(v);
+  }
+
+  static List<Klasor> _klasorListesi(Object? v) => ((v is Map ? v['items'] : null) as List? ?? const []).map(Klasor.json).toList();
+  static List<Etiket> _etiketListesi(Object? v) => ((v is Map ? v['items'] : null) as List? ?? const []).map(Etiket.json).toList();
+
+  /// Önbellekteki klasör ve etiketler (yoksa null).
+  static Future<(List<Klasor>, List<Etiket>)?> klasorlerOnbellek() async {
+    final k = await Onbellek.ben.oku('klasorler');
+    if (k == null) return null;
+    return (_klasorListesi(k), _etiketListesi(await Onbellek.ben.oku('etiketler')));
   }
 
   static Future<void> klasorOlustur(String ad) => _api.post('/api/v1/mail/folders', {'name': ad});
@@ -97,8 +126,9 @@ class Posta {
     String? alan,
     String? baslangic,
     String? bitis,
+    Siralama siralama = Siralama.yeni,
   }) async {
-    final q = <String, dynamic>{'page': sayfa, 'page_size': boyut, 'sort': 'date', 'order': 'desc'};
+    final q = <String, dynamic>{'page': sayfa, 'page_size': boyut, 'sort': siralama.alan, 'order': siralama.yon};
     if (filtre != null) q['filter'] = filtre;
     if (arama != null && arama.trim().isNotEmpty) {
       q['q'] = arama.trim();
@@ -107,6 +137,18 @@ class Posta {
     if (baslangic != null) q['since'] = baslangic;
     if (bitis != null) q['before'] = bitis;
     final dynamic v;
+    final anahtar = siralama != Siralama.yeni
+        ? null
+        : listeAnahtari(
+            klasorId: klasorId,
+            gorunum: gorunum,
+            etiketId: etiketId,
+            sayfa: sayfa,
+            filtre: filtre,
+            arama: arama,
+            baslangic: baslangic,
+            bitis: bitis,
+          );
     if (klasorId != null) {
       v = await _api.get('/api/v1/mail/folders/$klasorId/messages', q: q);
     } else {
@@ -114,7 +156,29 @@ class Posta {
       if (etiketId != null) q['label'] = etiketId;
       v = await _api.get('/api/v1/mail/messages', q: q);
     }
+    if (anahtar != null) unawaited(Onbellek.ben.yaz(anahtar, v));
     return Sayfa.json(v);
+  }
+
+  /// Önbelleğe alınan liste: yalnız süzgeçsiz/aramasız ilk sayfa.
+  static String? listeAnahtari({
+    String? klasorId,
+    String gorunum = 'all',
+    String? etiketId,
+    int sayfa = 1,
+    String? filtre,
+    String? arama,
+    String? baslangic,
+    String? bitis,
+  }) {
+    if (sayfa != 1 || filtre != null || (arama != null && arama.trim().isNotEmpty) || baslangic != null || bitis != null) return null;
+    return klasorId != null ? 'liste:k:$klasorId' : 'liste:g:$gorunum:${etiketId ?? ''}';
+  }
+
+  /// Önbellekteki liste (yoksa null).
+  static Future<Sayfa?> listeOnbellek(String anahtar) async {
+    final v = await Onbellek.ben.oku(anahtar);
+    return v == null ? null : Sayfa.json(v);
   }
 
   static Future<List<AramaIsleci>> aramaIslecleri() async {
@@ -124,7 +188,33 @@ class Posta {
 
   // ---- ileti ----
 
-  static Future<IletiDetay> ileti(String id) async => IletiDetay.json(await _api.get('/api/v1/mail/messages/$id'));
+  static Future<IletiDetay> ileti(String id) async => IletiDetay.json(await iletiHam(id));
+
+  /// Ağdan ileti ayrıntısı (ham JSON) ve önbelleğe yazma. [degisti]: önbellektekinden farklı mı.
+  static Future<Object?> iletiHam(String id, {void Function(bool degisti)? degisti}) async {
+    final v = await _api.get('/api/v1/mail/messages/$id');
+    final f = Onbellek.ben.yaz('ileti:$id', v);
+    if (degisti != null) degisti(await f);
+    return v;
+  }
+
+  /// Bellekteki ileti (ilk karede, eşzamanlı).
+  static IletiDetay? iletiHemen(String id) {
+    final v = Onbellek.ben.hemen('ileti:$id');
+    return v == null ? null : IletiDetay.json(v);
+  }
+
+  /// Önbellekteki ileti (bellek ya da disk).
+  static Future<IletiDetay?> iletiOnbellek(String id) async {
+    final v = await Onbellek.ben.oku('ileti:$id');
+    return v == null ? null : IletiDetay.json(v);
+  }
+
+  /// Önbellekteki iletinin bayraklarını yerel olarak günceller (sunucu isteği ayrıca yapılır).
+  static Future<void> iletiYerelGuncelle(String id, Map<String, dynamic> alanlar) => Onbellek.ben.degistir('ileti:$id', (m) {
+    final o = m['message'];
+    if (o is Map) m['message'] = {...o, ...alanlar};
+  });
 
   static Future<void> guncelle(String id, Map<String, dynamic> govde) => _api.patch('/api/v1/mail/messages/$id', govde);
 
@@ -148,7 +238,26 @@ class Posta {
       _api.indir('/api/v1/mail/messages/$iletiId/parts/$sira', ilerleme: ilerleme);
 
   /// Uzak görseli sunucu vekili üzerinden alır (gönderen okuyucunun IP'sini görmez). Yalnızca raster görseller.
-  static Future<String?> uzakGorselVeri(String url) async {
+  static final _uzakSuruyor = <String, Future<String?>>{};
+
+  static Future<String?> uzakGorselVeri(String url) {
+    final k = 'gorsel:$url';
+    final v = Onbellek.ben.hemen(k);
+    if (v is String) return Future.value(v);
+    return _uzakSuruyor[url] ??= () async {
+      try {
+        final o = await Onbellek.ben.oku(k);
+        if (o is String) return o;
+        final d = await _uzakGetir(url);
+        if (d != null) unawaited(Onbellek.ben.yaz(k, d));
+        return d;
+      } finally {
+        _uzakSuruyor.remove(url);
+      }
+    }();
+  }
+
+  static Future<String?> _uzakGetir(String url) async {
     try {
       final c = await _api.dio.get<List<int>>(
         '/api/v1/mail/remote-image',
@@ -230,7 +339,11 @@ class Posta {
 
   // ---- ayarlar ----
 
-  static Future<PostaAyarlari> ayarlar() async => PostaAyarlari.json(await _api.get('/api/v1/mail/settings'));
+  static Future<PostaAyarlari> ayarlar() async {
+    final a = PostaAyarlari.json(await _api.get('/api/v1/mail/settings'));
+    unawaited(Bildirim.tercihleriUygula(masaustu: a.bildirimMasaustu, ses: a.bildirimSes));
+    return a;
+  }
 
   static Future<void> ayarKaydet(Map<String, dynamic> degisen) => _api.patch('/api/v1/mail/settings', degisen);
 

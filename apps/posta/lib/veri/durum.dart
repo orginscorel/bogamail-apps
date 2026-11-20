@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:boga_ortak/boga_ortak.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
+import '../ortak/simgeler.dart';
 import 'modeller.dart';
+import 'onyukleme.dart';
 import 'posta_servisi.dart';
 import 'yardimci.dart';
 
-enum KonumTur { klasor, gorunum, etiket }
+enum KonumTur { klasor, gorunum, etiket, birlesik }
 
 /// Listede gösterilen yer: bir klasör, bir görünüm (yıldızlı, önemli, okunmamış) veya bir etiket.
 @immutable
@@ -16,6 +18,9 @@ class Konum {
   const Konum.klasor(String id) : this(KonumTur.klasor, id);
   const Konum.gorunum(String gorunum) : this(KonumTur.gorunum, gorunum);
   const Konum.etiket(String id) : this(KonumTur.etiket, id);
+
+  /// "Tüm hesaplar" birleşik gelen kutusu.
+  const Konum.birlesik() : this(KonumTur.birlesik, 'tum');
 
   final KonumTur tur;
   final String id;
@@ -50,6 +55,58 @@ class PostaDurum extends ChangeNotifier {
   /// Canlı değişikliklerde artar: açık listeler ve okuyucu sessizce tazelenir.
   final surum = ValueNotifier<int>(0);
 
+  /// Son tazelemeye yol açan değişikliğin ileti kimliği (null: genel / toplu değişiklik). Okuyucu yalnız kendi
+  /// iletisi değiştiyse yeniden yükler.
+  String? sonDegisen;
+
+  /// Uygulamanın kendi yaptığı (iyimser) değişiklikler: listeler satırı yerinde günceller, ağa gitmez.
+  final _yerel = StreamController<(String, Map<String, dynamic>)>.broadcast();
+  Stream<(String, Map<String, dynamic>)> get yerelDegisiklikler => _yerel.stream;
+
+  /// Kendi değişikliğimizin sunucudan geri gelen "changed" yankısını tanımak için (kimlik → zaman).
+  final _yankilar = <String, DateTime>{};
+
+  /// İletiyi okundu olarak işaretler: önbellek ve listeler hemen, sunucu arkada. Okuyucuyu bekletmez, ileti
+  /// yeniden indirilmez.
+  void okunduIsaretle(String id, {bool okundu = true}) {
+    _yankilar[id] = DateTime.now();
+    _yerel.add((id, {'seen': okundu}));
+    unawaited(Posta.iletiYerelGuncelle(id, {'seen': okundu}));
+    unawaited(() async {
+      try {
+        await Posta.guncelle(id, {'seen': okundu});
+      } catch (_) {}
+      sayilariYenile(listeler: false);
+    }());
+  }
+
+  /// Yerel bayrak değişikliği (yıldız, önemli...): önbellek + listeler.
+  void yerelGuncelle(String id, Map<String, dynamic> alanlar) {
+    _yankilar[id] = DateTime.now();
+    _yerel.add((id, alanlar));
+    unawaited(Posta.iletiYerelGuncelle(id, alanlar));
+  }
+
+  /// SSE olayı: sayıları tazeler; kendi değişikliğimizin yankısıysa listeleri/okuyucuyu yeniden yüklemez; yeni
+  /// postanın gövdesini hemen önbelleğe alır.
+  void canliOlay(CanliOlay o) {
+    if (o.tur != 'new_mail' && o.tur != 'changed' && o.tur != 'scheduled') return;
+    final id = '${o.veri['message_id'] ?? ''}';
+    if (o.tur == 'new_mail' && id.isNotEmpty) Onyukleme.ben.hemen(id);
+    if (o.tur == 'changed' && id.isNotEmpty) {
+      final y = _yankilar[id];
+      _yankilar.removeWhere((_, t) => DateTime.now().difference(t) > const Duration(seconds: 10));
+      if (y != null && DateTime.now().difference(y) < const Duration(seconds: 10)) {
+        sayilariYenile(listeler: false);
+        return;
+      }
+      // Başka oturumda değişti: önbellekteki ayrıntı eskidi.
+      Onyukleme.ben.eskit(id);
+    }
+    // degisen: '' = açık okuyucuyu ilgilendirmez (yeni posta), kimlik = o ileti, null = genel/toplu.
+    sayilariYenile(degisen: o.tur == 'new_mail' ? '' : (o.tur == 'changed' && id.isNotEmpty ? id : null));
+  }
+
   Klasor? rolu(String rol) {
     for (final k in klasorler) {
       if (k.rol == rol) return k;
@@ -71,6 +128,14 @@ class PostaDurum extends ChangeNotifier {
     return null;
   }
 
+  /// Konumun simgesi ve rengi (kenar menüsü, liste başlığı; web ile aynı eşleme).
+  (IconData, Color?) gorsel(Konum k) => switch (k.tur) {
+    KonumTur.klasor => (klasorSimgesi(klasor(k.id)?.rol), klasorRengi(klasor(k.id)?.rol)),
+    KonumTur.gorunum => (gorunumSimgesi(k.id), gorunumRengi(k.id)),
+    KonumTur.etiket => (Icons.label_rounded, etiketRengi(etiket(k.id)?.renk ?? 'gray')),
+    KonumTur.birlesik => (gorunumSimgesi('unified'), null),
+  };
+
   Klasor? get seciliKlasor => konum?.tur == KonumTur.klasor ? klasor(konum!.id) : null;
 
   String baslik(Konum? k) {
@@ -79,6 +144,7 @@ class PostaDurum extends ChangeNotifier {
       KonumTur.klasor => klasor(k.id)?.gorunenAd ?? 'Klasör',
       KonumTur.gorunum => gorunumAdlari[k.id] ?? 'İletiler',
       KonumTur.etiket => etiket(k.id)?.ad ?? 'Etiket',
+      KonumTur.birlesik => 'Tüm hesaplar',
     };
   }
 
@@ -103,6 +169,17 @@ class PostaDurum extends ChangeNotifier {
 
   Future<void> yukle() async {
     hata = null;
+    if (!yuklendi) {
+      // Önce önbellek: kenar menüsü ve gelen kutusu ağ beklenmeden çizilir.
+      final o = await Posta.klasorlerOnbellek().catchError((_) => null);
+      if (o != null && !yuklendi && o.$1.isNotEmpty) {
+        klasorler = o.$1;
+        etiketler = o.$2;
+        yuklendi = true;
+        konum ??= rolu('inbox') != null ? Konum.klasor(rolu('inbox')!.id) : null;
+        notifyListeners();
+      }
+    }
     try {
       final r = await Future.wait([Posta.klasorler(), Posta.etiketler().catchError((_) => <Etiket>[])]);
       klasorler = r[0] as List<Klasor>;
@@ -126,9 +203,17 @@ class PostaDurum extends ChangeNotifier {
   }
 
   Timer? _gecikme;
+  bool _bekleyenListeler = false;
 
   /// Sayıları tazeler (canlı olaylar art arda gelirse birleştirilir).
-  void sayilariYenile({bool listeler = true}) {
+  void sayilariYenile({bool listeler = true, String? degisen}) {
+    if (_gecikme?.isActive ?? false) {
+      // Birleştirilen olaylardan biri genel ise genel kalır.
+      if (_bekleyenListeler && sonDegisen != degisen) degisen = null;
+      listeler = listeler || _bekleyenListeler;
+    }
+    _bekleyenListeler = listeler;
+    sonDegisen = degisen;
     _gecikme?.cancel();
     _gecikme = Timer(const Duration(milliseconds: 350), () async {
       try {
@@ -141,6 +226,7 @@ class PostaDurum extends ChangeNotifier {
         _rozet();
         notifyListeners();
       } catch (_) {}
+      _bekleyenListeler = false;
       if (listeler) surum.value++;
       unawaited(Posta.kutuYenile());
     });
@@ -155,6 +241,10 @@ class PostaDurum extends ChangeNotifier {
   }
 
   void sifirla() {
+    _gecikme?.cancel();
+    _yankilar.clear();
+    sonDegisen = null;
+    Onyukleme.ben.iptal();
     klasorler = [];
     etiketler = [];
     ayarlar = null;

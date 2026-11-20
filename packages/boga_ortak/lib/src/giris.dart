@@ -82,11 +82,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
     try {
       final dynamic v;
       if (_mfaJeton == null) {
-        v = await widget.api.post(widget.girisYolu, {
-          'email': _adres.text.trim(),
-          'password': _sifre.text,
-          if (widget.kaydetSecenegi) 'save': _kaydet,
-        });
+        v = await widget.api.post(widget.girisYolu, {'email': _adres.text.trim(), 'password': _sifre.text, if (widget.kaydetSecenegi) 'save': _kaydet});
       } else {
         final kod = _kod.text.replaceAll(' ', '').trim();
         if (kod.isEmpty) {
@@ -133,148 +129,354 @@ class _GirisEkraniState extends State<GirisEkrani> {
   }
 
   Future<void> _sunucu() async {
-    final v = await metinSor(context, 'Sunucu adresi',
-        ilk: widget.api.sunucu, ipucu: BogaApi.varsayilanSunucu, tamam: 'Kaydet');
+    final v = await metinSor(context, 'Sunucu adresi', ilk: widget.api.sunucu, ipucu: BogaApi.varsayilanSunucu, tamam: 'Kaydet');
     if (v == null) return;
+    final once = widget.api.sunucu;
     await widget.api.sunucuAyarla(v);
-    await widget.api.cerezleriTemizle();
+    // Çerezler (oturum ve kayıtlı hesaplar için cihaz çerezi) yalnız sunucu gerçekten değiştiyse silinir.
+    if (widget.api.sunucu != once) await widget.api.cerezleriTemizle();
     if (mounted) setState(() {});
     bildir('Sunucu ayarlandı', mesaj: widget.api.sunucu, tur: MesajTur.basari);
   }
 
+  List<(IconData, String, String)> get _ozellikler => widget.isaret == AcilisIsaret.posta
+      ? const [
+          (Icons.mail_rounded, 'Kurumsal e-posta', 'Klasörler, etiketler, süzgeçler ve güçlü arama'),
+          (Icons.forum_rounded, 'Sohbet', 'Kurum içi kanallar, bireysel ve grup mesajları'),
+          (Icons.event_available_rounded, 'Takvim ve görevler', 'Toplantılar, davetler ve iş takibi'),
+        ]
+      : const [
+          (Icons.dns_rounded, 'Alan adları ve posta kutuları', 'Tüm müşterileri tek panelden yönetin'),
+          (Icons.shield_rounded, 'Güvenlik', 'Karantina, tehdit koruması ve DLP'),
+          (Icons.monitor_heart_rounded, 'İzleme', 'Kuyruk, teslimat ve anlık uyarılar'),
+        ];
+
+  String get _uygulamaAdi => widget.isaret == AcilisIsaret.posta ? 'BogaMail' : 'BogaMail Yönetim';
+
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final mfa = _mfaJeton != null;
+    final genis = MediaQuery.sizeOf(context).width >= 900;
     return AnnotatedRegion(
-      value: SystemUiOverlayStyle.light,
+      value: r.koyu ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: r.zemin,
-        body: LayoutBuilder(builder: (context, k) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: k.maxHeight),
-              child: Column(children: [
-                // Üst marka alanı
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(gradient: Marka.gece, borderRadius: BorderRadius.vertical(bottom: Radius.circular(32))),
-                  padding: EdgeInsets.fromLTRB(24, MediaQuery.paddingOf(context).top + 36, 24, 44),
-                  child: Column(children: [
-                    if (widget.geri != null)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          tooltip: 'Geri',
-                          onPressed: widget.geri,
-                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                        ),
-                      ),
-                    BogaIsaret(boyut: 84, isaret: widget.isaret),
-                    const SizedBox(height: 14),
-                    Text(widget.baslik, style: gosterim(28, renk: Colors.white)),
-                    const SizedBox(height: 6),
-                    Text(widget.aciklama, textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: .7), fontSize: 14)),
-                  ]),
-                ),
-                if (widget.ust != null && !mfa)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440), child: widget.ust),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 440),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 260),
-                      child: mfa ? _mfaFormu(r) : _sifreFormu(r),
-                    ),
-                  ),
-                ),
-                if (_hata != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 440),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: Marka.gul.withValues(alpha: .1), borderRadius: BorderRadius.circular(14)),
-                        child: Row(children: [
-                          const Icon(Icons.error_outline_rounded, color: Marka.gul, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13.5))),
-                        ]),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 18),
-                TextButton.icon(
-                  onPressed: _bekliyor ? null : _sunucu,
-                  icon: Icon(Icons.dns_rounded, size: 16, color: r.silik),
-                  label: Text(Uri.tryParse(widget.api.sunucu)?.host ?? widget.api.sunucu, style: TextStyle(color: r.silik, fontSize: 12.5)),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom + 12),
-                  child: Text('Bogahost · Sürüm ${widget.api.surum}', style: TextStyle(color: r.silik.withValues(alpha: .7), fontSize: 11)),
-                ),
-              ]),
-            ),
-          );
-        }),
+        body: genis
+            ? Row(
+                children: [
+                  Expanded(flex: 5, child: _markaPaneli()),
+                  Expanded(flex: 6, child: _formAlani(r, genis: true)),
+                ],
+              )
+            : _formAlani(r, genis: false),
       ),
     );
   }
 
-  Widget _sifreFormu(Renkler r) => Form(
-        key: _form,
-        child: AutofillGroup(
-          child: Column(key: const ValueKey('sifre'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            TextFormField(
-              controller: _adres,
-              keyboardType: TextInputType.emailAddress,
-              autocorrect: false,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.email, AutofillHints.username],
-              decoration: InputDecoration(labelText: 'E-posta adresi', hintText: widget.adresIpucu, prefixIcon: const Icon(Icons.alternate_email_rounded)),
-              validator: (v) => (v ?? '').contains('@') ? null : 'Geçerli bir e-posta adresi girin',
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _sifre,
-              obscureText: _gizli,
-              textInputAction: TextInputAction.go,
-              autofillHints: const [AutofillHints.password],
-              onFieldSubmitted: (_) => _gonder(),
-              decoration: InputDecoration(
-                labelText: 'Şifre',
-                prefixIcon: const Icon(Icons.lock_rounded),
-                suffixIcon: IconButton(
-                  tooltip: _gizli ? 'Göster' : 'Gizle',
-                  icon: Icon(_gizli ? Icons.visibility_rounded : Icons.visibility_off_rounded),
-                  onPressed: () => setState(() => _gizli = !_gizli),
+  /// Geniş ekranda sol marka paneli: uygulama degradesi, nokta dokusu, işaret, özellikler.
+  Widget _markaPaneli() => DecoratedBox(
+    decoration: BoxDecoration(gradient: isaretDegradesi(widget.isaret)),
+    child: CustomPaint(
+      painter: _NoktaDokusu(),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(56, 48, 56, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  BogaIsaret(boyut: 48, isaret: widget.isaret),
+                  const SizedBox(width: 14),
+                  Text(_uygulamaAdi, style: gosterim(22, renk: Colors.white)),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                widget.isaret == AcilisIsaret.posta ? 'İletişiminiz\ntek yerde.' : 'Posta altyapınız\nkontrolünüzde.',
+                style: gosterim(44, renk: Colors.white, satir: 1.08),
+              ),
+              const SizedBox(height: 14),
+              Text(widget.aciklama, style: TextStyle(color: Colors.white.withValues(alpha: .75), fontSize: 15.5, height: 1.45)),
+              const SizedBox(height: 36),
+              for (final (ikon, baslik, alt) in _ozellikler)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withValues(alpha: .18)),
+                        ),
+                        child: Icon(ikon, color: widget.isaret == AcilisIsaret.posta ? Colors.white : Marka.yesil, size: 21),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              baslik,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14.5),
+                            ),
+                            Text(alt, style: TextStyle(color: Colors.white.withValues(alpha: .65), fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const Spacer(),
+              Text(
+                'BOGAHOST',
+                style: TextStyle(color: Colors.white.withValues(alpha: .5), fontSize: 11, letterSpacing: 4, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _formAlani(Renkler r, {required bool genis}) {
+    final mfa = _mfaJeton != null;
+    final ust = MediaQuery.paddingOf(context).top;
+    return LayoutBuilder(
+      builder: (context, k) {
+        return Stack(
+          children: [
+            // Telefonda üstte uygulama renginde yumuşak bir ışık.
+            if (!genis)
+              Positioned(
+                top: -120,
+                left: -80,
+                right: -80,
+                height: 360,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: [
+                        r.vurgu.withValues(alpha: r.koyu ? .22 : .13),
+                        r.vurgu.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              validator: (v) => (v ?? '').isEmpty ? 'Şifrenizi girin' : null,
-            ),
-            if (widget.kaydetSecenegi)
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                value: _kaydet,
-                onChanged: (v) => setState(() => _kaydet = v ?? true),
-                title: const Text('Bu cihazda kayıtlı kalsın', style: TextStyle(fontSize: 14)),
-                subtitle: Text('Çıkış yapsanız da hesap listede kalır; şifresiz geri dönebilirsiniz.', style: TextStyle(color: r.silik, fontSize: 12)),
+            SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: k.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(24, ust + (genis ? 40 : 20), 24, MediaQuery.paddingOf(context).bottom + 16),
+                      child: Column(
+                        mainAxisAlignment: genis ? MainAxisAlignment.center : MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              if (widget.geri != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 4),
+                                  child: IconButton(
+                                    tooltip: 'Geri',
+                                    onPressed: widget.geri,
+                                    icon: Icon(Icons.arrow_back_rounded, color: r.metin),
+                                  ),
+                                ),
+                              if (!genis)
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      BogaIsaret(boyut: 40, isaret: widget.isaret),
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: Text(
+                                          _uygulamaAdi,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: gosterim(17, agirlik: FontWeight.w700, renk: r.metin),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                  ),
+                                )
+                              else
+                                const Spacer(),
+                              _sunucuDugmesi(r),
+                            ],
+                          ),
+                          SizedBox(height: genis ? 28 : 44),
+                          Text(mfa ? 'Doğrulama' : (widget.geri != null ? 'Hesap ekle' : 'Hoş geldiniz'), style: gosterim(32, renk: r.metin)),
+                          const SizedBox(height: 6),
+                          Text(
+                            mfa ? 'Hesabınız iki adımlı doğrulama ile korunuyor.' : '$_uygulamaAdi hesabınızla giriş yapın.',
+                            style: TextStyle(color: r.soluk, fontSize: 15),
+                          ),
+                          const SizedBox(height: 26),
+                          if (widget.ust != null && !mfa) ...[widget.ust!, const SizedBox(height: 18)],
+                          DecoratedBox(
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: r.golge),
+                            child: Material(
+                              color: r.kart,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(color: r.kenar),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: AnimatedSwitcher(duration: const Duration(milliseconds: 260), child: mfa ? _mfaFormu(r) : _sifreFormu(r)),
+                              ),
+                            ),
+                          ),
+                          if (_hata != null) ...[
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Marka.gul.withValues(alpha: .08),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Marka.gul.withValues(alpha: .25)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline_rounded, color: Marka.gul, size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(_hata!, style: const TextStyle(color: Marka.gul, fontSize: 13.5)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 28),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.lock_outline_rounded, size: 14, color: r.silik),
+                              const SizedBox(width: 6),
+                              Text('Güvenli bağlantı (TLS)', style: TextStyle(color: r.silik, fontSize: 12)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Bogahost · Sürüm ${widget.api.surum}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: r.silik.withValues(alpha: .8), fontSize: 11.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            SizedBox(height: widget.kaydetSecenegi ? 8 : 20),
-            _dugme('Giriş yap', Icons.login_rounded),
-          ]),
-        ),
-      );
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-  Widget _mfaFormu(Renkler r) => Column(key: const ValueKey('mfa'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
+  Widget _sunucuDugmesi(Renkler r) => Tooltip(
+    message: 'Sunucuyu değiştir',
+    child: InkWell(
+      borderRadius: BorderRadius.circular(99),
+      onTap: _bekliyor ? null : _sunucu,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: r.ic,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: r.kenar),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(color: Marka.zumrut, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
+              child: Text(
+                Uri.tryParse(widget.api.sunucu)?.host ?? widget.api.sunucu,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: r.soluk, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _sifreFormu(Renkler r) => Form(
+    key: _form,
+    child: AutofillGroup(
+      child: Column(
+        key: const ValueKey('sifre'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _adres,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.email, AutofillHints.username],
+            decoration: InputDecoration(labelText: 'E-posta adresi', hintText: widget.adresIpucu, prefixIcon: const Icon(Icons.alternate_email_rounded)),
+            validator: (v) => (v ?? '').contains('@') ? null : 'Geçerli bir e-posta adresi girin',
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _sifre,
+            obscureText: _gizli,
+            textInputAction: TextInputAction.go,
+            autofillHints: const [AutofillHints.password],
+            onFieldSubmitted: (_) => _gonder(),
+            decoration: InputDecoration(
+              labelText: 'Şifre',
+              prefixIcon: const Icon(Icons.lock_rounded),
+              suffixIcon: IconButton(
+                tooltip: _gizli ? 'Göster' : 'Gizle',
+                icon: Icon(_gizli ? Icons.visibility_rounded : Icons.visibility_off_rounded),
+                onPressed: () => setState(() => _gizli = !_gizli),
+              ),
+            ),
+            validator: (v) => (v ?? '').isEmpty ? 'Şifrenizi girin' : null,
+          ),
+          if (widget.kaydetSecenegi)
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _kaydet,
+              onChanged: (v) => setState(() => _kaydet = v ?? true),
+              title: const Text('Bu cihazda kayıtlı kalsın', style: TextStyle(fontSize: 14)),
+              subtitle: Text('Çıkış yapsanız da hesap listede kalır; şifresiz geri dönebilirsiniz.', style: TextStyle(color: r.silik, fontSize: 12)),
+            ),
+          SizedBox(height: widget.kaydetSecenegi ? 8 : 20),
+          _dugme('Giriş yap', Icons.login_rounded),
+        ],
+      ),
+    ),
+  );
+
+  Widget _mfaFormu(Renkler r) => Column(
+    key: const ValueKey('mfa'),
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Row(
+        children: [
           Container(
             width: 44,
             height: 44,
@@ -283,59 +485,87 @@ class _GirisEkraniState extends State<GirisEkrani> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('İki adımlı doğrulama', style: gosterim(17, agirlik: FontWeight.w700, renk: r.metin)),
-              Text('Doğrulama uygulamanızdaki 6 haneli kodu ya da bir kurtarma kodunu girin.', style: TextStyle(color: r.soluk, fontSize: 12.5)),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'İki adımlı doğrulama',
+                  style: gosterim(17, agirlik: FontWeight.w700, renk: r.metin),
+                ),
+                Text('Doğrulama uygulamanızdaki 6 haneli kodu ya da bir kurtarma kodunu girin.', style: TextStyle(color: r.soluk, fontSize: 12.5)),
+              ],
+            ),
           ),
-        ]),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _kod,
-          autofocus: true,
-          keyboardType: TextInputType.visiblePassword,
-          textAlign: TextAlign.center,
-          autofillHints: const [AutofillHints.oneTimeCode],
-          style: gosterim(26, agirlik: FontWeight.w700, renk: r.metin).copyWith(letterSpacing: 6),
-          onSubmitted: (_) => _gonder(),
-          decoration: const InputDecoration(hintText: '••••••'),
-        ),
-        SwitchListTile.adaptive(
-          contentPadding: EdgeInsets.zero,
-          value: _hatirla,
-          onChanged: (v) => setState(() => _hatirla = v),
-          title: const Text('Bu cihazı hatırla', style: TextStyle(fontSize: 14)),
-          subtitle: Text('30 gün boyunca kod sorulmaz', style: TextStyle(color: r.silik, fontSize: 12)),
-        ),
-        const SizedBox(height: 8),
-        _dugme('Doğrula', Icons.check_rounded),
-        TextButton(
-          onPressed: _bekliyor
-              ? null
-              : () => setState(() {
-                    _mfaJeton = null;
-                    _kod.clear();
-                    _hata = null;
-                  }),
-          child: const Text('Geri dön'),
-        ),
-      ]);
+        ],
+      ),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _kod,
+        autofocus: true,
+        keyboardType: TextInputType.visiblePassword,
+        textAlign: TextAlign.center,
+        autofillHints: const [AutofillHints.oneTimeCode],
+        style: gosterim(26, agirlik: FontWeight.w700, renk: r.metin).copyWith(letterSpacing: 6),
+        onSubmitted: (_) => _gonder(),
+        decoration: const InputDecoration(hintText: '••••••'),
+      ),
+      SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        value: _hatirla,
+        onChanged: (v) => setState(() => _hatirla = v),
+        title: const Text('Bu cihazı hatırla', style: TextStyle(fontSize: 14)),
+        subtitle: Text('30 gün boyunca kod sorulmaz', style: TextStyle(color: r.silik, fontSize: 12)),
+      ),
+      const SizedBox(height: 8),
+      _dugme('Doğrula', Icons.check_rounded),
+      TextButton(
+        onPressed: _bekliyor
+            ? null
+            : () => setState(() {
+                _mfaJeton = null;
+                _kod.clear();
+                _hata = null;
+              }),
+        child: const Text('Geri dön'),
+      ),
+    ],
+  );
 
   Widget _dugme(String yazi, IconData ikon) => SizedBox(
-        height: 52,
-        child: DecoratedBox(
-          decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(14), boxShadow: context.r.golge),
-          child: FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
-            onPressed: _bekliyor ? null : _gonder,
-            child: _bekliyor
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
-                : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text(yazi, style: const TextStyle(color: Colors.white)),
-                    const SizedBox(width: 8),
-                    Icon(ikon, color: Colors.white, size: 19),
-                  ]),
-          ),
-        ),
-      );
+    height: 52,
+    child: DecoratedBox(
+      decoration: BoxDecoration(gradient: Marka.grad, borderRadius: BorderRadius.circular(14), boxShadow: context.r.golge),
+      child: FilledButton(
+        style: FilledButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
+        onPressed: _bekliyor ? null : _gonder,
+        child: _bekliyor
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(yazi, style: const TextStyle(color: Colors.white)),
+                  const SizedBox(width: 8),
+                  Icon(ikon, color: Colors.white, size: 19),
+                ],
+              ),
+      ),
+    ),
+  );
+}
+
+/// Marka panelinin nokta dokusu.
+class _NoktaDokusu extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final p = Paint()..color = Colors.white.withValues(alpha: .07);
+    const ara = 22.0;
+    for (double x = 11; x < s.width; x += ara) {
+      for (double y = 11; y < s.height; y += ara) {
+        c.drawCircle(Offset(x, y), 1.1, p);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NoktaDokusu o) => false;
 }

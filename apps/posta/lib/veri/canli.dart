@@ -11,6 +11,16 @@ import 'package:flutter/foundation.dart';
 import '../oturum.dart';
 import 'modeller.dart';
 
+enum CanliTur { bagli, baglaniyor, yok, kapali }
+
+/// Eşitleme göstergesi için bağlantı durumu. [sonrakiDeneme]: bağlantı yokken bir sonraki deneme zamanı.
+@immutable
+class CanliDurumu {
+  const CanliDurumu(this.tur, {this.sonrakiDeneme});
+  final CanliTur tur;
+  final DateTime? sonrakiDeneme;
+}
+
 class Canli {
   Canli._();
   static final ben = Canli._();
@@ -20,6 +30,12 @@ class Canli {
 
   /// Bağlantı durumu (arayüzde küçük gösterge için).
   final bagli = ValueNotifier<bool>(false);
+
+  /// Ayrıntılı durum (Canlı / Bağlanıyor… / Bağlantı yok — N sn sonra).
+  final durum = ValueNotifier<CanliDurumu>(const CanliDurumu(CanliTur.kapali));
+
+  /// Sunucudan son olay ya da başarılı bağlantı zamanı.
+  final sonOlay = ValueNotifier<DateTime?>(null);
 
   CancelToken? _iptal;
   Timer? _tekrar;
@@ -33,6 +49,16 @@ class Canli {
     _baglan();
   }
 
+  /// "Şimdi eşitle": bekleyen yeniden denemeyi beklemeden hemen bağlanır (bağlıysa dokunmaz).
+  void simdiBaglan() {
+    if (!_istenen) return baslat();
+    if (_iptal != null) return;
+    _tekrar?.cancel();
+    _tekrar = null;
+    _deneme = 0;
+    _baglan();
+  }
+
   void durdur() {
     _istenen = false;
     _tekrar?.cancel();
@@ -40,12 +66,14 @@ class Canli {
     _iptal?.cancel();
     _iptal = null;
     bagli.value = false;
+    durum.value = const CanliDurumu(CanliTur.kapali);
   }
 
   Future<void> _baglan() async {
     if (!_istenen || _iptal != null) return;
     final iptal = CancelToken();
     _iptal = iptal;
+    durum.value = const CanliDurumu(CanliTur.baglaniyor);
     try {
       final c = await Uyg.api.dio.get<ResponseBody>(
         '/api/v1/mail/stream',
@@ -65,6 +93,8 @@ class Canli {
       }
       if (d != 200 || c.data == null) throw StateError('akış açılamadı');
       bagli.value = true;
+      durum.value = const CanliDurumu(CanliTur.bagli);
+      sonOlay.value = DateTime.now();
       _deneme = 0;
       String olay = 'message';
       final veri = StringBuffer();
@@ -74,7 +104,8 @@ class Canli {
           olay = 'message';
           veri.clear();
         } else if (satir.startsWith(':')) {
-          // yorum / ping
+          // yorum / ping: bağlantı canlı
+          sonOlay.value = DateTime.now();
         } else if (satir.startsWith('event:')) {
           olay = satir.substring(6).trim();
         } else if (satir.startsWith('data:')) {
@@ -91,10 +122,12 @@ class Canli {
     _deneme++;
     final bekle = Duration(milliseconds: min(60000, 1000 * pow(2, min(_deneme, 6)).toInt()) + Random().nextInt(1000));
     _tekrar?.cancel();
+    durum.value = CanliDurumu(CanliTur.yok, sonrakiDeneme: DateTime.now().add(bekle));
     _tekrar = Timer(bekle, _baglan);
   }
 
   void _isle(String olay, String veri) {
+    sonOlay.value = DateTime.now();
     if (olay == 'logout') {
       durdur();
       Uyg.oturumDustu();

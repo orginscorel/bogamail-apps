@@ -15,6 +15,7 @@ import '../ortak/simgeler.dart';
 import '../veri/durum.dart';
 import '../veri/hesap_servisi.dart';
 import '../veri/modeller.dart';
+import '../veri/onbellek.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/tercihler.dart';
 import '../veri/yazma_hazirla.dart';
@@ -44,7 +45,7 @@ YazmaBaslangic mailtoBaslangic(Uri u) {
 }
 
 class Okuyucu extends StatefulWidget {
-  const Okuyucu({super.key, required this.id, this.sayfa = false, this.kaldirildi});
+  const Okuyucu({super.key, required this.id, this.sayfa = false, this.kaldirildi, this.onceki, this.sonraki});
   final String id;
 
   /// true: kendi AppBar'ı olan tam sayfa (telefon); false: üç bölmeli görünümün sağ bölmesi.
@@ -52,6 +53,10 @@ class Okuyucu extends StatefulWidget {
 
   /// İleti bu görünümden çıktı (silindi, taşındı, okunmadı yapıldı…).
   final VoidCallback? kaldirildi;
+
+  /// Listede önceki / sonraki ileti (web: K / J). null ise düğme pasif.
+  final VoidCallback? onceki;
+  final VoidCallback? sonraki;
 
   @override
   State<Okuyucu> createState() => OkuyucuState();
@@ -79,7 +84,8 @@ class OkuyucuState extends State<Okuyucu> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.id != widget.id) {
       setState(() {
-        _d = null;
+        // Önyüklenmiş ileti bellekteyse ilk karede gösterilir (yükleniyor çarkı yok).
+        _d = Posta.iletiHemen(widget.id);
         _hata = null;
         _gitti = false;
         _isaretlendi = false;
@@ -97,34 +103,55 @@ class OkuyucuState extends State<Okuyucu> {
     super.dispose();
   }
 
+  /// Canlı tazeleme: yalnız bu ileti (ya da toplu/bilinmeyen bir değişiklik) için yeniden yüklenir.
   void _canli() {
-    if (!_mesgul && !_gitti && _d != null) _yukle(sessiz: true);
+    final x = PostaDurum.ben.sonDegisen;
+    if (!_mesgul && !_gitti && _d != null && (x == null || x == widget.id)) _yukle(sessiz: true);
   }
 
+  /// Okundu işareti iyimserdir: gösterimi bekletmez, ileti yeniden indirilmez (listeler yerinde güncellenir).
+  void _okundu(IletiDetay d) {
+    if (d.ozet.okundu || _isaretlendi) return;
+    _isaretlendi = true;
+    d.ozet.okundu = true;
+    PostaDurum.ben.okunduIsaretle(d.ozet.id);
+  }
+
+  /// Önce önbellek (bellek → disk) anında gösterilir, ağdan gelen sürüm farklıysa yerine konur.
   Future<void> _yukle({bool sessiz = false}) async {
-    if (!sessiz) setState(() => _hata = null);
     final id = widget.id;
-    try {
-      final d = await Posta.ileti(id);
+    final sw = Stopwatch()..start();
+    if (!sessiz) {
+      setState(() => _hata = null);
+      final o = _d?.ozet.id == id ? _d : (Posta.iletiHemen(id) ?? await Posta.iletiOnbellek(id).catchError((_) => null));
       if (!mounted || id != widget.id) return;
-      setState(() => _d = d);
-      if (!d.ozet.okundu && !_isaretlendi) {
-        _isaretlendi = true;
-        try {
-          await Posta.guncelle(widget.id, {'seen': true});
-          d.ozet.okundu = true;
-          PostaDurum.ben.sayilariYenile();
-        } catch (_) {}
+      if (o != null) {
+        zamanLogu('ileti (önbellek)', sw);
+        if (!identical(o, _d)) setState(() => _d = o);
+        _okundu(o);
       }
+    }
+    try {
+      var degisti = true;
+      final v = await Posta.iletiHam(id, degisti: (x) => degisti = x);
+      if (!mounted || id != widget.id) return;
+      zamanLogu('ileti (ağ)', sw);
+      if (degisti || _d == null) {
+        final d = IletiDetay.json(v);
+        if (_isaretlendi) d.ozet.okundu = true;
+        setState(() => _d = d);
+      }
+      _okundu(_d!);
     } on ApiHata catch (e) {
       if (!mounted || id != widget.id) return;
-      if (sessiz && e.durum == 404) {
+      if ((sessiz || _d != null) && e.durum == 404) {
         _kaldir();
-      } else if (!sessiz) {
+      } else if (!sessiz && _d == null) {
         setState(() => _hata = e.durum == 404 ? 'İleti bulunamadı; silinmiş veya taşınmış olabilir.' : e.mesaj);
       }
     } catch (_) {
-      if (mounted && !sessiz) setState(() => _hata = 'İleti açılamadı.');
+      // Ağ yoksa önbellekteki sürüm gösterilmeye devam eder.
+      if (mounted && !sessiz && _d == null && id == widget.id) setState(() => _hata = 'İleti açılamadı.');
     }
   }
 
@@ -135,14 +162,26 @@ class OkuyucuState extends State<Okuyucu> {
     widget.kaldirildi?.call();
   }
 
-  Future<void> _eylem(Future<void> Function() f, String tamam, {bool kaldir = false}) async {
+  /// [yerel]: bayrak değişikliği (seen/flagged/important): önbellek ve listeler yerinde güncellenir, ileti
+  /// yeniden indirilmez.
+  Future<void> _eylem(Future<void> Function() f, String tamam, {bool kaldir = false, Map<String, dynamic>? yerel}) async {
     if (_mesgul) return;
     setState(() => _mesgul = true);
     try {
       await f();
       bildir(tamam, tur: MesajTur.basari);
+      if (yerel != null) PostaDurum.ben.yerelGuncelle(widget.id, yerel);
       if (kaldir) {
         _kaldir();
+      } else if (yerel != null) {
+        final d = _d;
+        if (d != null && mounted) {
+          setState(() {
+            if (yerel['flagged'] is bool) d.ozet.yildizli = yerel['flagged'] as bool;
+            if (yerel['important'] is bool) d.ozet.onemli = yerel['important'] as bool;
+          });
+        }
+        PostaDurum.ben.sayilariYenile(listeler: false);
       } else {
         PostaDurum.ben.sayilariYenile();
         await _yukle(sessiz: true);
@@ -339,11 +378,19 @@ class OkuyucuState extends State<Okuyucu> {
       case 'gorev':
         GorevDuzenleyici.ac(context, iletiId: widget.id, ilkBaslik: d.ozet.konu);
       case 'okunmadi':
-        _eylem(() => Posta.guncelle(widget.id, {'seen': false}), 'Okunmadı olarak işaretlendi', kaldir: true);
+        _eylem(() => Posta.guncelle(widget.id, {'seen': false}), 'Okunmadı olarak işaretlendi', kaldir: true, yerel: {'seen': false});
       case 'yildiz':
-        _eylem(() => Posta.guncelle(widget.id, {'flagged': !d.ozet.yildizli}), d.ozet.yildizli ? 'Yıldız kaldırıldı' : 'Yıldızlandı');
+        _eylem(
+          () => Posta.guncelle(widget.id, {'flagged': !d.ozet.yildizli}),
+          d.ozet.yildizli ? 'Yıldız kaldırıldı' : 'Yıldızlandı',
+          yerel: {'flagged': !d.ozet.yildizli},
+        );
       case 'onemli':
-        _eylem(() => Posta.guncelle(widget.id, {'important': !d.ozet.onemli}), d.ozet.onemli ? 'Önemli işareti kaldırıldı' : 'Önemli olarak işaretlendi');
+        _eylem(
+          () => Posta.guncelle(widget.id, {'important': !d.ozet.onemli}),
+          d.ozet.onemli ? 'Önemli işareti kaldırıldı' : 'Önemli olarak işaretlendi',
+          yerel: {'important': !d.ozet.onemli},
+        );
       case 'tasi':
         _tasi();
       case 'etiket':
@@ -429,6 +476,18 @@ class OkuyucuState extends State<Okuyucu> {
             child: Row(
               children: [
                 const SizedBox(width: 8),
+                IconButton(
+                  key: const ValueKey('onceki-ileti'),
+                  icon: const Icon(Icons.keyboard_arrow_up_rounded),
+                  tooltip: 'Önceki ileti (K)',
+                  onPressed: widget.onceki,
+                ),
+                IconButton(
+                  key: const ValueKey('sonraki-ileti'),
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  tooltip: 'Sonraki ileti (J)',
+                  onPressed: widget.sonraki,
+                ),
                 if (_d != null) Expanded(child: _klasorRozeti()) else const Spacer(),
                 ..._eylemDugmeleri(),
                 const SizedBox(width: 6),
@@ -447,7 +506,7 @@ class OkuyucuState extends State<Okuyucu> {
     if (k == null) return const SizedBox.shrink();
     return Align(
       alignment: Alignment.centerLeft,
-      child: Rozet(k.gorunenAd, ikon: klasorSimgesi(k.rol)),
+      child: Rozet(k.gorunenAd, ikon: klasorSimgesi(k.rol), renk: klasorRengi(k.rol) ?? Marka.mor),
     );
   }
 
@@ -524,7 +583,8 @@ class OkuyucuState extends State<Okuyucu> {
           const Divider(),
           Expanded(
             child: HtmlGovde(
-              key: ValueKey('${d.ozet.id}-html'),
+              // Sabit anahtar: ileti değişince görüntüleyici yeniden kurulmaz, aynı web görünümüne yeni belge yüklenir.
+              key: const ValueKey('ileti-html'),
               iletiId: d.ozet.id,
               html: v.html,
               ekler: v.ekler,
@@ -554,7 +614,7 @@ class OkuyucuState extends State<Okuyucu> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                   child: v.metin.trim().isEmpty
                       ? Text('(Bu iletinin gövdesi boş.)', style: TextStyle(color: context.r.silik))
-                      : _DuzMetin(metin: v.metin, baglantilar: d.baglantilar, eposta: (u) => yazmaAc(context, mailtoBaslangic(u))),
+                      : DuzMetin(metin: v.metin, baglantilar: d.baglantilar, eposta: (u) => yazmaAc(context, mailtoBaslangic(u))),
                 ),
               ],
             ),
@@ -606,7 +666,7 @@ class OkuyucuState extends State<Okuyucu> {
               IconButton(
                 tooltip: d.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla',
                 onPressed: _mesgul ? null : () => _menu('yildiz'),
-                icon: Icon(d.ozet.yildizli ? Icons.star_rounded : Icons.star_border_rounded, color: d.ozet.yildizli ? Marka.kehribar : r.silik),
+                icon: Icon(d.ozet.yildizli ? Icons.star_rounded : Icons.star_border_rounded, color: d.ozet.yildizli ? yildizRengi : r.silik),
               ),
             ],
           ),
@@ -743,16 +803,16 @@ class OkuyucuState extends State<Okuyucu> {
 }
 
 /// Düz metin gövdesi: bağlantılar tıklanabilir, alıntılanan geçmiş "•••" ile katlanır.
-class _DuzMetin extends StatefulWidget {
-  const _DuzMetin({required this.metin, required this.baglantilar, required this.eposta});
+class DuzMetin extends StatefulWidget {
+  const DuzMetin({super.key, required this.metin, required this.baglantilar, required this.eposta});
   final String metin;
   final Map<String, String> baglantilar;
   final ValueChanged<Uri> eposta;
   @override
-  State<_DuzMetin> createState() => _DuzMetinState();
+  State<DuzMetin> createState() => _DuzMetinState();
 }
 
-class _DuzMetinState extends State<_DuzMetin> {
+class _DuzMetinState extends State<DuzMetin> {
   final _tanicilar = <TapGestureRecognizer>[];
   bool _alinti = false;
   static final _url = RegExp(r'''(https?://[^\s"'<>()]+|mailto:[^\s"'<>()]+)''', caseSensitive: false);

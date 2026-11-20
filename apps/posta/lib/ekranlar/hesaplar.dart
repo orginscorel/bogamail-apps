@@ -63,6 +63,7 @@ class _GirisKapisiState extends State<GirisKapisi> {
     if (l.isEmpty || _form) {
       return Uyg.girisFormu(
         adres: _adres,
+        ust: l.isEmpty ? null : const KayitliOzet(),
         geri: l.isEmpty
             ? null
             : () => setState(() {
@@ -223,6 +224,10 @@ class _HesapSeciciState extends State<HesapSecici> {
     return l;
   }
 
+  /// Oturumdaki hesap bu cihazın kayıtlı listesinde yok (ör. çoklu hesap öncesi açılmış oturum ya da
+  /// "Bu cihazda kayıtlı kalsın" kapalıyken giriş). Bu durumda başka hesaba geçince geri dönülemez.
+  bool get _kayitsiz => _l != null && Uyg.adres.isNotEmpty && !_l!.any((h) => h.etkin);
+
   Future<void> _gec(KayitliHesap h) async {
     if (h.etkin) {
       if (!widget.gomulu) Navigator.pop(context);
@@ -293,6 +298,21 @@ class _HesapSeciciState extends State<HesapSecici> {
             dokun: _mesgul == null ? () => _gec(h) : null,
             kaldir: () => _kaldir(h),
           ),
+        if (_kayitsiz)
+          ListTile(
+            key: const ValueKey('hesap-kaydet'),
+            leading: const Icon(Icons.warning_amber_rounded, color: Marka.kehribar),
+            title: const Text('Bu hesap bu cihazda kayıtlı değil'),
+            subtitle: const Text('Başka hesaba geçtikten sonra şifresiz dönebilmek için kaydedin.'),
+            trailing: TextButton(
+              onPressed: () {
+                final nav = Navigator.of(context);
+                if (!widget.gomulu) nav.pop();
+                mevcutHesabiKaydet(nav);
+              },
+              child: const Text('Kaydet'),
+            ),
+          ),
         const Divider(),
         ListTile(
           key: const ValueKey('hesap-ekle'),
@@ -301,7 +321,7 @@ class _HesapSeciciState extends State<HesapSecici> {
           onTap: () {
             final nav = Navigator.of(context);
             if (!widget.gomulu) nav.pop();
-            nav.push(MaterialPageRoute<void>(builder: (c) => Uyg.girisFormu(ekle: true, geri: () => Navigator.pop(c))));
+            hesapEkle(nav, kayitsiz: _kayitsiz);
           },
         ),
         ListTile(
@@ -324,6 +344,127 @@ class _HesapSeciciState extends State<HesapSecici> {
         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .85),
         child: SingleChildScrollView(child: govde),
       ),
+    );
+  }
+}
+
+/// "Hesap ekle": oturumdaki hesap cihazda kayıtlı değilse önce onu (şifreyle) kaydettirir; sonra kayıtlı
+/// hesapların üstte listelendiği ekleme formunu açar.
+Future<void> hesapEkle(NavigatorState nav, {bool? kayitsiz}) async {
+  var k = kayitsiz;
+  if (k == null) {
+    try {
+      final l = await Uyg.hesaplar();
+      k = Uyg.adres.isNotEmpty && !l.any((h) => h.etkin);
+    } catch (_) {
+      k = false;
+    }
+  }
+  if (k && nav.mounted) {
+    final ok = await onayla(
+      nav.context,
+      'Önce bu hesabı kaydedin',
+      mesaj: '${Uyg.adres} bu cihazda kayıtlı değil. Yeni hesaba geçtikten sonra buna şifresiz dönebilmek için şifrenizle bir kez onaylayın.',
+      evet: 'Kaydet ve devam',
+    );
+    if (!ok || !nav.mounted) return;
+    return mevcutHesabiKaydet(nav, sonraEkle: true);
+  }
+  if (!nav.mounted) return;
+  nav.push(
+    MaterialPageRoute<void>(
+      builder: (c) => Uyg.girisFormu(ekle: true, ust: const KayitliOzet(), geri: () => Navigator.pop(c)),
+    ),
+  );
+}
+
+/// Oturumdaki hesabı "Bu cihazda kayıtlı kalsın" ile yeniden girerek cihaza kaydeder.
+Future<void> mevcutHesabiKaydet(NavigatorState nav, {bool sonraEkle = false}) async {
+  await nav.push(
+    MaterialPageRoute<void>(
+      builder: (c) => Uyg.girisFormu(
+        ekle: true,
+        adres: Uyg.adres,
+        aciklama: 'Bu hesabı cihaza kaydetmek için şifrenizi girin',
+        geri: () => Navigator.pop(c),
+        sonra: () async {
+          if (!c.mounted) return;
+          bildir('Hesap bu cihaza kaydedildi', tur: MesajTur.basari);
+          final n = Navigator.of(c);
+          if (sonraEkle) {
+            n.pushReplacement(
+              MaterialPageRoute<void>(
+                builder: (c2) => Uyg.girisFormu(ekle: true, ust: const KayitliOzet(), geri: () => Navigator.pop(c2)),
+              ),
+            );
+          } else {
+            n.pop();
+          }
+        },
+      ),
+    ),
+  );
+}
+
+/// Ekleme formunun üstünde: bu cihazdaki kayıtlı hesaplar (dokununca şifresiz geçiş).
+class KayitliOzet extends StatefulWidget {
+  const KayitliOzet({super.key});
+  @override
+  State<KayitliOzet> createState() => _KayitliOzetState();
+}
+
+class _KayitliOzetState extends State<KayitliOzet> {
+  List<KayitliHesap>? _l;
+  String? _mesgul;
+
+  @override
+  void initState() {
+    super.initState();
+    Uyg.hesaplar().then(
+      (l) {
+        if (mounted) setState(() => _l = l);
+      },
+      onError: (_) {
+        if (mounted) setState(() => _l = const []);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = _l;
+    if (l == null || l.isEmpty) return const SizedBox.shrink();
+    final r = context.r;
+    return Column(
+      key: const ValueKey('kayitli-ozet'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Kayıtlı postalarınız',
+          style: TextStyle(color: r.soluk, fontWeight: FontWeight.w700, fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        Kutu(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (final h in l)
+                HesapSatiri(
+                  key: ValueKey('ozet-${h.id}'),
+                  hesap: h,
+                  mesgul: _mesgul == h.id,
+                  dokun: h.etkin || _mesgul != null
+                      ? null
+                      : () async {
+                          setState(() => _mesgul = h.id);
+                          final ok = await Uyg.hesabaGec(id: h.id);
+                          if (!ok && mounted) setState(() => _mesgul = null);
+                        },
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

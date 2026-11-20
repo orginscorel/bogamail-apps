@@ -43,15 +43,24 @@ class YolSunucusu implements HttpClientAdapter {
     istekler.add(ist);
     final h = yollar['${o.method} ${o.uri.path}'];
     final Yanit y = switch (h) {
-      null => (404, {'error': {'code': 'not_found', 'message': 'Bulunamadı'}}),
+      null => (
+        404,
+        {
+          'error': {'code': 'not_found', 'message': 'Bulunamadı'},
+        },
+      ),
       final Yanit Function(Istek) f => f(ist),
       final Yanit v => v,
       _ => (500, null),
     };
     if (y.$2 == null) return ResponseBody.fromString('', y.$1);
-    return ResponseBody.fromString(jsonEncode(y.$2), y.$1, headers: {
-      Headers.contentTypeHeader: ['application/json'],
-    });
+    return ResponseBody.fromString(
+      jsonEncode(y.$2),
+      y.$1,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
   }
 
   @override

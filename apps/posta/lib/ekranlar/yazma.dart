@@ -15,6 +15,7 @@ import '../oturum.dart';
 import '../ortak/adres_alani.dart';
 import '../ortak/ek_listesi.dart';
 import '../ortak/izin.dart';
+import '../ortak/zengin_duzenleyici.dart';
 import '../ortak/simgeler.dart';
 import '../veri/durum.dart';
 import '../veri/html_temizle.dart';
@@ -28,7 +29,8 @@ import '../veri/yardimci.dart';
 Future<void> yazmaAc(BuildContext context, [YazmaBaslangic? b]) async {
   final bas = b ?? YazmaBaslangic();
   if (context.genis) {
-    final boy = MediaQuery.sizeOf(context).height;
+    final boyut = MediaQuery.sizeOf(context);
+    final boy = boyut.height;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -36,8 +38,9 @@ Future<void> yazmaAc(BuildContext context, [YazmaBaslangic? b]) async {
         insetPadding: const EdgeInsets.all(24),
         clipBehavior: Clip.antiAlias,
         child: SizedBox(
-          width: 820,
-          height: min(800.0, boy - 48),
+          // Büyük ekranlarda daha geniş/yüksek, küçük pencerelerde pencereye sığar.
+          width: (boyut.width * .62).clamp(min(720.0, boyut.width - 48), 1080.0),
+          height: min(960.0, boy - 48),
           child: YazmaEkrani(baslangic: bas),
         ),
       ),
@@ -74,6 +77,11 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
   late bool _bilgiGoster = b.bilgi.isNotEmpty || b.gizli.isNotEmpty;
   late bool _imza = b.imzaEkle && (b.tur == YazmaTuru.yeni ? Tercihler.imzaYeni.value : Tercihler.imzaYanit.value);
   bool _alinti = true;
+
+  /// Biçimli (HTML) düzenleyici mi, düz metin mi. Web ile aynı kural: biçimli taslak → biçimli; düz taslak → düz;
+  /// yeni ileti → compose_html ayarı (varsayılan biçimli).
+  late bool _bicimli = b.tur == YazmaTuru.taslak ? b.htmlTaslak : (_ayar?.bicimliYazma ?? true);
+  ZenginDenetleyici? _zengin;
   final _yerel = <_YerelEk>[];
   late List<DahilEk> _dahil = [...b.dahilEkler];
   late String? _taslakId = b.taslakId;
@@ -98,7 +106,15 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     for (final c in [_konu, _metin]) {
       c.addListener(_degisti);
     }
-    if (_ayar == null) PostaDurum.ben.ayarlariYukle().then((_) => mounted ? setState(() {}) : null);
+    if (_ayar == null) {
+      PostaDurum.ben.ayarlariYukle().whenComplete(() {
+        if (!mounted) return;
+        if (b.tur != YazmaTuru.taslak && _zengin == null) _bicimli = _ayar?.bicimliYazma ?? true;
+        setState(_zenginiHazirla);
+      });
+    } else {
+      _zenginiHazirla();
+    }
     if (b.kime.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _metinOdak.requestFocus();
@@ -114,7 +130,71 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     _konu.dispose();
     _metin.dispose();
     _metinOdak.dispose();
+    _zengin?.dispose();
     super.dispose();
+  }
+
+  /// Biçimli düzenleyicinin ilk içeriği (web buildInitialBody ile aynı): yazı bloğu, imza bloğu, alıntı.
+  String _ilkHtml() {
+    if (b.tur == YazmaTuru.taslak) {
+      final h = b.htmlGovde ?? '';
+      return h.trim().isNotEmpty ? guvenliHtml(h) : (b.metin.trim().isEmpty ? '<div><br></div>' : '<div>${metniHtmlYap(b.metin)}</div>');
+    }
+    final ilk = b.metin.trim().isEmpty ? '<div><br></div>' : '<div>${metniHtmlYap(b.metin.trimRight())}</div>';
+    final imza = (_imza || (_ayar?.imzaKilitli ?? false)) && _etkinImza.trim().isNotEmpty
+        ? '<div><br></div><div data-signature="">${guvenliHtml(_etkinImza)}</div>'
+        : '';
+    final alinti = (b.alintiHtml ?? '').isNotEmpty ? '<div><br></div>${b.alintiHtml}' : '';
+    return '$ilk$imza$alinti';
+  }
+
+  /// Ayarlar (imza) bilindiğinde biçimli düzenleyici kurulur.
+  void _zenginiHazirla() {
+    if (!_bicimli || _zengin != null) return;
+    _zengin = ZenginDenetleyici(ilkHtml: _ilkHtml())
+      ..degisti = () {
+        if (!_kirli && mounted) setState(() => _kirli = true);
+      }
+      ..addListener(() {
+        if (mounted) setState(() {});
+      });
+  }
+
+  /// Düz metin ↔ biçimli geçiş (web switchMode): biçim kaldırılır / düz metin HTML'e çevrilir.
+  Future<void> _kipDegistir() async {
+    if (_bicimli) {
+      final c = await _zengin?.icerik();
+      final t = (c?.metin ?? '').replaceAll(RegExp(r'\n{3,}'), '\n\n');
+      setState(() {
+        _zengin?.dispose();
+        _zengin = null;
+        _bicimli = false;
+        _metin.text = t;
+        // İmza ve alıntı artık metnin içinde: ayrıca eklenmez.
+        _imza = false;
+        _alinti = false;
+        _kirli = true;
+      });
+      bildir('Düz metin moduna geçildi; biçimlendirme kaldırıldı.');
+    } else {
+      final govde = govdeOlustur(
+        metin: _metin.text,
+        imzaHtml: _imza && b.tur != YazmaTuru.taslak ? _etkinImza : null,
+        alintiHtml: _alinti && b.tur != YazmaTuru.taslak ? b.alintiHtml : null,
+      );
+      setState(() {
+        _bicimli = true;
+        _zengin = ZenginDenetleyici(ilkHtml: govde.html)
+          ..degisti = () {
+            if (!_kirli && mounted) setState(() => _kirli = true);
+          }
+          ..addListener(() {
+            if (mounted) setState(() {});
+          });
+        _alinti = false;
+        _kirli = true;
+      });
+    }
   }
 
   void _degisti() {
@@ -126,7 +206,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
       !_bilgi.bos ||
       !_gizli.bos ||
       _konu.text.trim().isNotEmpty ||
-      _metin.text.trim().isNotEmpty ||
+      (_bicimli ? !(_zengin?.bos ?? true) : _metin.text.trim().isNotEmpty) ||
       _yerel.isNotEmpty ||
       (_dahil.isNotEmpty && b.tur != YazmaTuru.ilet);
 
@@ -135,12 +215,16 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
   Future<Map<String, dynamic>> _istek() async {
     final k = _kime.topla().liste, c = _bilgi.topla().liste, g = _gizli.topla().liste;
     final taslak = b.tur == YazmaTuru.taslak;
-    final govde = govdeOlustur(
-      metin: _metin.text,
-      imzaHtml: _imza && !taslak ? _etkinImza : null,
-      alintiHtml: _alinti && !taslak ? b.alintiHtml : null,
-      alintiMetin: _alinti && !taslak ? b.alintiMetin : null,
-    );
+    final z = _bicimli ? _zengin : null;
+    // Biçimli: imza ve alıntı düzenleyicinin içinde; gövde web gibi innerHTML + innerText.
+    final govde = z != null
+        ? await z.icerik().then((c) => (metin: c.metin, html: c.html))
+        : govdeOlustur(
+            metin: _metin.text,
+            imzaHtml: _imza && !taslak ? _etkinImza : null,
+            alintiHtml: _alinti && !taslak ? b.alintiHtml : null,
+            alintiMetin: _alinti && !taslak ? b.alintiMetin : null,
+          );
     final r = <String, dynamic>{
       'to': k.map(adresYaz).toList(),
       'cc': c.map(adresYaz).toList(),
@@ -384,7 +468,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
 
   /// İletiyi Şablonlar klasörüne kaydeder (taslağın yerine geçmez).
   Future<void> _sablonKaydet() async {
-    if (_konu.text.trim().isEmpty && _metin.text.trim().isEmpty) {
+    if (_konu.text.trim().isEmpty && (_bicimli ? (_zengin?.bos ?? true) : _metin.text.trim().isEmpty)) {
       setState(() => _hata = 'Şablon için konu veya metin yazın.');
       return;
     }
@@ -460,6 +544,17 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     try {
       final d = await Posta.ileti(sec.id);
       final metin = d.gorunum.metin.trim().isNotEmpty ? d.gorunum.metin.trim() : htmlMetne(d.gorunum.html).trim();
+      final z = _bicimli ? _zengin : null;
+      if (z != null) {
+        // Web insertTemplate: biçimli şablon imleç konumuna HTML olarak eklenir.
+        await z.htmlEkle(d.gorunum.html.trim().isNotEmpty ? d.gorunum.html : metniHtmlYap(d.gorunum.metin));
+        if (!mounted) return;
+        setState(() {
+          if (_konu.text.trim().isEmpty) _konu.text = d.gorunum.konu;
+          _kirli = true;
+        });
+        return;
+      }
       setState(() {
         if (_konu.text.trim().isEmpty) _konu.text = d.gorunum.konu;
         final t = _metin.text;
@@ -707,6 +802,8 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                         _oncelik = _oncelik == 'high' ? null : 'high';
                         _kirli = true;
                       });
+                    case 'kip':
+                      await _kipDegistir();
                     case 'okundu':
                       setState(() {
                         _okunduBilgisi = !_okunduBilgisi;
@@ -746,7 +843,15 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     ),
                   ),
                   const PopupMenuDivider(),
-                  CheckedPopupMenuItem(value: 'oncelik', checked: _oncelik == 'high', child: const Text('Yüksek öncelik')),
+                  CheckedPopupMenuItem(value: 'oncelik', checked: _oncelik == 'high', child: const Text('Yüksek önem')),
+                  PopupMenuItem(
+                    key: const ValueKey('kip-degistir'),
+                    value: 'kip',
+                    child: ListTile(
+                      leading: Icon(_bicimli ? Icons.text_fields_rounded : Icons.format_paint_outlined),
+                      title: Text(_bicimli ? 'Düz metne geç (biçimlendirme kaldırılır)' : 'Biçimli metne geç'),
+                    ),
+                  ),
                   CheckedPopupMenuItem(value: 'okundu', checked: _okunduBilgisi, child: const Text('Okundu bilgisi iste')),
                   if (_taslakId != null)
                     const PopupMenuItem(
@@ -895,12 +1000,12 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                     child: Wrap(
                       spacing: 6,
                       children: [
-                        if (_oncelik == 'high') const Rozet('Yüksek öncelik', renk: Marka.gul, ikon: Icons.priority_high_rounded),
+                        if (_oncelik == 'high') const Rozet('Yüksek önem', renk: Marka.gul, ikon: Icons.priority_high_rounded),
                         if (_okunduBilgisi) const Rozet('Okundu bilgisi istenecek', ikon: Icons.mark_email_read_outlined),
                       ],
                     ),
                   ),
-                if (b.htmlTaslak)
+                if (b.htmlTaslak && !_bicimli)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                     child: Text(
@@ -908,29 +1013,37 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                       style: TextStyle(color: r.silik, fontSize: 12.5),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-                  child: TextField(
-                    controller: _metin,
-                    focusNode: _metinOdak,
-                    minLines: 8,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: const TextStyle(fontSize: 15, height: 1.5),
-                    decoration: const InputDecoration(
-                      hintText: 'İletinizi yazın',
-                      filled: false,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                if (_bicimli)
+                  _zengin == null
+                      ? const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: CircularProgressIndicator.adaptive()),
+                        )
+                      : ZenginDuzenleyici(key: const ValueKey('zengin-duzenleyici'), denetleyici: _zengin!)
+                else
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                    child: TextField(
+                      controller: _metin,
+                      focusNode: _metinOdak,
+                      minLines: 8,
+                      maxLines: null,
+                      keyboardType: TextInputType.multiline,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: const TextStyle(fontSize: 15, height: 1.5),
+                      decoration: const InputDecoration(
+                        hintText: 'İletinizi yazın',
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      ),
                     ),
                   ),
-                ),
                 if (_yerel.isNotEmpty || _dahil.isNotEmpty) _ekler(r),
                 if (b.tur != YazmaTuru.taslak && _etkinImza.isNotEmpty) _imzaKarti(r),
-                if (b.alintiMetin != null && b.alintiMetin!.isNotEmpty) _alintiKarti(r),
+                if (!_bicimli && b.alintiMetin != null && b.alintiMetin!.isNotEmpty && (_alinti || b.tur != YazmaTuru.taslak)) _alintiKarti(r),
                 const SizedBox(height: 40),
               ],
             ),
@@ -977,7 +1090,8 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                 ),
                 arac(
                   Icons.priority_high_rounded,
-                  'Yüksek öncelik',
+                  'Yüksek önem',
+                  key: const ValueKey('yuksek-onem'),
                   () => setState(() {
                     _oncelik = _oncelik == 'high' ? null : 'high';
                     _kirli = true;
@@ -1132,18 +1246,25 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
               Tooltip(
                 message: kilitli ? 'İmza kurumunuz tarafından zorunlu tutuluyor' : (_imza ? 'İmzayı kaldır' : 'İmza ekle'),
                 child: Switch.adaptive(
-                  value: _imza || kilitli,
+                  value: _bicimli ? ((_zengin?.imzaVar ?? false) || kilitli) : (_imza || kilitli),
                   onChanged: kilitli
                       ? null
-                      : (v) => setState(() {
-                          _imza = v;
-                          _kirli = true;
-                        }),
+                      : (v) {
+                          // Biçimli: imza düzenleyicinin içindeki [data-signature] bloğudur (web toggleSignature).
+                          if (_bicimli) {
+                            _zengin?.imzaDegistir(_etkinImza);
+                            return;
+                          }
+                          setState(() {
+                            _imza = v;
+                            _kirli = true;
+                          });
+                        },
                 ),
               ),
             ],
           ),
-          if (_imza || kilitli)
+          if (!_bicimli && (_imza || kilitli))
             Text(
               metin,
               maxLines: 6,

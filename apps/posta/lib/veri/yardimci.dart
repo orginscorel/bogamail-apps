@@ -102,6 +102,9 @@ String onekli(String onek, String konu) {
   return re.hasMatch(k) ? k : '$onek: $k';
 }
 
+/// Türkçe küçük harf (İ→i, I→ı); arama süzgeçleri için (web toLocaleLowerCase("tr-TR")).
+String trKucukHarf(String s) => s.replaceAll('İ', 'i').replaceAll('I', 'ı').toLowerCase();
+
 String htmlKacis(String s) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 
 /// Düz metin → güvenli HTML (satır sonları <br>).

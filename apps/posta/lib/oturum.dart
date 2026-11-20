@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,8 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'ekranlar/hesaplar.dart';
 import 'ekranlar/kabuk.dart';
 import 'veri/bildirim.dart';
+import 'veri/birlesik.dart';
 import 'veri/canli.dart';
 import 'veri/durum.dart';
+import 'veri/onbellek.dart';
 import 'veri/sohbet_servisi.dart';
 
 /// Bu cihazda kayıtlı posta hesabı (GET /api/v1/mail/auth/accounts).
@@ -57,6 +61,7 @@ class Uyg {
     try {
       final v = await api.get('/api/v1/mail/auth/me');
       kutu.value = Map<String, dynamic>.from(v['mailbox'] as Map);
+      unawaited(Onbellek.ben.hesapAc('${kutu.value?['mailbox_id'] ?? ''}'));
       return true;
     } on ApiHata catch (e) {
       if (e.durum == 401 || e.durum == 403) return false;
@@ -69,22 +74,28 @@ class Uyg {
   /// Başka hesaba ait bir bildirime dokunuldu: hesap değişince yeni kabuk bunu açar.
   static Map<String, dynamic>? bekleyenBildirim;
 
+  /// Birleşik görünümden yanıt/iletme: hesap değişince yeni kabuk bu iletiyle yazma penceresini açar
+  /// (ileti kimliği, tür: yanit | tumu | ilet).
+  static (String, String)? bekleyenYazma;
+
   /// Oturum yokken: kayıtlı hesaplar (varsa) ya da giriş formu.
   static Widget girisEkrani({String? bilgi}) => GirisKapisi(bilgi: bilgi);
 
   /// Giriş formu. [ekle]: oturum açıkken başka hesap ekleme (geri düğmeli).
-  static Widget girisFormu({bool ekle = false, String? adres, Widget? ust, VoidCallback? geri}) => GirisEkrani(
-    api: api,
-    baslik: 'BogaMail',
-    aciklama: ekle ? 'Bu cihaza başka bir posta hesabı ekleyin' : 'Kurumsal e-posta hesabınızla giriş yapın',
-    girisYolu: '$_k/login',
-    isaret: AcilisIsaret.posta,
-    kaydetSecenegi: true,
-    ilkAdres: adres,
-    ust: ust,
-    geri: geri,
-    girisYapildi: (_) => kabugaGec(),
-  );
+  /// [sonra]: başarılı girişten sonra kabuk yerine bu çağrılır (ör. önce mevcut hesabı kaydetme adımı).
+  static Widget girisFormu({bool ekle = false, String? adres, Widget? ust, VoidCallback? geri, String? aciklama, Future<void> Function()? sonra}) =>
+      GirisEkrani(
+        api: api,
+        baslik: 'BogaMail',
+        aciklama: aciklama ?? (ekle ? 'Bu cihaza başka bir posta hesabı ekleyin' : 'Kurumsal e-posta hesabınızla giriş yapın'),
+        girisYolu: '$_k/login',
+        isaret: AcilisIsaret.posta,
+        kaydetSecenegi: true,
+        ilkAdres: adres,
+        ust: ust,
+        geri: geri,
+        girisYapildi: (_) => (sonra ?? kabugaGec)(),
+      );
 
   /// Kayıtlı hesaplar (oturum olmadan da çalışır; bm_mail_device çerezi).
   static Future<List<KayitliHesap>> hesaplar() async {
@@ -98,6 +109,7 @@ class Uyg {
     Canli.ben.durdur();
     SohbetDurum.ben.sifirla();
     PostaDurum.ben.sifirla();
+    BirlesikDurum.ben.sifirla();
   }
 
   /// Kutuyu yükler ve yeni bir kabuk açar (tüm hesap durumu sıfırlanır: klasörler, listeler, canlı akış, sohbet, push kaydı).
@@ -127,7 +139,10 @@ class Uyg {
   }
 
   /// Hesabı bu cihazdan kaldırır (etkin hesap değilse).
-  static Future<void> hesabiKaldir(String id) => api.delete('$_k/accounts/$id');
+  static Future<void> hesabiKaldir(String id) async {
+    await api.delete('$_k/accounts/$id');
+    await Onbellek.ben.hesabiSil(id);
+  }
 
   /// Çıkış. [unut]: hesabı bu cihazdan da kaldır. Sunucu sıradaki kayıtlı hesabı döndürürse ona geçilir.
   static Future<void> cikis({bool unut = false}) async {
@@ -138,8 +153,11 @@ class Uyg {
       final v = await api.post('$_k/logout', {'forget': unut, 'push_token': ?jeton});
       if (v is Map && v['next'] is String && (v['next'] as String).isNotEmpty) sonraki = v['next'] as String;
     } catch (_) {}
+    final eski = '${kutu.value?['mailbox_id'] ?? ''}';
     kutu.value = null;
     _durumuTemizle();
+    // Unutulan hesabın önbelleği silinir; yalnız çıkışta (kayıtlı kalır) korunur.
+    if (unut) await Onbellek.ben.hesabiSil(eski);
     await Bildirim.temizle();
     await Push.rozet(0);
     if (sonraki != null && await hesabaGec(id: sonraki)) return;

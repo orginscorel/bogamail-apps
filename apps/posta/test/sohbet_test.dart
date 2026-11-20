@@ -90,7 +90,12 @@ void main() {
                 {'id': 'f1', 'name': 'rapor.pdf', 'size': 1200, 'content_type': 'application/pdf', 'url': '/api/v1/mail/chat/attachments/f1'},
               ],
               'reactions': [
-                {'emoji': '👍', 'count': 2, 'mine': false, 'names': ['Ali Veli', 'Ayşe Yılmaz']},
+                {
+                  'emoji': '👍',
+                  'count': 2,
+                  'mine': false,
+                  'names': ['Ali Veli', 'Ayşe Yılmaz'],
+                },
               ],
             },
           ],
@@ -101,7 +106,12 @@ void main() {
         {
           'message_id': 9,
           'reactions': [
-            {'emoji': i.json['emoji'], 'count': 3, 'mine': true, 'names': ['Ali Veli', 'Ayşe Yılmaz', 'Ben']},
+            {
+              'emoji': i.json['emoji'],
+              'count': 3,
+              'mine': true,
+              'names': ['Ali Veli', 'Ayşe Yılmaz', 'Ben'],
+            },
           ],
         },
       ))
@@ -149,9 +159,15 @@ void main() {
       s.yollar['POST $_k/channels'] = (201, {'id': 'c2'});
 
       expect(await Sohbet.odaOlustur(['ayse']), 'yeni');
-      expect(s.bul('POST', '$_k/rooms').last.json, {'members': ['ayse'], 'name': ''});
+      expect(s.bul('POST', '$_k/rooms').last.json, {
+        'members': ['ayse'],
+        'name': '',
+      });
       await Sohbet.odaOlustur(['ayse', 'ali'], ad: ' Ekip ');
-      expect(s.bul('POST', '$_k/rooms').last.json, {'members': ['ayse', 'ali'], 'name': 'Ekip'});
+      expect(s.bul('POST', '$_k/rooms').last.json, {
+        'members': ['ayse', 'ali'],
+        'name': 'Ekip',
+      });
 
       await Sohbet.gonder('dm1', '  selam  ');
       expect(s.bul('POST', '$_k/rooms/dm1/messages').last.json, {'body': 'selam'});
@@ -176,11 +192,23 @@ void main() {
         'id': 1,
         'body': '',
         'attachments': [
-          {'id': 'a', 'name': 'foto.jpg', 'size': 10, 'content_type': 'image/jpeg', 'url': '/api/v1/mail/chat/attachments/a', 'thumb_url': '/api/v1/mail/chat/attachments/a?thumb=1'},
+          {
+            'id': 'a',
+            'name': 'foto.jpg',
+            'size': 10,
+            'content_type': 'image/jpeg',
+            'url': '/api/v1/mail/chat/attachments/a',
+            'thumb_url': '/api/v1/mail/chat/attachments/a?thumb=1',
+          },
           {'id': 'b', 'name': 'x.zip', 'size': 5, 'content_type': 'application/zip'},
         ],
         'reactions': [
-          {'emoji': '🎉', 'count': 1, 'mine': true, 'names': ['Ben']},
+          {
+            'emoji': '🎉',
+            'count': 1,
+            'mine': true,
+            'names': ['Ben'],
+          },
           {'emoji': '', 'count': 1},
         ],
       });
@@ -197,14 +225,22 @@ void main() {
       expect((g! as FormData).files.single.key, 'file');
       expect((g as FormData).files.single.value.filename, 'a.txt');
 
-      s.yollar['POST $_k/rooms/dm1/attachments'] = (422, {'error': {'code': 'attachment_virus', 'message': 'virus'}});
+      s.yollar['POST $_k/rooms/dm1/attachments'] = (
+        422,
+        {
+          'error': {'code': 'attachment_virus', 'message': 'virus'},
+        },
+      );
       await expectLater(
         Sohbet.ekYukle('dm1', 'k.exe', Uint8List(1)),
         throwsA(isA<ApiHata>().having((e) => e.kod, 'kod', 'attachment_virus').having((e) => e.mesaj, 'mesaj', contains('virüs'))),
       );
 
       await Sohbet.gonder('dm1', '', ekler: ['e1']);
-      expect(s.bul('POST', '$_k/rooms/dm1/messages').last.json, {'body': '', 'attachments': ['e1']});
+      expect(s.bul('POST', '$_k/rooms/dm1/messages').last.json, {
+        'body': '',
+        'attachments': ['e1'],
+      });
 
       final t = await Sohbet.tepki('dm1', 9, '👍');
       expect(s.bul('POST', '$_k/rooms/dm1/messages/9/reactions').last.json, {'emoji': '👍'});
@@ -221,7 +257,12 @@ void main() {
     });
 
     test('sohbet kapalı (403 feature_disabled): sekme gizlenir', () async {
-      s.yollar['GET $_k/rooms'] = (403, {'error': {'code': 'feature_disabled', 'message': 'Kurum içi mesajlaşma paketinizde yok'}});
+      s.yollar['GET $_k/rooms'] = (
+        403,
+        {
+          'error': {'code': 'feature_disabled', 'message': 'Kurum içi mesajlaşma paketinizde yok'},
+        },
+      );
       await SohbetDurum.ben.yenile();
       expect(SohbetDurum.ben.kapali, isTrue);
     });

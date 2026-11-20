@@ -768,6 +768,59 @@ class EtiketlerEkrani extends StatelessWidget {
     ),
   );
 
+  /// Yeni etiket: ad ve renk (web LabelsSection ile aynı).
+  Future<({String ad, String renk})?> _yeniEtiket(BuildContext context) {
+    final ad = TextEditingController();
+    var renk = 'blue';
+    return showDialog<({String ad, String renk})>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, ss) => AlertDialog(
+          title: const Text('Yeni etiket'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                key: const ValueKey('yeni-etiket-ad'),
+                controller: ad,
+                autofocus: true,
+                maxLength: 60,
+                decoration: const InputDecoration(labelText: 'Etiket adı', counterText: ''),
+                onChanged: (_) => ss(() {}),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final e in etiketRenkleri.entries)
+                    Tooltip(
+                      message: etiketRenkAdlari[e.key] ?? e.key,
+                      child: InkWell(
+                        key: ValueKey('yeni-etiket-renk-${e.key}'),
+                        customBorder: const CircleBorder(),
+                        onTap: () => ss(() => renk = e.key),
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: e.value,
+                          child: e.key == renk ? const Icon(Icons.check_rounded, color: Colors.white, size: 18) : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Vazgeç')),
+            FilledButton(onPressed: ad.text.trim().isEmpty ? null : () => Navigator.pop(c, (ad: ad.text.trim(), renk: renk)), child: const Text('Oluştur')),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => YukleyiciSayfa<List<Etiket>>(
     baslik: 'Etiketler',
@@ -775,9 +828,9 @@ class EtiketlerEkrani extends StatelessWidget {
     yukle: Posta.etiketler,
     fab: (context, yenile) => FloatingActionButton.extended(
       onPressed: () async {
-        final ad = await metinSor(context, 'Yeni etiket', ipucu: 'Etiket adı', tamam: 'Oluştur');
-        if (ad == null || ad.trim().isEmpty) return;
-        await islem(() => Posta.etiketOlustur(ad.trim(), 'blue'), tamam: 'Etiket oluşturuldu');
+        final y = await _yeniEtiket(context);
+        if (y == null) return;
+        await islem(() => Posta.etiketOlustur(y.ad, y.renk), tamam: 'Etiket oluşturuldu');
         PostaDurum.ben.sayilariYenile(listeler: false);
         await yenile();
       },

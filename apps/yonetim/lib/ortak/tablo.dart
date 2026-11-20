@@ -578,7 +578,9 @@ class FiltreCubugu extends StatelessWidget {
                         avatar: f.ikon == null ? null : Icon(f.ikon, size: 15),
                         label: Text(f.etiket),
                         labelStyle: TextStyle(fontSize: 12.5, color: r.metin, fontWeight: FontWeight.w600),
-                        backgroundColor: r.vurguYumusak,
+                        // M3: tema rengi yerine açıkça verilir (koyu/açık temada okunaklı kalsın).
+                        color: WidgetStatePropertyAll(r.vurguYumusak),
+                        deleteIconColor: r.soluk,
                         side: BorderSide(color: r.vurgu.withValues(alpha: .35)),
                         visualDensity: VisualDensity.compact,
                         deleteIcon: const Icon(Icons.close_rounded, size: 15),

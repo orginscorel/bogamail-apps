@@ -1,3 +1,22 @@
+## 1.3.0
+
+**BogaMail (posta)**
+- "Tüm hesaplar": kayıtlı tüm hesapların postaları tek kutuda; hesap değiştirmeden okuma ve işlem, yanıtlarken otomatik hesap geçişi.
+- Hesap ekleme düzeltildi: mevcut hesap kayıtlı değilse kaydetme önerilir; "Kayıtlı postalarınız" listesi ekleme ekranında.
+- Hızlı açılış: yerel önbellek, önceden yükleme, tek istekte okundu işaretleme, önbellekli resimler.
+- Masaüstü (macOS/Windows): web benzeri sol menü, klasör arama, sürükle-bırak taşıma, Shift/Cmd ile çoklu seçim, geniş ayarlar düzeni.
+- Zengin metin düzenleyici (biçimlendirme araç çubuğu, düz metin kipi, Yüksek önem).
+- Ayarlar web ile eşit: klasörler, etiket renkleri, süzgeç sıralama, IMAP taşıma, kurulum bilgileri, kayıtlı cihazlar, imza tasarımcısı.
+- Canlı eşitleme göstergesi: Canlı / Bağlanıyor / geri sayım, "Şimdi eşitle".
+- Renkli klasör simgeleri (Çöp, Spam, Gönderilenler…).
+- Sohbet: Kişiler sekmesinde tüm iş arkadaşları ve siz; kanal/grup iletilerinde bildirim; yazarken harf yutma hatası giderildi.
+- Yeni giriş ekranı.
+
+**BogaMail Yönetim**
+- Özet panelindeki okunmayan düğmeler düzeltildi.
+- Masaüstü ayarlar düzeni.
+- Yeni giriş ekranı.
+
 ## BogaMail 1.2.0
 
 **1.2.0 yenilikleri**

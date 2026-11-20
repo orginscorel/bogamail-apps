@@ -2,18 +2,22 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import '../oturum.dart';
+import '../ortak/esitleme.dart';
 import '../ortak/simgeler.dart';
-import '../veri/canli.dart';
+import '../ortak/surukle.dart';
+import '../ortak/uyarlanir.dart';
+import '../veri/birlesik.dart';
 import '../veri/durum.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/yardimci.dart';
 import 'ayarlar.dart';
+import 'hesap/posta_yonetimi.dart';
 import 'hesaplar.dart';
 
 /// Kenar menüsü: hesap başlığı + kota, klasörler (okunmamış sayılarıyla), görünümler, kullanıcı klasörleri, etiketler.
 /// Geniş ekranda kenar çubuğu; telefonda "Klasörler" sekmesinin sayfası ([sayfa]).
-class YanMenu extends StatelessWidget {
+class YanMenu extends StatefulWidget {
   const YanMenu({super.key, required this.sec, this.yeniIleti, this.cekmecede = false, this.sayfa = false});
   final ValueChanged<Konum> sec;
   final VoidCallback? yeniIleti;
@@ -21,6 +25,27 @@ class YanMenu extends StatelessWidget {
 
   /// Telefon sekmesi: başlık çubuğu var, seçili konum vurgulanmaz, Ayarlar alt sekmede olduğundan gösterilmez.
   final bool sayfa;
+
+  @override
+  State<YanMenu> createState() => _YanMenuState();
+}
+
+/// Web ile aynı: "Klasör ara" kutusu kullanıcı klasörü 8'den fazlaysa görünür.
+const klasorAramaEsigi = 8;
+
+class _YanMenuState extends State<YanMenu> {
+  ValueChanged<Konum> get sec => widget.sec;
+  VoidCallback? get yeniIleti => widget.yeniIleti;
+  bool get cekmecede => widget.cekmecede;
+  bool get sayfa => widget.sayfa;
+
+  final _klasorAra = TextEditingController();
+
+  @override
+  void dispose() {
+    _klasorAra.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,15 +81,34 @@ class YanMenu extends StatelessWidget {
                                 padding: const EdgeInsets.all(12),
                                 child: Text(d.hata!, style: const TextStyle(color: Marka.gul)),
                               ),
+                            // Birden çok hesap: klasörlerin üstünde "Tüm hesaplar" (toplam okunmamış).
+                            ListenableBuilder(
+                              listenable: BirlesikDurum.ben,
+                              builder: (context, _) => BirlesikDurum.ben.kullanilabilir
+                                  ? KeyedSubtree(
+                                      key: const ValueKey('yan-tum-hesaplar'),
+                                      child: _oge(
+                                        context,
+                                        gorunumSimgesi('unified'),
+                                        'Tüm hesaplar',
+                                        const Konum.birlesik(),
+                                        sayi: BirlesikDurum.ben.toplamOkunmamis,
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
                             const _Bolum(baslik: 'Posta kutusu'),
                             for (final k in d.sistemKlasorleri) _klasorOgesi(context, k),
                             const _Bolum(baslik: 'Görünümler'),
-                            _oge(context, Icons.mark_email_unread_outlined, 'Okunmamışlar', const Konum.gorunum('unread')),
-                            _oge(context, Icons.star_border_rounded, 'Yıldızlı', const Konum.gorunum('starred')),
-                            _oge(context, Icons.label_important_outline_rounded, 'Önemli', const Konum.gorunum('important')),
-                            _oge(context, Icons.attach_file_rounded, 'Ekli iletiler', const Konum.gorunum('attachments')),
-                            _oge(context, Icons.notifications_active_outlined, 'Takip edilenler', const Konum.gorunum('followup')),
-                            _oge(context, Icons.all_inbox_rounded, 'Tüm postalar', const Konum.gorunum('all')),
+                            for (final (id, ad) in const [
+                              ('unread', 'Okunmamışlar'),
+                              ('starred', 'Yıldızlı'),
+                              ('important', 'Önemli'),
+                              ('attachments', 'Ekli iletiler'),
+                              ('followup', 'Takip edilenler'),
+                              ('all', 'Tüm postalar'),
+                            ])
+                              _oge(context, gorunumSimgesi(id), ad, Konum.gorunum(id), renk: gorunumRengi(id)),
                             _Bolum(
                               baslik: 'Klasörlerim',
                               eylem: IconButton(
@@ -78,7 +122,39 @@ class YanMenu extends StatelessWidget {
                                 padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
                                 child: Text('Henüz klasör yok.', style: TextStyle(color: r.silik, fontSize: 13)),
                               ),
-                            for (final k in d.kullaniciKlasorleri) _klasorOgesi(context, k, menu: true),
+                            if (d.kullaniciKlasorleri.length > klasorAramaEsigi)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(4, 2, 4, 6),
+                                child: SizedBox(
+                                  height: 38,
+                                  child: TextField(
+                                    key: const ValueKey('klasor-ara'),
+                                    controller: _klasorAra,
+                                    onChanged: (_) => setState(() {}),
+                                    style: const TextStyle(fontSize: 14),
+                                    decoration: InputDecoration(
+                                      hintText: 'Klasör ara',
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                      prefixIcon: Icon(Icons.search_rounded, size: 18, color: r.silik),
+                                      prefixIconConstraints: const BoxConstraints(minWidth: 36),
+                                      suffixIcon: _klasorAra.text.isEmpty
+                                          ? null
+                                          : IconButton(
+                                              tooltip: 'Aramayı temizle',
+                                              icon: const Icon(Icons.close_rounded, size: 16),
+                                              onPressed: () => setState(_klasorAra.clear),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            for (final k in _suzulmus(d.kullaniciKlasorleri)) _klasorOgesi(context, k, menu: true),
+                            if (_klasorAra.text.trim().isNotEmpty && _suzulmus(d.kullaniciKlasorleri).isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+                                child: Text('Eşleşen klasör yok.', style: TextStyle(color: r.silik, fontSize: 13)),
+                              ),
                             _Bolum(
                               baslik: 'Etiketler',
                               eylem: IconButton(
@@ -93,7 +169,13 @@ class YanMenu extends StatelessWidget {
                                 child: Text('Henüz etiket yok.', style: TextStyle(color: r.silik, fontSize: 13)),
                               ),
                             for (final e in d.etiketler)
-                              _oge(context, Icons.label_rounded, e.ad, Konum.etiket(e.id), sayi: e.okunmamis, renk: etiketRengi(e.renk)),
+                              _oge(context, Icons.label_rounded, e.ad, Konum.etiket(e.id), sayi: e.okunmamis, renk: etiketRengi(e.renk), birakilir: true),
+                            // Web kenar menüsündeki araçlar: Kişiler, Planlanan, Karantina, Gönderim durumu.
+                            const _Bolum(baslik: 'Araçlar'),
+                            _arac(context, Icons.contacts_outlined, 'Kişiler', KisilerEkrani.new),
+                            _arac(context, Icons.schedule_send_outlined, 'Planlanan', PlanlananlarEkrani.new),
+                            _arac(context, Icons.gpp_maybe_outlined, 'Karantina', KarantinaEkrani.new),
+                            _arac(context, Icons.monitor_heart_outlined, 'Gönderim durumu', GonderimDurumuEkrani.new),
                           ],
                         ),
                 ),
@@ -102,22 +184,15 @@ class YanMenu extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.settings_outlined),
                     title: const Text('Ayarlar'),
-                    trailing: _canliIsareti(r),
                     onTap: () {
                       final nav = Navigator.of(context);
                       if (cekmecede) nav.pop();
                       nav.push(MaterialPageRoute<void>(builder: (_) => const AyarlarEkrani()));
                     },
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 16, 10),
-                  child: Row(
-                    children: [
-                      const Expanded(child: SurumEtiketi()),
-                      if (sayfa) _canliIsareti(r),
-                    ],
-                  ),
-                ),
+                // Eşitleme durumu: Canlı / Bağlanıyor… / Bağlantı yok — N sn (geri sayım), son eşitleme, Şimdi eşitle.
+                const Padding(padding: EdgeInsets.fromLTRB(18, 2, 6, 0), child: EsitlemeDurumu()),
+                const Padding(padding: EdgeInsets.fromLTRB(20, 0, 16, 10), child: SurumEtiketi()),
               ],
             ),
           ),
@@ -131,23 +206,29 @@ class YanMenu extends StatelessWidget {
     );
   }
 
-  Widget _canliIsareti(Renkler r) => ValueListenableBuilder<bool>(
-    valueListenable: Canli.ben.bagli,
-    builder: (_, b, _) => Tooltip(
-      message: b ? 'Canlı güncelleme bağlı' : 'Canlı güncelleme bağlanıyor',
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.circle, size: 9, color: b ? Marka.zumrut : r.kenar),
-          const SizedBox(width: 6),
-          Text(
-            b ? 'Canlı' : 'Bağlanıyor',
-            style: TextStyle(fontSize: 11.5, color: r.silik, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    ),
-  );
+  /// Klasör ara süzgeci (Türkçe küçük harf, web toLocaleLowerCase("tr-TR") gibi).
+  List<Klasor> _suzulmus(List<Klasor> l) {
+    final q = trKucukHarf(_klasorAra.text.trim());
+    if (q.isEmpty || l.length <= klasorAramaEsigi) return l;
+    return l.where((k) => trKucukHarf(k.gorunenAd).contains(q)).toList();
+  }
+
+  Widget _arac(BuildContext context, IconData ikon, String ad, Widget Function() sayfa) {
+    final r = context.r;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.only(left: 12, right: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      leading: Icon(ikon, size: 21, color: r.soluk),
+      title: Text(ad, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500)),
+      onTap: () {
+        final nav = Navigator.of(context);
+        if (cekmecede) nav.pop();
+        uyarlanirAc<void>(nav.context, (_) => sayfa());
+      },
+    );
+  }
 
   Widget _klasorOgesi(BuildContext context, Klasor k, {bool menu = false}) {
     // Web ile aynı: taslak/şablon/ertelenen için toplam, gönderilen/çöp için sayı yok.
@@ -157,25 +238,63 @@ class YanMenu extends StatelessWidget {
       _ => k.okunmamis,
     };
     final soluk = k.rol == 'drafts' || k.rol == 'templates' || k.rol == 'snoozed' || k.rol == 'junk';
+    // Web ile aynı: taslak, şablon, ertelenen ve gönderilmiş klasörlerine bırakılamaz.
+    final birakilir = !const {'drafts', 'templates', 'snoozed', 'sent'}.contains(k.rol);
     return _oge(
+      birakilir: birakilir,
       context,
       klasorSimgesi(k.rol),
       k.gorunenAd,
       Konum.klasor(k.id),
       sayi: sayi,
       solukSayi: soluk,
+      renk: klasorRengi(k.rol),
       menu: menu ? _KlasorMenusu(klasor: k) : null,
     );
   }
 
-  Widget _oge(BuildContext context, IconData ikon, String ad, Konum konum, {int sayi = 0, bool solukSayi = false, Color? renk, Widget? menu}) {
+  Widget _oge(
+    BuildContext context,
+    IconData ikon,
+    String ad,
+    Konum konum, {
+    int sayi = 0,
+    bool solukSayi = false,
+    Color? renk,
+    Widget? menu,
+    bool birakilir = false,
+  }) {
+    if (!birakilir || sayfa || cekmecede) return _ogeGovdesi(context, ikon, ad, konum, sayi: sayi, solukSayi: solukSayi, renk: renk, menu: menu);
+    // Masaüstü: iletiler (tek ya da seçim) klasöre taşınmak / etiketlenmek üzere bırakılabilir.
+    return DragTarget<IletiSurukleme>(
+      key: ValueKey('birak-${konum.tur.name}-${konum.id}'),
+      onWillAcceptWithDetails: (a) => a.data.kaynak != konum,
+      onAcceptWithDetails: (a) => a.data.birak(konum),
+      builder: (context, aday, _) => _ogeGovdesi(context, ikon, ad, konum, sayi: sayi, solukSayi: solukSayi, renk: renk, menu: menu, uzerinde: aday.isNotEmpty),
+    );
+  }
+
+  Widget _ogeGovdesi(
+    BuildContext context,
+    IconData ikon,
+    String ad,
+    Konum konum, {
+    int sayi = 0,
+    bool solukSayi = false,
+    Color? renk,
+    Widget? menu,
+    bool uzerinde = false,
+  }) {
     final r = context.r;
     final aktif = !sayfa && PostaDurum.ben.konum == konum;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Material(
-        color: aktif ? r.vurguYumusak : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        color: aktif || uzerinde ? r.vurguYumusak : Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: uzerinde ? BorderSide(color: r.vurgu, width: 1.5) : BorderSide.none,
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {

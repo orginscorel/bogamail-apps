@@ -48,6 +48,24 @@ String suzgecOzeti(Suzgec s) {
   return '${k.isEmpty ? 'Tüm iletiler' : k} → $e';
 }
 
+/// Süzgeci listede bir yukarı/aşağı taşır: sıra 10, 20, 30… olarak yeniden numaralanır ve yalnızca değişenler
+/// kaydedilir (web FiltersSection.move ile aynı).
+Future<void> suzgecTasi(List<Suzgec> l, int i, int yon) async {
+  final j = i + yon;
+  if (j < 0 || j >= l.length) return;
+  final eski = {for (final s in l) s.id: s.sira};
+  final sira = [...l];
+  final x = sira[i];
+  sira[i] = sira[j];
+  sira[j] = x;
+  final degisen = <Suzgec>[];
+  for (var k = 0; k < sira.length; k++) {
+    sira[k].sira = (k + 1) * 10;
+    if (eski[sira[k].id] != sira[k].sira) degisen.add(sira[k]);
+  }
+  await Future.wait(degisen.map(Hesap.suzgecKaydet));
+}
+
 class SuzgeclerEkrani extends StatelessWidget {
   const SuzgeclerEkrani({super.key});
 
@@ -71,8 +89,9 @@ class SuzgeclerEkrani extends StatelessWidget {
       return [
         KartListe(
           children: [
-            for (final s in l)
+            for (final (i, s) in l.indexed)
               ListTile(
+                key: ValueKey('suzgec-${s.id}'),
                 onTap: () => _duzenle(context, s, yenile),
                 leading: Switch.adaptive(
                   value: s.acik,
@@ -90,7 +109,10 @@ class SuzgeclerEkrani extends StatelessWidget {
                 trailing: PopupMenuButton<String>(
                   tooltip: 'Seçenekler',
                   onSelected: (v) async {
-                    if (v == 'calistir') {
+                    if (v == 'yukari' || v == 'asagi') {
+                      await islem(() => suzgecTasi(l, i, v == 'yukari' ? -1 : 1));
+                      await yenile();
+                    } else if (v == 'calistir') {
                       final n = await islem(() => Hesap.suzgecCalistir(s.id));
                       if (n != null) bildir('${n.eslesen} ileti eşleşti', mesaj: '${n.taranan} ileti tarandı', tur: MesajTur.basari);
                       PostaDurum.ben.sayilariYenile();
@@ -100,12 +122,22 @@ class SuzgeclerEkrani extends StatelessWidget {
                       await yenile();
                     }
                   },
-                  itemBuilder: (_) => const [
+                  itemBuilder: (_) => [
                     PopupMenuItem(
+                      value: 'yukari',
+                      enabled: i > 0,
+                      child: const ListTile(leading: Icon(Icons.arrow_upward_rounded), title: Text('Yukarı taşı')),
+                    ),
+                    PopupMenuItem(
+                      value: 'asagi',
+                      enabled: i < l.length - 1,
+                      child: const ListTile(leading: Icon(Icons.arrow_downward_rounded), title: Text('Aşağı taşı')),
+                    ),
+                    const PopupMenuItem(
                       value: 'calistir',
                       child: ListTile(leading: Icon(Icons.play_arrow_rounded), title: Text('Gelen Kutusu\'na şimdi uygula')),
                     ),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'sil',
                       child: ListTile(
                         leading: Icon(Icons.delete_outline_rounded, color: Marka.gul),

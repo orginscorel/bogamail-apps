@@ -10,8 +10,11 @@ import 'suzgecler.dart';
 
 /// Ayarlar'daki "Posta yönetimi", "Güvenlik" ve "Profil" bölümleri: her satır ilgili sayfayı açar.
 class AraclarBolumleri extends StatelessWidget {
-  const AraclarBolumleri({super.key, required this.ayarlar});
+  const AraclarBolumleri({super.key, required this.ayarlar, this.bolumler = const {'posta', 'guvenlik', 'profil'}});
   final PostaAyarlari ayarlar;
+
+  /// Gösterilecek bölümler: posta, guvenlik, profil (masaüstü Ayarlar'da her kategori kendi bölümünü gösterir).
+  final Set<String> bolumler;
 
   @override
   Widget build(BuildContext context) {
@@ -38,30 +41,36 @@ class AraclarBolumleri extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Baslik('Posta yönetimi'),
-        grup([
-          oge(Icons.contacts_outlined, 'Kişiler', 'Adres defteri, favoriler', KisilerEkrani.new),
-          oge(Icons.filter_alt_outlined, 'Süzgeçler (kurallar)', 'Gelen iletileri otomatik taşı, etiketle, işaretle', SuzgeclerEkrani.new),
-          oge(Icons.label_outline_rounded, 'Etiketler', 'Ad, renk, silme', EtiketlerEkrani.new),
-          oge(Icons.schedule_send_outlined, 'Planlanan gönderimler', 'Zamanlanmış iletileri gör, ertele, iptal et', PlanlananlarEkrani.new),
-          oge(Icons.shield_outlined, 'Güvenilir ve engelli gönderenler', 'Engelle veya her zaman Gelen Kutusu\'na al', GondericiListeleriEkrani.new),
-          if (ayarlar.ozellik('autoresponder'))
-            oge(Icons.auto_mode_rounded, 'Otomatik yanıt kuralları', 'Mesai dışı, belirli günler, iç/dış gönderen', OtomatikYanitKurallariEkrani.new),
-          if (ayarlar.ozellik('forwarding')) oge(Icons.forward_to_inbox_outlined, 'Yönlendirme', 'Gelen postaları başka adrese ilet', YonlendirmeEkrani.new),
-          oge(Icons.local_shipping_outlined, 'Gönderim durumu', 'İletileriniz teslim edildi mi?', GonderimDurumuEkrani.new),
-          oge(Icons.gpp_maybe_outlined, 'Karantina', 'Güvenlik taramasında tutulan iletiler', KarantinaEkrani.new, renk: Marka.kehribar),
-          if (ayarlar.ozellik('backup')) oge(Icons.backup_outlined, 'Yedekler', 'Silinen iletileri yedekten geri yükle', YedeklerEkrani.new),
-        ]),
-        const Baslik('Güvenlik'),
-        grup([
-          oge(Icons.password_rounded, 'Şifre değiştir', 'Posta kutusu şifreniz', SifreEkrani.new),
-          oge(Icons.verified_user_outlined, 'İki adımlı doğrulama', 'Girişte telefon kodu iste', IkiAdimliEkrani.new, renk: Marka.zumrut),
-          oge(Icons.key_outlined, 'Uygulama şifreleri', 'Outlook, Apple Mail, Thunderbird için', UygulamaSifreleriEkrani.new),
-          oge(Icons.smartphone_outlined, 'Bağlı cihazlar', 'ActiveSync telefonlar: engelle, uzaktan temizle', CihazlarEkrani.new),
-          oge(Icons.admin_panel_settings_outlined, 'Yönetici erişim kaydı', 'Kutunuza kim, ne zaman erişti', YoneticiErisimiEkrani.new),
-        ]),
-        const Baslik('Profil'),
-        grup([oge(Icons.badge_outlined, 'Profil resmi ve bilgileri', 'Unvan, telefon, sosyal bağlantılar (imzada kullanılır)', ImzaProfiliEkrani.new)]),
+        if (bolumler.contains('posta')) ...[
+          const Baslik('Posta yönetimi'),
+          grup([
+            oge(Icons.contacts_outlined, 'Kişiler', 'Adres defteri, favoriler', KisilerEkrani.new),
+            oge(Icons.filter_alt_outlined, 'Süzgeçler (kurallar)', 'Gelen iletileri otomatik taşı, etiketle, işaretle', SuzgeclerEkrani.new),
+            oge(Icons.schedule_send_outlined, 'Planlanan gönderimler', 'Zamanlanmış iletileri gör, ertele, iptal et', PlanlananlarEkrani.new),
+            oge(Icons.shield_outlined, 'Güvenilir ve engelli gönderenler', 'Engelle veya her zaman Gelen Kutusu\'na al', GondericiListeleriEkrani.new),
+            if (ayarlar.ozellik('autoresponder'))
+              oge(Icons.auto_mode_rounded, 'Otomatik yanıt kuralları', 'Mesai dışı, belirli günler, iç/dış gönderen', OtomatikYanitKurallariEkrani.new),
+            if (ayarlar.ozellik('forwarding')) oge(Icons.forward_to_inbox_outlined, 'Yönlendirme', 'Gelen postaları başka adrese ilet', YonlendirmeEkrani.new),
+            oge(Icons.local_shipping_outlined, 'Gönderim durumu', 'İletileriniz teslim edildi mi?', GonderimDurumuEkrani.new),
+            oge(Icons.gpp_maybe_outlined, 'Karantina', 'Güvenlik taramasında tutulan iletiler', KarantinaEkrani.new, renk: Marka.kehribar),
+            if (ayarlar.ozellik('backup')) oge(Icons.backup_outlined, 'Yedekler', 'Silinen iletileri yedekten geri yükle', YedeklerEkrani.new),
+          ]),
+        ],
+        if (bolumler.contains('guvenlik')) ...[
+          const Baslik('Güvenlik'),
+          grup([
+            oge(Icons.password_rounded, 'Şifre değiştir', 'Posta kutusu şifreniz', SifreEkrani.new),
+            oge(Icons.verified_user_outlined, 'İki adımlı doğrulama', 'Girişte telefon kodu iste', IkiAdimliEkrani.new, renk: Marka.zumrut),
+            oge(Icons.key_outlined, 'Uygulama şifreleri', 'Outlook, Apple Mail, Thunderbird için', UygulamaSifreleriEkrani.new),
+            oge(Icons.devices_other_outlined, 'Kayıtlı cihazlar', 'Şifresiz girişe kayıtlı tarayıcı ve uygulamalar', KayitliCihazlarEkrani.new),
+            oge(Icons.smartphone_outlined, 'Bağlı cihazlar', 'ActiveSync telefonlar: engelle, uzaktan temizle', CihazlarEkrani.new),
+            oge(Icons.admin_panel_settings_outlined, 'Yönetici erişim kaydı', 'Kutunuza kim, ne zaman erişti', YoneticiErisimiEkrani.new),
+          ]),
+        ],
+        if (bolumler.contains('profil')) ...[
+          const Baslik('Profil'),
+          grup([oge(Icons.badge_outlined, 'Profil resmi ve bilgileri', 'Unvan, telefon, sosyal bağlantılar (imzada kullanılır)', ImzaProfiliEkrani.new)]),
+        ],
       ],
     );
   }

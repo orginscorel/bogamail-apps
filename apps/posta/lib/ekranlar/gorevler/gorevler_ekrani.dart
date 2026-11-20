@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../veri/canli.dart';
 import '../../veri/modeller.dart';
 import '../../veri/takvim_servisi.dart';
+import '../../ortak/uyarlanir.dart';
 
 enum GorevKapsami {
   hepsi('', 'Tümü'),
@@ -104,11 +105,7 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
   }
 
   Future<void> _ac(Gorev g) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => GorevAyrinti(gorevId: g.id, ilk: g),
-      ),
-    );
+    await uyarlanirAc<void>(context, (_) => GorevAyrinti(gorevId: g.id, ilk: g));
     _yukle();
   }
 
@@ -577,12 +574,8 @@ class GorevDuzenleyici extends StatefulWidget {
   final String? iletiId;
   final String? ilkBaslik;
 
-  static Future<bool?> ac(BuildContext context, {Gorev? gorev, String? iletiId, String? ilkBaslik}) => Navigator.of(context).push<bool>(
-    MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => GorevDuzenleyici(gorev: gorev, iletiId: iletiId, ilkBaslik: ilkBaslik),
-    ),
-  );
+  static Future<bool?> ac(BuildContext context, {Gorev? gorev, String? iletiId, String? ilkBaslik}) =>
+      uyarlanirAc<bool>(context, (_) => GorevDuzenleyici(gorev: gorev, iletiId: iletiId, ilkBaslik: ilkBaslik), tamEkran: true);
 
   @override
   State<GorevDuzenleyici> createState() => _GorevDuzenleyiciState();

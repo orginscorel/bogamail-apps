@@ -41,7 +41,12 @@ void main() {
   });
 
   testWidgets('kayıtlı postalarınız: liste ve tek dokunuşla geçiş isteği', (t) async {
-    s.yollar['POST $_k/switch'] = (401, {'error': {'code': 'unauthorized', 'message': 'Oturum yok'}});
+    s.yollar['POST $_k/switch'] = (
+      401,
+      {
+        'error': {'code': 'unauthorized', 'message': 'Oturum yok'},
+      },
+    );
     await t.pumpWidget(MaterialApp(theme: temaKur(Brightness.light), scaffoldMessengerKey: kokMesaj, navigatorKey: kokGezgin, home: const GirisKapisi()));
     await t.pump();
     await t.pump(const Duration(milliseconds: 50));
@@ -72,5 +77,59 @@ void main() {
     s.yollar['DELETE $_k/accounts/a2'] = (204, null);
     await Uyg.hesabiKaldir('a2');
     expect(s.bul('DELETE', '$_k/accounts/a2'), hasLength(1));
+  });
+
+  Widget uygulama(Widget w) => MaterialApp(
+    theme: temaKur(Brightness.light),
+    scaffoldMessengerKey: kokMesaj,
+    navigatorKey: kokGezgin,
+    home: Scaffold(body: SingleChildScrollView(child: w)),
+  );
+
+  testWidgets('hesap ekle: kayıtlı hesaplar formun üstünde listelenir', (t) async {
+    Uyg.kutu.value = {'mailbox_id': 'a1', 'address': 'ayse@ornek.com', 'display_name': 'Ayşe'};
+    s.yollar['GET $_k/accounts'] = (
+      200,
+      {
+        'items': [
+          {'id': 'a1', 'address': 'ayse@ornek.com', 'display_name': 'Ayşe', 'active': true, 'signed_out': false, 'unread': 1},
+          {'id': 'a2', 'address': 'satis@ornek.com', 'display_name': 'Satış', 'active': false, 'signed_out': false, 'unread': 3},
+        ],
+      },
+    );
+    await t.pumpWidget(uygulama(const HesapSecici(gomulu: true)));
+    await t.pump(const Duration(milliseconds: 50));
+    // Eklenen ikinci hesap da seçicide görünür; kayıtsız uyarısı yok.
+    expect(find.byKey(const ValueKey('hesap-a2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('hesap-kaydet')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('hesap-ekle')));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const ValueKey('kayitli-ozet')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ozet-a2')), findsOneWidget);
+    expect(find.text('Bu cihazda kayıtlı kalsın'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+    Uyg.kutu.value = null;
+  });
+
+  testWidgets('oturumdaki hesap cihazda kayıtlı değilse önce kaydettirilir', (t) async {
+    Uyg.kutu.value = {'mailbox_id': 'm0', 'address': 'eski@ornek.com', 'display_name': 'Eski'};
+    s.yollar['GET $_k/accounts'] = (200, {'items': []});
+    await t.pumpWidget(uygulama(const HesapSecici(gomulu: true)));
+    await t.pump(const Duration(milliseconds: 50));
+    expect(find.text('Eski'), findsOneWidget);
+    expect(find.byKey(const ValueKey('hesap-kaydet')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('hesap-ekle')));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 400));
+    expect(find.text('Önce bu hesabı kaydedin'), findsOneWidget);
+    await t.tap(find.text('Kaydet ve devam'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 400));
+    // Adres dolu giriş formu: başarılı girişte (save) cihaz çerezi oluşur, ardından ekleme formu açılır.
+    expect(find.text('Bu cihazda kayıtlı kalsın'), findsOneWidget);
+    expect(find.text('eski@ornek.com'), findsWidgets);
+    await t.pumpWidget(const SizedBox());
+    Uyg.kutu.value = null;
   });
 }

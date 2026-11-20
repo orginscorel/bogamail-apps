@@ -12,8 +12,14 @@ import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/tercihler.dart';
 import '../veri/yardimci.dart';
+import 'ayarlar/bolum.dart';
+import 'ayarlar/bolumler.dart';
 import 'hesap/araclar.dart';
 import 'hesap/imza.dart';
+import 'hesap/otomatik_yanit.dart';
+import 'hesap/posta_yonetimi.dart';
+import 'hesap/profil.dart';
+import 'hesap/suzgecler.dart';
 import 'hesaplar.dart';
 
 class AyarlarEkrani extends StatefulWidget {
@@ -180,18 +186,254 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           ? Durum.hata(_hata!, tekrar: _yukle)
           : _a == null
           ? const Durum.yukleniyor()
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 40), children: _bolumler()),
-              ),
+          : LayoutBuilder(
+              builder: (_, k) => (_masaustuKipi = k.maxWidth >= masaustuGenisligi)
+                  ? _masaustu()
+                  : Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 40), children: _bolumler()),
+                      ),
+                    ),
             ),
     );
   }
 
-  List<Widget> _bolumler() {
-    final r = context.r;
+  /// Bu genişlikten itibaren (masaüstü/tablet yatay) iki bölmeli düzen: solda kategoriler, sağda içerik.
+  static const masaustuGenisligi = 820.0;
+
+  String _kategori = 'hesaplar';
+  bool _masaustuKipi = false;
+
+  /// Tüm kategoriler: yerleşikler + lib/ekranlar/ayarlar/bolumler.dart'taki eklenenler (aynı id yerleşiğin yerine
+  /// geçer), görünürlüğe göre süzülmüş ve sıralı.
+  List<AyarBolumu> get _tumBolumler {
     final a = _a!;
+    AyarBolumu y(String id, IconData ikon, String baslik, int sira, {bool Function(PostaAyarlari)? gorunur}) =>
+        AyarBolumu(id: id, ikon: ikon, baslik: baslik, sira: sira, tamSayfa: true, gorunur: gorunur, olustur: (_) => _kategoriIcerigi(id));
+    final yerlesik = [
+      y('hesaplar', Icons.manage_accounts_outlined, 'Hesaplar ve oturum', 10),
+      y('genel', Icons.tune_rounded, 'Genel', 20),
+      y('gorunum', Icons.palette_outlined, 'Görünüm', 30),
+      y('imza', Icons.draw_outlined, 'İmza', 40),
+      y('profil', Icons.badge_outlined, 'Profil', 50),
+      y('bildirimler', Icons.notifications_none_rounded, 'Bildirimler', 60),
+      y('guvenlik', Icons.verified_user_outlined, 'Güvenlik', 70),
+      y('suzgecler', Icons.filter_alt_outlined, 'Süzgeçler', 80),
+      y('otomatik', Icons.beach_access_outlined, 'Otomatik yanıt', 90),
+      y('kisiler', Icons.contacts_outlined, 'Kişiler', 100),
+      y('yonlendirme', Icons.forward_to_inbox_outlined, 'Yönlendirme', 110, gorunur: (a) => a.ozellik('forwarding')),
+      y('posta', Icons.inventory_2_outlined, 'Posta yönetimi', 120),
+      y('uygulama', Icons.system_update_alt_rounded, 'Uygulama ve güncelleme', 900),
+    ];
+    final ekIdler = ekAyarBolumleri.map((b) => b.id).toSet();
+    final l = [...yerlesik.where((b) => !ekIdler.contains(b.id)), ...ekAyarBolumleri].where((b) => b.gorunur?.call(a) ?? true).toList();
+    l.sort((x, z) => x.sira.compareTo(z.sira));
+    return l;
+  }
+
+  /// Bölümün sayfası: tam sayfa olduğu gibi, gövde ise başlıklı okunabilir genişlikte bir sayfaya konur.
+  Widget _bolumSayfasi(AyarBolumu b, BuildContext c, {required bool masaustu}) {
+    if (b.tamSayfa) return b.olustur(c);
+    final govde = b.olustur(c);
+    if (!masaustu) {
+      return Scaffold(
+        appBar: AppBar(title: Text(b.baslik)),
+        body: govde,
+      );
+    }
+    return Scaffold(
+      backgroundColor: context.r.zemin,
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Text(b.baslik, style: gosterim(24, agirlik: FontWeight.w700)),
+              ),
+              Expanded(child: govde),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _masaustu() {
+    final r = context.r;
+    final l = _tumBolumler;
+    if (!l.any((k) => k.id == _kategori)) _kategori = l.first.id;
+    final secili = l.firstWhere((k) => k.id == _kategori);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 264,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 16),
+            children: [
+              for (final AyarBolumu(:id, :ikon, baslik: ad) in l)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 1),
+                  child: Material(
+                    color: _kategori == id ? r.vurguYumusak : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    child: ListTile(
+                      key: ValueKey('ayar-kategori-$id'),
+                      dense: true,
+                      selected: _kategori == id,
+                      selectedColor: r.vurgu,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      leading: Icon(ikon, size: 21),
+                      title: Text(ad, style: TextStyle(fontSize: 14, fontWeight: _kategori == id ? FontWeight.w700 : FontWeight.w500)),
+                      onTap: () => setState(() => _kategori = id),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              const SurumEtiketi(ortala: true),
+            ],
+          ),
+        ),
+        VerticalDivider(width: 1, color: r.kenar),
+        // Alt sayfalar (hesap/*, imza...) sağ bölmede açılır: bölmenin kendi gezgini vardır.
+        Expanded(
+          child: ClipRect(
+            child: Navigator(
+              key: ValueKey('ayar-bolme-$_kategori'),
+              pages: [
+                MaterialPage<void>(
+                  key: ValueKey(_kategori),
+                  child: Builder(builder: (c) => _bolumSayfasi(secili, c, masaustu: true)),
+                ),
+              ],
+              onDidRemovePage: (_) {},
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Okunabilir genişlikte, kaydırılabilir içerik; geniş bölmede kartlar iki sütuna yayılır.
+  Widget _icerik(String baslik, List<Widget> l) {
+    return Scaffold(
+      backgroundColor: context.r.zemin,
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+            children: [
+              Text(baslik, style: gosterim(24, agirlik: FontWeight.w700)),
+              const SizedBox(height: 8),
+              ...l,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// İki kartı yan yana (yer yoksa alt alta) dizer.
+  Widget _ikiSutun(Widget a, Widget b) => LayoutBuilder(
+    builder: (_, k) => k.maxWidth < 680
+        ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [a, const SizedBox(height: 12), b])
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: a),
+              const SizedBox(width: 16),
+              Expanded(child: b),
+            ],
+          ),
+  );
+
+  /// Tam sayfa ekranlar sağ bölmeye okunabilir genişlikte yerleştirilir.
+  Widget _sayfa(Widget w) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: w),
+  );
+
+  Widget _kategoriIcerigi(String id) {
+    final a = _a!;
+    final liste = _listeKartlari();
+    return switch (id) {
+      'hesaplar' => _icerik('Hesaplar ve oturum', [
+        const SizedBox(height: 8),
+        _hesap(),
+        const Baslik('Bu cihazdaki hesaplar'),
+        const Kutu(padding: EdgeInsets.symmetric(vertical: 6), child: HesapSecici(gomulu: true)),
+      ]),
+      'genel' => _icerik('Genel', [
+        const Baslik('Görünen ad'),
+        _profilKarti(),
+        const Baslik('Liste ve gönderim'),
+        _ikiSutun(liste.first, liste.last),
+        const Baslik('Hakkında'),
+        _hakkindaKarti(),
+      ]),
+      'gorunum' => _icerik('Görünüm', [const SizedBox(height: 8), _gorunumKarti()]),
+      'imza' => _sayfa(const ImzaEkrani()),
+      'profil' => _sayfa(const ImzaProfiliEkrani()),
+      'bildirimler' => _icerik('Bildirimler', [const SizedBox(height: 8), _bildirimler()]),
+      'guvenlik' => _icerik('Güvenlik', [
+        AraclarBolumleri(ayarlar: a, bolumler: const {'guvenlik'}),
+      ]),
+      'suzgecler' => _sayfa(const SuzgeclerEkrani()),
+      'otomatik' => _icerik('Otomatik yanıt', [
+        const SizedBox(height: 8),
+        _tatilBolumu(),
+        if (a.ozellik('autoresponder')) ...[
+          const SizedBox(height: 12),
+          Kutu(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Builder(
+              builder: (context) => ListTile(
+                leading: const Icon(Icons.auto_mode_rounded),
+                title: const Text('Otomatik yanıt kuralları'),
+                subtitle: const Text('Mesai dışı, belirli günler, iç/dış gönderen'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const OtomatikYanitKurallariEkrani())),
+              ),
+            ),
+          ),
+        ],
+      ]),
+      'kisiler' => _sayfa(const KisilerEkrani()),
+      'yonlendirme' => _sayfa(const YonlendirmeEkrani()),
+      'posta' => _icerik('Posta yönetimi', [
+        AraclarBolumleri(ayarlar: a, bolumler: const {'posta'}),
+      ]),
+      _ => _icerik('Uygulama ve güncelleme', [const SizedBox(height: 8), GuncellemeKarti(api: Uyg.api)]),
+    };
+  }
+
+  /// Telefonda satır içi kartı olan yerleşik bölümler.
+  static const _satirIciBolumler = {'genel', 'gorunum', 'bildirimler', 'otomatik'};
+
+  Widget _bolumSatiri(AyarBolumu b) => ListTile(
+    key: ValueKey('ayar-satir-${b.id}'),
+    leading: Icon(b.ikon, color: context.r.vurgu),
+    title: Text(b.baslik),
+    subtitle: b.aciklama.isEmpty ? null : Text(b.aciklama, maxLines: 2, overflow: TextOverflow.ellipsis),
+    trailing: const Icon(Icons.chevron_right_rounded),
+    onTap: () async {
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (c) => _bolumSayfasi(b, c, masaustu: false)));
+      if (mounted) _yukle();
+    },
+  );
+
+  List<Widget> _bolumler() {
+    final a = _a!;
+    final gorunen = ekAyarBolumleri.where((b) => b.gorunur?.call(a) ?? true).toList();
+    final ek = {for (final b in gorunen.where((b) => _satirIciBolumler.contains(b.id))) b.id: b};
+    final diger = gorunen.where((b) => !_satirIciBolumler.contains(b.id)).toList();
     return [
       const Baslik('Hesap'),
       _hesap(),
@@ -200,82 +442,125 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
       const Baslik('Uygulama'),
       GuncellemeKarti(api: Uyg.api),
       AraclarBolumleri(ayarlar: a),
+      // Eklenen bölüm yerleşik bir satır içi kartın yerine geçiyorsa (aynı id) kart gizlenir ve bölüm aynı yerde
+      // satır olarak açılır; "Diğer ayarlar"da yalnız yerleşik karşılığı olmayanlar kalır.
       const Baslik('Profil ve imza'),
-      Kutu(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _ad,
-              maxLength: 100,
-              decoration: const InputDecoration(labelText: 'Görünen ad', counterText: ''),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              key: const ValueKey('imza-ac'),
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.draw_outlined, color: r.vurgu),
-              title: const Text('İmza'),
-              subtitle: Text(
-                a.imzaKilitli
-                    ? 'Kurum şablonu (kilitli)'
-                    : (a.etkinImzaHtml.trim().isEmpty ? 'İmza yok · eklemek için dokunun' : htmlMetne(a.etkinImzaHtml).replaceAll(RegExp(r'\s+'), ' ').trim()),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () async {
-                await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ImzaEkrani()));
-                _yukle();
-              },
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(onPressed: _profilKirli && !_kaydediliyor ? _profilKaydet : null, child: const Text('Kaydet')),
-            ),
-          ],
-        ),
-      ),
+      if (ek['genel'] case final b?)
+        Kutu(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(children: [_bolumSatiri(b), _imzaSatiri()]),
+        )
+      else
+        _profilKarti(),
       const Baslik('Görünüm'),
-      Kutu(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Tema',
-              style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            ValueListenableBuilder<ThemeMode>(
-              valueListenable: temaKipi,
-              builder: (_, k, _) => SegmentedButton<ThemeMode>(
-                segments: const [
-                  ButtonSegment(value: ThemeMode.system, label: Text('Sistem'), icon: Icon(Icons.brightness_auto_outlined)),
-                  ButtonSegment(value: ThemeMode.light, label: Text('Açık'), icon: Icon(Icons.light_mode_outlined)),
-                  ButtonSegment(value: ThemeMode.dark, label: Text('Koyu'), icon: Icon(Icons.dark_mode_outlined)),
-                ],
-                selected: {k},
-                onSelectionChanged: (s) => Tercihler.temaAyarla(s.first),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ValueListenableBuilder<bool>(
-              valueListenable: Tercihler.uzakGorseller,
-              builder: (_, v, _) => SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: v,
-                onChanged: Tercihler.uzakGorselAyarla,
-                title: const Text('Uzak görselleri otomatik göster'),
-                subtitle: const Text('Görseller sunucu üzerinden alınır; gönderen IP adresinizi görmez. Gereksiz ve uyarılı iletilerde yine sorulur.'),
-              ),
-            ),
-          ],
-        ),
-      ),
+      if (ek['gorunum'] case final b?) Kutu(padding: const EdgeInsets.symmetric(vertical: 4), child: _bolumSatiri(b)) else _gorunumKarti(),
       const Baslik('Bildirimler'),
-      _bildirimler(),
-      const Baslik('Liste ve gönderim'),
+      if (ek['bildirimler'] case final b?) Kutu(padding: const EdgeInsets.symmetric(vertical: 4), child: _bolumSatiri(b)) else _bildirimler(),
+      if (!ek.containsKey('genel')) ...[const Baslik('Liste ve gönderim'), ..._listeKartlari()],
+      const Baslik('Otomatik yanıt'),
+      if (ek['otomatik'] case final b?) Kutu(padding: const EdgeInsets.symmetric(vertical: 4), child: _bolumSatiri(b)) else _tatilBolumu(),
+      if (diger.isNotEmpty) ...[
+        const Baslik('Diğer ayarlar'),
+        Kutu(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(children: [for (final b in diger) _bolumSatiri(b)]),
+        ),
+      ],
+      const Baslik('Hakkında'),
+      _hakkindaKarti(),
+      const SizedBox(height: 16),
+      const SurumEtiketi(ortala: true),
+    ];
+  }
+
+  Widget _profilKarti() {
+    return Kutu(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _ad,
+            maxLength: 100,
+            decoration: const InputDecoration(labelText: 'Görünen ad', counterText: ''),
+          ),
+          const SizedBox(height: 12),
+          _imzaSatiri(),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(onPressed: _profilKirli && !_kaydediliyor ? _profilKaydet : null, child: const Text('Kaydet')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _imzaSatiri() {
+    final r = context.r;
+    final a = _a!;
+    return ListTile(
+      key: const ValueKey('imza-ac'),
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(Icons.draw_outlined, color: r.vurgu),
+      title: const Text('İmza'),
+      subtitle: Text(
+        a.imzaKilitli
+            ? 'Kurum şablonu (kilitli)'
+            : (a.etkinImzaHtml.trim().isEmpty ? 'İmza yok · eklemek için dokunun' : htmlMetne(a.etkinImzaHtml).replaceAll(RegExp(r'\s+'), ' ').trim()),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () async {
+        if (_masaustuKipi) return setState(() => _kategori = 'imza');
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ImzaEkrani()));
+        _yukle();
+      },
+    );
+  }
+
+  Widget _gorunumKarti() {
+    final r = context.r;
+    return Kutu(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Tema',
+            style: TextStyle(color: r.soluk, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: temaKipi,
+            builder: (_, k, _) => SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(value: ThemeMode.system, label: Text('Sistem'), icon: Icon(Icons.brightness_auto_outlined)),
+                ButtonSegment(value: ThemeMode.light, label: Text('Açık'), icon: Icon(Icons.light_mode_outlined)),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Koyu'), icon: Icon(Icons.dark_mode_outlined)),
+              ],
+              selected: {k},
+              onSelectionChanged: (s) => Tercihler.temaAyarla(s.first),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ValueListenableBuilder<bool>(
+            valueListenable: Tercihler.uzakGorseller,
+            builder: (_, v, _) => SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: v,
+              onChanged: Tercihler.uzakGorselAyarla,
+              title: const Text('Uzak görselleri otomatik göster'),
+              subtitle: const Text('Görseller sunucu üzerinden alınır; gönderen IP adresinizi görmez. Gereksiz ve uyarılı iletilerde yine sorulur.'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _listeKartlari() {
+    final a = _a!;
+    return [
       Kutu(
         child: Row(
           children: [
@@ -314,27 +599,26 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
           ],
         ),
       ),
-      const Baslik('Otomatik yanıt'),
-      _tatilBolumu(),
-      const Baslik('Hakkında'),
-      Kutu(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.dns_outlined),
-              title: const Text('Sunucu'),
-              subtitle: Text(Uyg.api.sunucu),
-              onTap: () => kopyala(Uyg.api.sunucu, mesaj: 'Sunucu adresi kopyalandı'),
-            ),
-            if (a.sunucu.isNotEmpty)
-              ListTile(leading: const Icon(Icons.settings_ethernet_rounded), title: const Text('IMAP/SMTP sunucusu'), subtitle: Text(a.sunucu)),
-          ],
-        ),
-      ),
-      const SizedBox(height: 16),
-      const SurumEtiketi(ortala: true),
     ];
+  }
+
+  Widget _hakkindaKarti() {
+    final a = _a!;
+    return Kutu(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.dns_outlined),
+            title: const Text('Sunucu'),
+            subtitle: Text(Uyg.api.sunucu),
+            onTap: () => kopyala(Uyg.api.sunucu, mesaj: 'Sunucu adresi kopyalandı'),
+          ),
+          if (a.sunucu.isNotEmpty)
+            ListTile(leading: const Icon(Icons.settings_ethernet_rounded), title: const Text('IMAP/SMTP sunucusu'), subtitle: Text(a.sunucu)),
+        ],
+      ),
+    );
   }
 
   Widget _hesap() {

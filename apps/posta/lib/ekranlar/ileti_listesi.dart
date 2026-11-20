@@ -7,13 +7,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
+import '../ortak/esitleme.dart';
 import '../ortak/iskelet.dart';
 import '../ortak/liste_filtresi.dart';
 import '../ortak/secimler.dart';
+import '../ortak/surukle.dart';
 import '../veri/bildirim.dart';
+import '../veri/birlesik.dart';
 import '../veri/durum.dart';
 import '../veri/hesap_servisi.dart';
 import '../veri/modeller.dart';
+import '../veri/onbellek.dart';
+import '../veri/onyukleme.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/yardimci.dart';
 import 'ileti_satiri.dart';
@@ -81,9 +86,65 @@ class IletiListesiState extends State<IletiListesi> {
   int _istek = 0;
   List<KayitliArama> _kayitli = [];
 
+  /// Sıralama oturum boyunca tüm listelerde korunur (web gibi).
+  static Siralama _sonSiralama = Siralama.yeni;
+  Siralama _siralama = _sonSiralama;
+
   int get _boyut => PostaDurum.ben.ayarlar?.sayfaBoyutu ?? 50;
   Klasor? get _klasor => widget.konum.tur == KonumTur.klasor ? PostaDurum.ben.klasor(widget.konum.id) : null;
   bool get _secimModu => _secim.isNotEmpty;
+
+  /// Masaüstü (geniş pencere, fare): web gibi tıklama açar, Ctrl/Cmd+tıklama seçer, Shift+tıklama aralık seçer,
+  /// başlıkta "Sayfadaki tümünü seç" kutusu ve kenar menüsüne sürükleme. Telefonda uzun basma seçimi korunur.
+  bool get _masaustu => masaustuPlatformu && context.genis && widget.konum.tur != KonumTur.birlesik;
+
+  /// Shift+tıklama aralığının başlangıcı (web anchor).
+  String? _capa;
+
+  /// Seçimi değiştirir; [aralik]: çapadan bu iletiye kadar olanları ekler (web toggle(id, shift)).
+  void _secDegistir(String id, {bool aralik = false}) {
+    setState(() {
+      if (aralik && _capa != null) {
+        final a = _ogeler.indexWhere((m) => m.id == _capa);
+        final b = _ogeler.indexWhere((m) => m.id == id);
+        if (a >= 0 && b >= 0) {
+          for (var i = min(a, b); i <= max(a, b); i++) {
+            _secim.add(_ogeler[i].id);
+          }
+          return;
+        }
+      }
+      _secim.contains(id) ? _secim.remove(id) : _secim.add(id);
+      _capa = id;
+    });
+  }
+
+  bool get _hepsiSecili => _ogeler.isNotEmpty && _ogeler.every((m) => _secim.contains(m.id));
+
+  void _hepsiniSecDegistir() => setState(() => _hepsiSecili ? _secim.clear() : _secim.addAll(_ogeler.map((m) => m.id)));
+
+  /// Sürüklenen iletiler kenar menüsünde bir klasöre (taşı) ya da etikete (etiketle) bırakıldı.
+  Future<void> _birak(List<String> idler, Konum hedef) async {
+    final d = PostaDurum.ben;
+    switch (hedef.tur) {
+      case KonumTur.klasor:
+        final k = d.klasor(hedef.id);
+        if (k == null || k.id == _klasor?.id) return;
+        await _toplu(idler, 'move', '${k.gorunenAd} klasörüne taşındı', klasorId: k.id);
+      case KonumTur.etiket:
+        final e = d.etiket(hedef.id);
+        if (e == null) return;
+        await _toplu(idler, 'label', '"${e.ad}" etiketi eklendi', etiketId: e.id, kaldir: false);
+      case KonumTur.gorunum || KonumTur.birlesik:
+        return;
+    }
+  }
+
+  IletiSurukleme? _surukleme(IletiOzet m) {
+    if (!_masaustu) return null;
+    final idler = _secim.contains(m.id) ? _ogeler.where((x) => _secim.contains(x.id)).map((x) => x.id).toList() : [m.id];
+    return IletiSurukleme(idler, kaynak: widget.konum, birak: (h) => _birak(idler, h));
+  }
 
   /// Arama sekmesinde henüz bir şey aranmadı: liste yerine ipuçları gösterilir.
   bool get _aramaBekliyor => widget.aramaSabit && _arama.isEmpty && _tarih == null;
@@ -94,6 +155,7 @@ class IletiListesiState extends State<IletiListesi> {
     _kaydirma.addListener(_kaydi);
     PostaDurum.ben.surum.addListener(_canli);
     PostaDurum.ben.addListener(_durumDegisti);
+    _yerelAbone = PostaDurum.ben.yerelDegisiklikler.listen(_yerelDegisti);
     if (widget.aramaSabit) {
       _aramaAcik = true;
       _tumKlasorler = true;
@@ -118,6 +180,8 @@ class IletiListesiState extends State<IletiListesi> {
   void dispose() {
     PostaDurum.ben.surum.removeListener(_canli);
     PostaDurum.ben.removeListener(_durumDegisti);
+    _yerelAbone?.cancel();
+    _onyuklemeGecikme?.cancel();
     _kaydirma.dispose();
     _aramaMetni.dispose();
     _aramaOdak.dispose();
@@ -133,8 +197,50 @@ class IletiListesiState extends State<IletiListesi> {
     if (!_yukleniyor && !_dahaYukleniyor && !_aramaBekliyor) _yukle(sessiz: true);
   }
 
+  StreamSubscription<(String, Map<String, dynamic>)>? _yerelAbone;
+  Timer? _onyuklemeGecikme;
+
+  /// Uygulamanın kendi değişikliği (okundu, yıldız...): satır yerinde güncellenir, liste yeniden indirilmez.
+  /// [id]'den [yon] kadar ötedeki ileti (J/K gezinmesi); yoksa null.
+  IletiOzet? komsu(String id, int yon) {
+    final i = _ogeler.indexWhere((m) => m.id == id);
+    final j = i + yon;
+    if (i < 0 || j < 0 || j >= _ogeler.length) return null;
+    return _ogeler[j];
+  }
+
+  void _yerelDegisti((String, Map<String, dynamic>) d) {
+    final m = _ogeler.where((m) => m.id == d.$1).firstOrNull;
+    if (m == null || !mounted) return;
+    setState(() {
+      final v = d.$2;
+      if (v['seen'] is bool) m.okundu = v['seen'] as bool;
+      if (v['flagged'] is bool) m.yildizli = v['flagged'] as bool;
+      if (v['important'] is bool) m.onemli = v['important'] as bool;
+    });
+  }
+
   void _kaydi() {
-    if (_kaydirma.position.extentAfter < 600 && !_dahaYukleniyor && !_yukleniyor && _ogeler.length < _toplam) _dahaFazla();
+    // Sona yaklaşmadan sonraki sayfa istenir (kaydırma beklemeye düşmesin).
+    if (_kaydirma.position.extentAfter < 1500 && !_dahaYukleniyor && !_yukleniyor && _ogeler.length < _toplam) _dahaFazla();
+    // Kaydırma durunca görünen bölgedeki iletilerin gövdeleri önyüklenir (eski kuyruk düşer).
+    _onyuklemeGecikme?.cancel();
+    _onyuklemeGecikme = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted || !_kaydirma.hasClients) return;
+      Onyukleme.ben.iste(_ogeler, bas: (_kaydirma.offset / 76).floor());
+    });
+  }
+
+  /// Önbelleğe alınan (süzgeçsiz, aramasız) görünümün anahtarı.
+  String? get _onbellekAnahtari {
+    if (_filtre.sunucuDegeri != null || _arama.trim().isNotEmpty || _tarih != null || widget.aramaSabit || _siralama != Siralama.yeni) return null;
+    final k = widget.konum;
+    return switch (k.tur) {
+      KonumTur.klasor => Posta.listeAnahtari(klasorId: k.id),
+      KonumTur.gorunum => Posta.listeAnahtari(gorunum: k.id),
+      KonumTur.etiket => Posta.listeAnahtari(gorunum: 'label', etiketId: k.id),
+      KonumTur.birlesik => null,
+    };
   }
 
   static final _gun = DateFormat('yyyy-MM-dd');
@@ -146,12 +252,33 @@ class IletiListesiState extends State<IletiListesi> {
     final bas = _tarih == null ? null : _gun.format(_tarih!.start);
     final bit = _tarih == null ? null : _gun.format(_tarih!.end);
     if ((arama != null || _tarih != null) && (_tumKlasorler || k.tur != KonumTur.klasor)) {
-      return Posta.liste(gorunum: 'all', arama: arama, alan: _alan.deger, sayfa: sayfa, boyut: boyut, filtre: filtre, baslangic: bas, bitis: bit);
+      return Posta.liste(
+        gorunum: 'all',
+        arama: arama,
+        alan: _alan.deger,
+        sayfa: sayfa,
+        boyut: boyut,
+        filtre: filtre,
+        baslangic: bas,
+        bitis: bit,
+        siralama: _siralama,
+      );
     }
     return switch (k.tur) {
-      KonumTur.klasor => Posta.liste(klasorId: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre, arama: arama, alan: _alan.deger, baslangic: bas, bitis: bit),
-      KonumTur.gorunum => Posta.liste(gorunum: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre),
-      KonumTur.etiket => Posta.liste(gorunum: 'label', etiketId: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre),
+      KonumTur.klasor => Posta.liste(
+        klasorId: k.id,
+        sayfa: sayfa,
+        boyut: boyut,
+        filtre: filtre,
+        arama: arama,
+        alan: _alan.deger,
+        baslangic: bas,
+        bitis: bit,
+        siralama: _siralama,
+      ),
+      KonumTur.gorunum => Posta.liste(gorunum: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre, siralama: _siralama),
+      KonumTur.etiket => Posta.liste(gorunum: 'label', etiketId: k.id, sayfa: sayfa, boyut: boyut, filtre: filtre, siralama: _siralama),
+      KonumTur.birlesik => Posta.liste(sayfa: sayfa, boyut: boyut, filtre: filtre, siralama: _siralama),
     };
   }
 
@@ -172,11 +299,29 @@ class IletiListesiState extends State<IletiListesi> {
         _yukleniyor = true;
         _hata = null;
       });
+      // Önce önbellek: liste anında görünür, ağ yanıtı gelince sessizce güncellenir.
+      final a = _onbellekAnahtari;
+      if (a != null) {
+        final sw = Stopwatch()..start();
+        final o = await Posta.listeOnbellek(a).catchError((_) => null);
+        if (!mounted || no != _istek) return;
+        if (o != null && _yukleniyor) {
+          zamanLogu('liste (önbellek)', sw);
+          setState(() {
+            _ogeler = o.ogeler;
+            _toplam = o.toplam;
+            _yukleniyor = false;
+          });
+          sessiz = true;
+        }
+      }
     }
+    final sw = Stopwatch()..start();
     try {
       final boyut = sessiz ? min(200, max(_ogeler.length, _boyut)) : _boyut;
       final s = await _getir(1, boyut);
       if (!mounted || no != _istek) return;
+      zamanLogu('liste (ağ)', sw);
       setState(() {
         _ogeler = s.ogeler;
         _toplam = s.toplam;
@@ -184,6 +329,7 @@ class IletiListesiState extends State<IletiListesi> {
         _hata = null;
         _secim.removeWhere((id) => !_ogeler.any((m) => m.id == id));
       });
+      Onyukleme.ben.iste(_ogeler, bas: _kaydirma.hasClients ? (_kaydirma.offset / 76).floor() : 0);
       if (_klasor?.rol == 'inbox' && _ogeler.isNotEmpty) {
         unawaited(Bildirim.goruldu(_ogeler.map((m) => m.tarih).whereType<DateTime>().fold<DateTime?>(null, (a, b) => a == null || b.isAfter(a) ? b : a)));
       }
@@ -510,6 +656,7 @@ class IletiListesiState extends State<IletiListesi> {
       KonumTur.klasor => _klasor?.okunmamis ?? 0,
       KonumTur.etiket => d.etiket(widget.konum.id)?.okunmamis ?? 0,
       KonumTur.gorunum => widget.konum.id == 'unread' ? _toplam : 0,
+      KonumTur.birlesik => 0,
     };
   }
 
@@ -526,7 +673,7 @@ class IletiListesiState extends State<IletiListesi> {
       title: Text('${_secim.length} ileti seçildi', style: gosterim(18, agirlik: FontWeight.w700)),
       actions: [
         TextButton.icon(
-          onPressed: () => setState(() => hepsi ? _secim.clear() : _secim.addAll(_ogeler.map((m) => m.id))),
+          onPressed: _hepsiniSecDegistir,
           icon: Icon(hepsi ? Icons.deselect_rounded : Icons.select_all_rounded, size: 20),
           label: Text(hepsi ? 'Hiçbiri' : 'Tümünü seç'),
         ),
@@ -716,6 +863,10 @@ class IletiListesiState extends State<IletiListesi> {
         children: [
           Row(
             children: [
+              if (!widget.aramaSabit) ...[
+                Icon(durum.gorsel(widget.konum).$1, size: 20, color: durum.gorsel(widget.konum).$2 ?? r.soluk),
+                const SizedBox(width: 8),
+              ],
               Flexible(child: Text(durum.baslik(widget.konum), maxLines: 1, overflow: TextOverflow.ellipsis)),
               if (okunmamis > 0) ...[
                 const SizedBox(width: 8),
@@ -739,7 +890,40 @@ class IletiListesiState extends State<IletiListesi> {
         ],
       ),
       actions: [
+        // Birden çok hesap varsa: "Tüm hesaplar" birleşik gelen kutusuna geçiş (toplam okunmamış rozetiyle).
+        if (!widget.aramaSabit)
+          ListenableBuilder(
+            listenable: BirlesikDurum.ben,
+            builder: (_, _) {
+              final b = BirlesikDurum.ben;
+              if (!b.kullanilabilir) return const SizedBox.shrink();
+              return IconButton(
+                key: const ValueKey('tum-hesaplar'),
+                tooltip: 'Tüm hesaplar',
+                onPressed: () => PostaDurum.ben.git(const Konum.birlesik()),
+                icon: Badge(
+                  isLabelVisible: b.toplamOkunmamis > 0,
+                  label: Text(b.toplamOkunmamis > 999 ? '999+' : '${b.toplamOkunmamis}'),
+                  child: const Icon(Icons.layers_outlined),
+                ),
+              );
+            },
+          ),
         IconButton(icon: const Icon(Icons.search_rounded), tooltip: 'Bu klasörde ara', onPressed: _aramaAc),
+        PopupMenuButton<Siralama>(
+          key: const ValueKey('sirala'),
+          tooltip: 'Sırala',
+          icon: Icon(Icons.swap_vert_rounded, color: _siralama == Siralama.yeni ? null : r.vurgu),
+          onSelected: (v) {
+            if (v == _siralama) return;
+            setState(() => _siralama = _sonSiralama = v);
+            _yukle();
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem<Siralama>(enabled: false, height: 32, child: Text('Sıralama')),
+            for (final v in Siralama.values) CheckedPopupMenuItem(value: v, checked: v == _siralama, child: Text(v.ad)),
+          ],
+        ),
         PopupMenuButton<String>(
           tooltip: 'Liste seçenekleri',
           onSelected: (v) => switch (v) {
@@ -852,7 +1036,35 @@ class IletiListesiState extends State<IletiListesi> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_aramaAcik) _aramaSecenekleri(),
-        if (!_filtreGizli && !_secimModu)
+        if (_masaustu && _ogeler.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 12, 4),
+            child: Row(
+              children: [
+                Checkbox(
+                  key: const ValueKey('hepsini-sec'),
+                  value: _hepsiSecili ? true : (_secimModu ? null : false),
+                  tristate: true,
+                  semanticLabel: 'Sayfadaki tümünü seç',
+                  onChanged: (_) => _hepsiniSecDegistir(),
+                ),
+                if (_secimModu)
+                  Text(
+                    '${_secim.length} seçili',
+                    style: TextStyle(color: r.soluk, fontSize: 13, fontWeight: FontWeight.w600),
+                  )
+                else if (!_filtreGizli)
+                  Expanded(
+                    child: FiltreCubugu(
+                      secili: _filtre,
+                      degisti: _filtreSec,
+                      sayilar: {if (!aramaVar && _okunmamisSayisi > 0) ListeFiltresi.okunmamis: _okunmamisSayisi},
+                    ),
+                  ),
+              ],
+            ),
+          )
+        else if (!_filtreGizli && !_secimModu)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
             child: FiltreCubugu(
@@ -927,6 +1139,8 @@ class IletiListesiState extends State<IletiListesi> {
           bottomNavigationBar: _secimModu ? _secimEylemleri() : null,
           body: Column(
             children: [
+              // Telefonda (kenar menüsü kapalıyken) eşitleme sorunu liste başında görünür.
+              if (!context.genis) const EsitlemeDurumu(serit: true),
               _ustAlan(),
               Expanded(child: _liste()),
             ],
@@ -1085,9 +1299,15 @@ class IletiListesiState extends State<IletiListesi> {
               secimModu: _secimModu,
               copte: _copte,
               arsivde: _klasor?.rol == 'archive',
+              surukle: _surukleme(m),
               dokun: () {
-                if (_secimModu) {
-                  setState(() => _secim.contains(m.id) ? _secim.remove(m.id) : _secim.add(m.id));
+                if (_masaustu) {
+                  final k = HardwareKeyboard.instance;
+                  if (k.isControlPressed || k.isMetaPressed) return _secDegistir(m.id);
+                  if (k.isShiftPressed) return _secDegistir(m.id, aralik: true);
+                }
+                if (_secimModu && !_masaustu) {
+                  _secDegistir(m.id);
                 } else {
                   widget.ac(m);
                   if (!m.okundu && m.klasorRolu != 'drafts') setState(() => m.okundu = true);
@@ -1095,7 +1315,7 @@ class IletiListesiState extends State<IletiListesi> {
               },
               sec: () {
                 HapticFeedback.selectionClick();
-                setState(() => _secim.contains(m.id) ? _secim.remove(m.id) : _secim.add(m.id));
+                _secDegistir(m.id, aralik: _masaustu && HardwareKeyboard.instance.isShiftPressed);
               },
               okundu: () => _okunduDegistir(m),
               yildiz: () => _yildizDegistir(m),

@@ -17,10 +17,15 @@ import 'simgeler.dart';
 bool get _masaustu => !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
 
 /// İletinin dosya ekleri: dokununca indirip açar; menüden paylaş / kaydet.
+typedef EkIndirici = Future<Uint8List> Function(int sira, {void Function(int, int)? ilerleme});
+
 class EkListesi extends StatelessWidget {
-  const EkListesi({super.key, required this.iletiId, required this.ekler});
+  const EkListesi({super.key, required this.iletiId, required this.ekler, this.indir});
   final String iletiId;
   final List<Ek> ekler;
+
+  /// Ek indirme (varsayılan: oturumdaki hesabın ileti eki; birleşik görünümde başka hesabın eki).
+  final EkIndirici? indir;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +50,7 @@ class EkListesi extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: [for (final e in ekler) _EkKarti(iletiId: iletiId, ek: e)],
+          children: [for (final e in ekler) _EkKarti(iletiId: iletiId, ek: e, indir: indir)],
         ),
       ],
     );
@@ -53,9 +58,10 @@ class EkListesi extends StatelessWidget {
 }
 
 class _EkKarti extends StatefulWidget {
-  const _EkKarti({required this.iletiId, required this.ek});
+  const _EkKarti({required this.iletiId, required this.ek, this.indir});
   final String iletiId;
   final Ek ek;
+  final EkIndirici? indir;
   @override
   State<_EkKarti> createState() => _EkKartiState();
 }
@@ -78,8 +84,7 @@ class _EkKartiState extends State<_EkKarti> {
   Future<Uint8List> _indir() async {
     setState(() => _ilerleme = 0);
     try {
-      return await Posta.ekIndir(
-        widget.iletiId,
+      return await (widget.indir ?? (int sira, {void Function(int, int)? ilerleme}) => Posta.ekIndir(widget.iletiId, sira, ilerleme: ilerleme))(
         widget.ek.sira,
         ilerleme: (a, t) {
           if (mounted && t > 0) setState(() => _ilerleme = a / t);

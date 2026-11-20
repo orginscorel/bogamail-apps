@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../veri/takvim_servisi.dart';
 import 'takvim_ekrani.dart';
+import '../../ortak/uyarlanir.dart';
 
 /// Etkinlik ayrıntısı: bilgiler, katılımcılar, düzenle / sil. Değişiklik olduysa true döner.
 class EtkinlikAyrinti extends StatelessWidget {
@@ -177,12 +178,8 @@ class EtkinlikDuzenleyici extends StatefulWidget {
   final Etkinlik? etkinlik;
   final DateTime? baslangic;
 
-  static Future<bool?> ac(BuildContext context, {required List<Takvim> takvimler, Etkinlik? etkinlik, DateTime? baslangic}) => Navigator.of(context).push<bool>(
-    MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => EtkinlikDuzenleyici(takvimler: takvimler, etkinlik: etkinlik, baslangic: baslangic),
-    ),
-  );
+  static Future<bool?> ac(BuildContext context, {required List<Takvim> takvimler, Etkinlik? etkinlik, DateTime? baslangic}) =>
+      uyarlanirAc<bool>(context, (_) => EtkinlikDuzenleyici(takvimler: takvimler, etkinlik: etkinlik, baslangic: baslangic), tamEkran: true);
 
   @override
   State<EtkinlikDuzenleyici> createState() => _EtkinlikDuzenleyiciState();

@@ -28,21 +28,32 @@ void bildir(String baslik, {String? mesaj, MesajTur tur = MesajTur.bilgi}) {
     MesajTur.bilgi => Icons.info_rounded,
   };
   m.hideCurrentSnackBar();
-  m.showSnackBar(SnackBar(
-    backgroundColor: const Color(0xFF15142E),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    duration: Duration(milliseconds: tur == MesajTur.hata ? 4500 : 2800),
-    content: Row(children: [
-      Icon(ikon, color: renk, size: 22),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(baslik, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          if (mesaj != null && mesaj.isNotEmpty) Text(mesaj, style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
-        ]),
+  m.showSnackBar(
+    SnackBar(
+      backgroundColor: const Color(0xFF15142E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      duration: Duration(milliseconds: tur == MesajTur.hata ? 4500 : 2800),
+      content: Row(
+        children: [
+          Icon(ikon, color: renk, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  baslik,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                if (mesaj != null && mesaj.isNotEmpty) Text(mesaj, style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
+              ],
+            ),
+          ),
+        ],
       ),
-    ]),
-  ));
+    ),
+  );
 }
 
 /// Hata nesnesini kullanıcıya gösterilecek metne çevirir.
@@ -104,14 +115,8 @@ Future<String?> metinSor(BuildContext context, String baslik, {String? ilk, Stri
 
 /// Yükleniyor / hata / boş durumlarını tek yerde çizen gövde.
 class Durum extends StatelessWidget {
-  const Durum.yukleniyor({super.key})
-      : hata = null,
-        bos = null,
-        ikon = null,
-        tekrar = null;
-  const Durum.hata(String this.hata, {super.key, this.tekrar})
-      : bos = null,
-        ikon = null;
+  const Durum.yukleniyor({super.key}) : hata = null, bos = null, ikon = null, tekrar = null;
+  const Durum.hata(String this.hata, {super.key, this.tekrar}) : bos = null, ikon = null;
   const Durum.bos(String this.bos, {super.key, this.ikon = Icons.inbox_rounded, this.tekrar}) : hata = null;
 
   final String? hata;
@@ -129,20 +134,27 @@ class Durum extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(color: h ? Marka.gul.withValues(alpha: .1) : r.birincilYumusak, shape: BoxShape.circle),
-            child: Icon(h ? Icons.cloud_off_rounded : ikon, size: 34, color: h ? Marka.gul : r.birincil),
-          ),
-          const SizedBox(height: 16),
-          Text(h ? hata! : bos!, textAlign: TextAlign.center, style: TextStyle(color: r.soluk, fontSize: 14.5)),
-          if (tekrar != null) ...[
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(color: h ? Marka.gul.withValues(alpha: .1) : r.birincilYumusak, shape: BoxShape.circle),
+              child: Icon(h ? Icons.cloud_off_rounded : ikon, size: 34, color: h ? Marka.gul : r.birincil),
+            ),
             const SizedBox(height: 16),
-            OutlinedButton.icon(onPressed: tekrar, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Tekrar dene')),
+            Text(
+              h ? hata! : bos!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: r.soluk, fontSize: 14.5),
+            ),
+            if (tekrar != null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(onPressed: tekrar, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Tekrar dene')),
+            ],
           ],
-        ]),
+        ),
       ),
     );
   }
@@ -167,7 +179,10 @@ class Kutu extends StatelessWidget {
         onTap: onTap,
         child: Container(
           padding: padding,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: r.kenar)),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: r.kenar),
+          ),
           child: child,
         ),
       ),
@@ -182,15 +197,19 @@ class Baslik extends StatelessWidget {
   final Widget? sag;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
-        child: Row(children: [
-          Expanded(
-            child: Text(trBuyukHarf(metin),
-                style: TextStyle(color: context.r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1)),
+    padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            trBuyukHarf(metin),
+            style: TextStyle(color: context.r.silik, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1),
           ),
-          ?sag,
-        ]),
-      );
+        ),
+        ?sag,
+      ],
+    ),
+  );
 }
 
 /// Renkli küçük etiket.
@@ -201,13 +220,19 @@ class Rozet extends StatelessWidget {
   final IconData? ikon;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: renk.withValues(alpha: .13), borderRadius: BorderRadius.circular(8)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (ikon != null) ...[Icon(ikon, size: 13, color: renk), const SizedBox(width: 4)],
-          Text(metin, style: TextStyle(color: renk, fontSize: 11.5, fontWeight: FontWeight.w600)),
-        ]),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(color: renk.withValues(alpha: .13), borderRadius: BorderRadius.circular(8)),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (ikon != null) ...[Icon(ikon, size: 13, color: renk), const SizedBox(width: 4)],
+        Text(
+          metin,
+          style: TextStyle(color: renk, fontSize: 11.5, fontWeight: FontWeight.w600),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Ad/adres baş harfli renkli yuvarlak.
@@ -218,8 +243,16 @@ class Avatar extends StatelessWidget {
   final String? tohum;
 
   static const _palet = [
-    Color(0xFF3B82F6), Color(0xFF10B981), Color(0xFF8B5CF6), Color(0xFFF97316), Color(0xFFF43F5E),
-    Color(0xFF14B8A6), Color(0xFF6366F1), Color(0xFFF59E0B), Color(0xFF0891B2), Color(0xFFD946EF),
+    Color(0xFF3B82F6),
+    Color(0xFF10B981),
+    Color(0xFF8B5CF6),
+    Color(0xFFF97316),
+    Color(0xFFF43F5E),
+    Color(0xFF14B8A6),
+    Color(0xFF6366F1),
+    Color(0xFFF59E0B),
+    Color(0xFF0891B2),
+    Color(0xFFD946EF),
   ];
 
   static Color renkFor(String s) {
@@ -241,7 +274,10 @@ class Avatar extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color.lerp(renk, Colors.white, .12)!, renk]),
       ),
-      child: Text(basHarf(ad), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: boyut * .38)),
+      child: Text(
+        basHarf(ad),
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: boyut * .38),
+      ),
     );
   }
 }
@@ -314,11 +350,11 @@ Future<void> kopyala(String metin, {String mesaj = 'Kopyalandı'}) async {
 /// Anında geçişli rota (kök değişimleri için).
 class HizliRota<T> extends PageRouteBuilder<T> {
   HizliRota({required WidgetBuilder builder})
-      : super(
-          transitionDuration: const Duration(milliseconds: 220),
-          pageBuilder: (c, _, _) => builder(c),
-          transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
-        );
+    : super(
+        transitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (c, _, _) => builder(c),
+        transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
+      );
 }
 
 /// Türkçe büyük harf: i → İ, ı → I (Dart toUpperCase "i"yi "I" yapar).

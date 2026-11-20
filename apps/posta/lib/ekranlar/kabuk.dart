@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../oturum.dart';
+import '../ortak/html_govde.dart';
 import '../veri/bildirim.dart';
+import '../veri/birlesik.dart';
 import '../veri/canli.dart';
 import '../veri/durum.dart';
 import '../veri/modeller.dart';
@@ -16,6 +18,7 @@ import '../veri/sohbet_servisi.dart';
 import '../veri/yazma_hazirla.dart';
 import 'ileti_listesi.dart';
 import 'ayarlar.dart';
+import 'birlesik_ekrani.dart';
 import 'gorevler/gorevler_ekrani.dart';
 import 'sohbet/sohbet_ekrani.dart';
 import 'sohbet/sohbet_odasi.dart';
@@ -80,8 +83,11 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     SohbetDurum.ben.sifirla();
     SohbetDurum.ben.addListener(_degisti);
     SohbetDurum.ben.baslat();
+    BirlesikDurum.ben.addListener(_degisti);
+    unawaited(BirlesikDurum.ben.baslat());
     WidgetsBinding.instance.addPostFrameCallback((_) => _bildirimleriKur());
     unawaited(Guncelleme.denetle(Uyg.api));
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) Timer(const Duration(seconds: 1), () => unawaited(webGorunumunuIsit()));
   }
 
   @override
@@ -89,6 +95,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _durum.removeListener(_degisti);
     SohbetDurum.ben.removeListener(_degisti);
+    BirlesikDurum.ben.removeListener(_degisti);
     for (final a in _abonelikler) {
       a.cancel();
     }
@@ -96,6 +103,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       _etkin = null;
       Canli.ben.durdur();
       SohbetDurum.ben.durdur();
+      BirlesikDurum.ben.durdur();
     }
     super.dispose();
   }
@@ -121,14 +129,18 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   }
 
   void _canliOlay(CanliOlay o) {
-    if (o.tur == 'new_mail' || o.tur == 'changed' || o.tur == 'scheduled') {
-      _durum.sayilariYenile();
-    }
+    _durum.canliOlay(o);
     if (o.tur == 'new_mail') unawaited(Bildirim.canliOlay(o));
     if (o.tur == 'chat_message' && '${o.veri['sender_id'] ?? ''}' != SohbetDurum.benId) unawaited(Bildirim.sohbetOlayi(o));
   }
 
   Future<void> _bildirimleriKur() async {
+    final yazma = Uyg.bekleyenYazma;
+    if (yazma != null) {
+      // Birleşik görünümden yanıt/iletme için bu hesaba geçildi: yazma penceresi şimdi açılır.
+      Uyg.bekleyenYazma = null;
+      unawaited(bekleyenYazmayiAc(context, yazma.$1, yazma.$2));
+    }
     final bekleyen = Uyg.bekleyenBildirim;
     if (bekleyen != null) {
       Uyg.bekleyenBildirim = null;
@@ -317,6 +329,14 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   Widget _telefonPosta() {
     final konum = _durum.konum ?? _gelenKonumu;
     if (konum == null) return const Durum.yukleniyor();
+    if (konum.tur == KonumTur.birlesik) {
+      return BirlesikListe(
+        key: const ValueKey('birlesik-liste'),
+        ac: (o, h) => birlesikOkuyucuAc(context, o, hesap: h),
+        fab: _yeniDugmesi(),
+        klasorler: () => _iskele.currentState?.openDrawer(),
+      );
+    }
     return IletiListesi(
       key: ValueKey('liste-${konum.tur.name}-${konum.id}'),
       konum: konum,
@@ -369,18 +389,48 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     );
   }
 
+  final _listeAnahtari = GlobalKey<IletiListesiState>();
+
+  /// J / K: okuma bölmesinde sonraki / önceki ileti.
+  void _gez(int yon) {
+    final s = _secili;
+    if (s == null) return;
+    final m = _listeAnahtari.currentState?.komsu(s, yon);
+    if (m != null) setState(() => _secili = m.id);
+  }
+
+  BirlesikOge? _birlesikSecili;
+  BirlesikHesap? _birlesikHesap;
+
   Widget _genisPosta() {
     final konum = _durum.konum!;
     final r = context.r;
     final en = MediaQuery.sizeOf(context).width;
-    final liste = IletiListesi(
-      konum: konum,
-      ac: _ac,
-      seciliId: _secili,
-      kaldirildi: (s) {
-        if (_secili != null && s.contains(_secili)) setState(() => _secili = null);
-      },
-    );
+    final birlesik = konum.tur == KonumTur.birlesik;
+    final seciliB = _birlesikSecili;
+    final onceki = _secili == null ? null : _listeAnahtari.currentState?.komsu(_secili!, -1);
+    final sonraki = _secili == null ? null : _listeAnahtari.currentState?.komsu(_secili!, 1);
+    final liste = birlesik
+        ? BirlesikListe(
+            key: const ValueKey('birlesik-liste'),
+            seciliAnahtar: seciliB?.anahtar,
+            ac: (o, h) => setState(() {
+              _birlesikSecili = o;
+              _birlesikHesap = h;
+            }),
+            kaldirildi: (s) {
+              if (seciliB != null && s.contains(seciliB.anahtar)) setState(() => _birlesikSecili = null);
+            },
+          )
+        : IletiListesi(
+            key: _listeAnahtari,
+            konum: konum,
+            ac: _ac,
+            seciliId: _secili,
+            kaldirildi: (s) {
+              if (_secili != null && s.contains(_secili)) setState(() => _secili = null);
+            },
+          );
     return Row(
       children: [
         SizedBox(
@@ -391,12 +441,25 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
         SizedBox(width: en >= 1400 ? 440 : 380, child: liste),
         VerticalDivider(width: 1, color: r.kenar),
         Expanded(
-          child: _secili == null
+          child: birlesik
+              ? (seciliB == null
+                    ? ColoredBox(
+                        color: r.kart,
+                        child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Icons.layers_outlined),
+                      )
+                    : BirlesikOkuyucu(oge: seciliB, hesap: _birlesikHesap, kaldirildi: () => setState(() => _birlesikSecili = null)))
+              : _secili == null
               ? ColoredBox(
                   color: r.kart,
                   child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Icons.mark_email_read_outlined),
                 )
-              : Okuyucu(key: _okuyucu, id: _secili!, kaldirildi: () => setState(() => _secili = null)),
+              : Okuyucu(
+                  key: _okuyucu,
+                  id: _secili!,
+                  kaldirildi: () => setState(() => _secili = null),
+                  onceki: onceki == null ? null : () => _gez(-1),
+                  sonraki: sonraki == null ? null : () => _gez(1),
+                ),
         ),
       ],
     );
@@ -445,10 +508,13 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
 
   /// Klavye kısayolu yalnızca bir metin alanına yazılmıyorken çalışır.
   VoidCallback _kisayol(VoidCallback f) => () {
-    final odak = FocusManager.instance.primaryFocus?.context;
-    if (odak != null && (odak.widget is EditableText || odak.findAncestorStateOfType<EditableTextState>() != null)) return;
-    f();
+    if (!_metinYaziliyor()) f();
   };
+
+  bool _metinYaziliyor() {
+    final odak = FocusManager.instance.primaryFocus?.context;
+    return odak != null && (odak.widget is EditableText || odak.findAncestorStateOfType<EditableTextState>() != null);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -460,6 +526,8 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       const SingleActivator(LogicalKeyboardKey.keyA): _kisayol(() => _okuyucu.currentState?.yanitla(tumu: true)),
       const SingleActivator(LogicalKeyboardKey.keyF): _kisayol(() => _okuyucu.currentState?.ilet()),
       const SingleActivator(LogicalKeyboardKey.keyE): _kisayol(() => _okuyucu.currentState?.arsivle()),
+      const SingleActivator(LogicalKeyboardKey.keyJ): _kisayol(() => _gez(1)),
+      const SingleActivator(LogicalKeyboardKey.keyK): _kisayol(() => _gez(-1)),
       const SingleActivator(LogicalKeyboardKey.delete): _kisayol(() => _okuyucu.currentState?.sil()),
       const SingleActivator(LogicalKeyboardKey.backspace, meta: true): _kisayol(() => _okuyucu.currentState?.sil()),
     };
@@ -473,9 +541,22 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     } else {
       icerik = genis ? _genis() : _telefon();
     }
-    return CallbackShortcuts(
-      bindings: kisayollar,
-      child: Focus(autofocus: true, child: icerik),
+    // CallbackShortcuts tuşu her durumda yutar (yazarken "selam" → "slm" olurdu); metin alanı odaktayken tuşlar
+    // hiç ele alınmadan metin alanına bırakılır.
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, olay) {
+        if (olay is! KeyDownEvent && olay is! KeyRepeatEvent) return KeyEventResult.ignored;
+        if (_metinYaziliyor()) return KeyEventResult.ignored;
+        for (final e in kisayollar.entries) {
+          if (e.key.accepts(olay, HardwareKeyboard.instance)) {
+            e.value();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: icerik,
     );
   }
 }
