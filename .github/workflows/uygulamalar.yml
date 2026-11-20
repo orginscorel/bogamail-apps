@@ -205,7 +205,17 @@ jobs:
             codesign -f -s "$KIMLIK" --timestamp=none "$f"; done
           codesign -f -s "$KIMLIK" --entitlements ent.plist --timestamp=none $APP
           codesign -v --deep --strict $APP
-          (cd imzali && zip -qry ../uygulama.ipa Payload)
+          # Uygulama Swift kütüphanesi gömüyorsa (geriye uyum dylib'leri) App Store, IPA kökünde Apple imzalı
+          # özgün kopyaları içeren SwiftSupport/iphoneos klasörü ister (ITMS-90426).
+          ARAC="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib"
+          for f in $(find $APP/Frameworks -maxdepth 1 -name 'libswift*.dylib' 2>/dev/null); do
+            ad=$(basename "$f")
+            kaynak=$(find "$ARAC" -path '*iphoneos*' -name "$ad" 2>/dev/null | head -1)
+            if [ -z "$kaynak" ]; then echo "SwiftSupport kaynağı bulunamadı: $ad"; exit 1; fi
+            mkdir -p imzali/SwiftSupport/iphoneos && cp "$kaynak" imzali/SwiftSupport/iphoneos/
+            echo "SwiftSupport: $ad <- $kaynak"
+          done
+          (cd imzali && zip -qry ../uygulama.ipa Payload $( [ -d SwiftSupport ] && echo SwiftSupport ))
           echo "Sürüm: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' $APP/Info.plist) ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' $APP/Info.plist))"
       - name: TestFlight'a yükle
         if: steps.g.outputs.var == '1'
