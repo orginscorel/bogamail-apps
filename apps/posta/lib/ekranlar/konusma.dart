@@ -829,7 +829,7 @@ class _KonusmaIletisiState extends State<KonusmaIletisi> {
             if (ekler.isNotEmpty)
               Padding(
                 key: const ValueKey('konusma-ekler'),
-                padding: EdgeInsets.fromLTRB(genis ? 60 : 16, 4, 16, 8),
+                padding: EdgeInsets.fromLTRB(genis ? 24 : 16, 4, 16, 8),
                 child: EkListesi(iletiId: d.ozet.id, ekler: ekler),
               ),
             _govde(d, tehlikeli),
@@ -928,7 +928,7 @@ class _KonusmaIletisiState extends State<KonusmaIletisi> {
     final html = v.html.trim().isNotEmpty && (!_duzMetin || v.metin.trim().isEmpty);
     if (!html) {
       return Padding(
-        padding: EdgeInsets.fromLTRB(context.genis ? 60 : 16, 2, 16, 12),
+        padding: EdgeInsets.fromLTRB(context.genis ? 24 : 16, 2, 16, 12),
         child: v.metin.trim().isEmpty
             ? Text('(Bu iletinin gövdesi boş.)', style: TextStyle(color: r.silik, fontSize: 13))
             : DuzMetin(
@@ -962,7 +962,7 @@ class _KonusmaIletisiState extends State<KonusmaIletisi> {
         ),
         if (bol.katlandi)
           Padding(
-            padding: EdgeInsets.fromLTRB(context.genis ? 60 : 16, 0, 16, 10),
+            padding: EdgeInsets.fromLTRB(context.genis ? 24 : 16, 0, 16, 10),
             child: Align(
               alignment: Alignment.centerLeft,
               child: _UcNokta(acik: _alinti, degistir: () => setState(() => _alinti = !_alinti)),

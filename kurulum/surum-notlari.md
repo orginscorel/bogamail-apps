@@ -1,3 +1,8 @@
+## 1.6.2
+
+- macOS/Windows: posta önce kısa, kaydırma çubuklu kutuda görünüp sonra uzamıyor; ölçülünce tek seferde tam boyunda görünür.
+- Okuma alanı Outlook/Gmail gibi tek hizada: başlık, spam satırı, ekler, Biçimli/Düz metin, gövde ve yanıt düğmeleri aynı sol kenardan başlar (konuşmada da).
+
 ## 1.6.1
 
 - macOS/Windows: Gelen Kutusu'nda bazı postalar küçük kaydırmalı kutuda açılıyordu (önbellekten açılıp aynı içerikle tazelenince yükseklik ölçülmüyordu); artık her durumda tam boyunda.

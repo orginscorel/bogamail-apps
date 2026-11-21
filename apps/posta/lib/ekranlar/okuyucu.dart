@@ -594,7 +594,8 @@ class OkuyucuState extends State<Okuyucu> {
 
   /// Masaüstünde gövde avatar hizasından başlar (web md:pl-[3.75rem]); yan dolgu 24 (telefonda 16).
   double get _yan => context.genis ? 24 : 16;
-  double get _girinti => context.genis ? 60 : 16;
+  // Outlook/Gmail gibi tek hiza: başlık, ekler, gövde aynı sol kenardan (_yan) başlar.
+  double get _girinti => _yan;
 
   /// İletiyi ve konuşmayı sessizce tazeler (aşağı çekme; görünüm durumu korunur).
   Future<void> yenileKonusma() async {

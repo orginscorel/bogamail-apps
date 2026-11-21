@@ -103,7 +103,17 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   double _en = 0;
 
   // Masaüstünde sığdırma ölçümle (JS, _olcMasaustu) yapılır; belgeye sabit oran eklenmez.
-  String? get _gosterilen => _belge == null ? null : (_masaustu ? _belge : sigdirilmisBelge(_belge!, _oran));
+  // Masaüstünde sığdırma ölçümle (JS, _olcMasaustu) yapılır; belgeye sabit oran eklenmez. Tam boy kipte kaydırma
+  // çubuğu baştan gizli (ölçülene kadar kısa kutuda kaydırma çubuğu görünmesin).
+  String? get _gosterilen => _belge == null
+      ? null
+      : _masaustu
+      ? (widget.otomatikYukseklik && !_olculemedi ? _belge!.replaceFirst('</head>', '<style>html{overflow:hidden}</style></head>') : _belge)
+      : sigdirilmisBelge(_belge!, _oran);
+
+  /// Masaüstü: en son ölçülen belge. Görünen belge henüz ölçülmediyse görüntüleyici beyaz örtüyle gizlenir; ileti
+  /// önce kısa kutuda görünüp sonra uzamaz, ölçülünce doğru boyunda tek seferde görünür.
+  String? _olculen;
 
   /// Genişlik değişince oran yeniden hesaplanır; değiştiyse belge yeniden yüklenir.
   void _genislikDegisti(double en) {
@@ -332,10 +342,12 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
         continue;
       }
       final y = h + 8;
-      if (_yukseklik == null || _olculemedi || (y - _yukseklik!).abs() > 2) {
+      final yeni = _olculen != _yuklenen;
+      if (yeni || _yukseklik == null || _olculemedi || (y - _yukseklik!).abs() > 2) {
         setState(() {
           _yukseklik = y;
           _olculemedi = false;
+          _olculen = _yuklenen;
         });
       }
     }
@@ -403,55 +415,65 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
                 color: Colors.white,
                 child: belge == null
                     ? const Center(child: CircularProgressIndicator.adaptive())
-                    : Semantics(
-                        label: 'İleti içeriği',
-                        child: InAppWebView(
-                          initialData: InAppWebViewInitialData(data: belge, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank')),
-                          initialSettings: InAppWebViewSettings(
-                            javaScriptEnabled: _masaustu && oto,
-                            javaScriptCanOpenWindowsAutomatically: false,
-                            useShouldOverrideUrlLoading: true,
-                            blockNetworkLoads: true,
-                            blockNetworkImage: true,
-                            allowFileAccess: false,
-                            allowContentAccess: false,
-                            allowFileAccessFromFileURLs: false,
-                            allowUniversalAccessFromFileURLs: false,
-                            supportZoom: true,
-                            builtInZoomControls: true,
-                            displayZoomControls: false,
-                            allowsLinkPreview: false,
-                            isFraudulentWebsiteWarningEnabled: false,
-                            mediaPlaybackRequiresUserGesture: true,
-                            isInspectable: false,
-                            transparentBackground: false,
-                            cacheEnabled: false,
-                            thirdPartyCookiesEnabled: false,
-                            disableVerticalScroll: oto && !_olculemedi,
-                            verticalScrollBarEnabled: !oto || _olculemedi,
-                          ),
-                          onWebViewCreated: (c) {
-                            _k = c;
-                            _yuklenen = belge;
-                          },
-                          onLoadStop: oto ? (c, _) => _olc(c) : null,
-                          onContentSizeChanged: oto && !_masaustu
-                              ? (c, _, yeni) {
-                                  if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
-                                    setState(() => _yukseklik = yeni.height + 8);
+                    : Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Semantics(
+                              label: 'İleti içeriği',
+                              child: InAppWebView(
+                                initialData: InAppWebViewInitialData(data: belge, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank')),
+                                initialSettings: InAppWebViewSettings(
+                                  javaScriptEnabled: _masaustu && oto,
+                                  javaScriptCanOpenWindowsAutomatically: false,
+                                  useShouldOverrideUrlLoading: true,
+                                  blockNetworkLoads: true,
+                                  blockNetworkImage: true,
+                                  allowFileAccess: false,
+                                  allowContentAccess: false,
+                                  allowFileAccessFromFileURLs: false,
+                                  allowUniversalAccessFromFileURLs: false,
+                                  supportZoom: true,
+                                  builtInZoomControls: true,
+                                  displayZoomControls: false,
+                                  allowsLinkPreview: false,
+                                  isFraudulentWebsiteWarningEnabled: false,
+                                  mediaPlaybackRequiresUserGesture: true,
+                                  isInspectable: false,
+                                  transparentBackground: false,
+                                  cacheEnabled: false,
+                                  thirdPartyCookiesEnabled: false,
+                                  disableVerticalScroll: oto && !_olculemedi,
+                                  verticalScrollBarEnabled: !oto || _olculemedi,
+                                ),
+                                onWebViewCreated: (c) {
+                                  _k = c;
+                                  _yuklenen = belge;
+                                },
+                                onLoadStop: oto ? (c, _) => _olc(c) : null,
+                                onContentSizeChanged: oto && !_masaustu
+                                    ? (c, _, yeni) {
+                                        if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
+                                          setState(() => _yukseklik = yeni.height + 8);
+                                        }
+                                      }
+                                    : null,
+                                shouldOverrideUrlLoading: _gezinme,
+                                onCreateWindow: (c, a) async {
+                                  final u = a.request.url;
+                                  if (u != null && (u.scheme == 'http' || u.scheme == 'https')) {
+                                    unawaited(launchUrl(Uri.parse(u.toString()), mode: LaunchMode.externalApplication));
                                   }
-                                }
-                              : null,
-                          shouldOverrideUrlLoading: _gezinme,
-                          onCreateWindow: (c, a) async {
-                            final u = a.request.url;
-                            if (u != null && (u.scheme == 'http' || u.scheme == 'https')) {
-                              unawaited(launchUrl(Uri.parse(u.toString()), mode: LaunchMode.externalApplication));
-                            }
-                            return false;
-                          },
-                          onScrollChanged: widget.kaydirma == null ? null : (c, x, y) => widget.kaydirma!(y.toDouble()),
-                        ),
+                                  return false;
+                                },
+                                onScrollChanged: widget.kaydirma == null ? null : (c, x, y) => widget.kaydirma!(y.toDouble()),
+                              ),
+                            ),
+                          ),
+                          if (_masaustu && oto && !_olculemedi && _olculen != _yuklenen)
+                            const Positioned.fill(
+                              child: IgnorePointer(child: ColoredBox(color: Colors.white)),
+                            ),
+                        ],
                       ),
               );
             },
