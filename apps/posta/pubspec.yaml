@@ -1,7 +1,7 @@
 name: posta
 description: "BogaMail — Bogahost kurumsal e-posta"
 publish_to: 'none'
-version: 1.6.0+1
+version: 1.6.1+1
 resolution: workspace
 
 environment:

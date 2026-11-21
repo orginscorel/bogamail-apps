@@ -126,7 +126,13 @@ class _HtmlGovdeState extends State<HtmlGovde> {
 
   Future<void> _yukle() async {
     final g = _gosterilen;
-    if (_k == null || g == null || _yuklenen == g) return;
+    if (_k == null || g == null) return;
+    if (_yuklenen == g) {
+      // Belge aynı (ör. önbellekten açılan ileti ağdan aynı içerikle tazelendi): yeniden yükleme ve onLoadStop olmaz;
+      // yükseklik yine de ölçülür, yoksa gövde varsayılan küçük kutuda kalır.
+      if (widget.otomatikYukseklik && (_yukseklik == null || _masaustu)) unawaited(_olc(_k!));
+      return;
+    }
     _yuklenen = g;
     await _k!.loadData(data: g, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank'));
   }
@@ -157,7 +163,6 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     _gorseller = widget.otomatikGorsel;
     _gorselYukleniyor = false;
     _olculemedi = false;
-    _yukseklik = null;
     unawaited(_baslat());
   }
 
@@ -219,6 +224,13 @@ class _HtmlGovdeState extends State<HtmlGovde> {
       if (!_gorseller || _uzak.isEmpty) _engellenen = r.engellenen;
     });
     await _yukle();
+    // Güvenlik ağı: yükleme olayı kaçarsa (masaüstü) ölçüm yine de yapılır.
+    if (_masaustu && widget.otomatikYukseklik) {
+      Future<void>.delayed(const Duration(milliseconds: 1200), () {
+        final c = _k;
+        if (mounted && c != null && id == widget.iletiId) unawaited(_olc(c));
+      });
+    }
   }
 
   Future<void> _cidYukle() async {

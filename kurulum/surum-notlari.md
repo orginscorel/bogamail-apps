@@ -1,3 +1,7 @@
+## 1.6.1
+
+- macOS/Windows: Gelen Kutusu'nda bazı postalar küçük kaydırmalı kutuda açılıyordu (önbellekten açılıp aynı içerikle tazelenince yükseklik ölçülmüyordu); artık her durumda tam boyunda.
+
 ## 1.6.0
 
 **BogaMail (posta)**
