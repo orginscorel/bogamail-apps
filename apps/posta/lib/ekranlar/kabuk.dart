@@ -16,9 +16,11 @@ import '../veri/push_kaydi.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/sohbet_servisi.dart';
+import '../veri/tercihler.dart';
 import '../veri/yazma_hazirla.dart';
 import 'ileti_listesi.dart';
 import 'ayarlar.dart';
+import 'sol_ray.dart';
 import 'birlesik_ekrani.dart';
 import 'gorevler/gorevler_ekrani.dart';
 import 'hesap_menusu.dart';
@@ -430,6 +432,9 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   }
 
   BirlesikOge? _birlesikSecili;
+
+  /// Sürükleme sürerken liste genişliği (bırakınca Tercihler'e yazılır).
+  double? _suruklenenEn;
   BirlesikHesap? _birlesikHesap;
 
   Widget _genisPosta() {
@@ -468,8 +473,32 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
           child: YanMenu(sec: _sec, yeniIleti: _yeni),
         ),
         VerticalDivider(width: 1, color: r.kenar),
-        SizedBox(width: en >= 1400 ? 440 : 380, child: liste),
-        VerticalDivider(width: 1, color: r.kenar),
+        // İleti listesi: varsayılan 420 (geniş pencerede 460) px; sağındaki çizgi sürüklenerek 340–640 arası
+        // ayarlanır ve saklanır. Okuyucuya en az 420 px kalır.
+        ValueListenableBuilder<double?>(
+          valueListenable: Tercihler.listeEni,
+          builder: (context, kayitli, _) {
+            final kenar = en >= 1250 ? 280.0 : 250.0;
+            final ust = (en - rayGenisligi - kenar - 420).clamp(listeEnAz, listeEnCok).toDouble();
+            final genislik = (_suruklenenEn ?? kayitli ?? (en >= 1400 ? 460.0 : 420.0)).clamp(listeEnAz, ust).toDouble();
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: genislik, child: liste),
+                BolmeCizgisi(
+                  renk: r.kenar,
+                  surukle: (dx) => setState(() => _suruklenenEn = (genislik + dx).clamp(listeEnAz, ust).toDouble()),
+                  bitti: () {
+                    final v = _suruklenenEn;
+                    _suruklenenEn = null;
+                    if (v != null) unawaited(Tercihler.listeEniAyarla(v));
+                  },
+                  sifirla: () => unawaited(Tercihler.listeEniAyarla(null)),
+                ),
+              ],
+            );
+          },
+        ),
         Expanded(
           child: birlesik
               ? (seciliB == null
@@ -499,6 +528,10 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     final r = context.r;
     final moduller = _moduller;
     if (!moduller.contains(_modul)) _modul = Modul.posta;
+    final ust = [
+      for (final m in moduller)
+        if (m != Modul.ayarlar) m,
+    ];
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -507,21 +540,21 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
             Expanded(
               child: Row(
                 children: [
-                  NavigationRail(
-                    backgroundColor: r.zemin,
-                    selectedIndex: moduller.indexOf(_modul),
-                    labelType: NavigationRailLabelType.all,
-                    groupAlignment: -0.9,
-                    indicatorColor: r.vurguYumusak,
-                    onDestinationSelected: (i) => setState(() => _modulSec(moduller[i])),
-                    destinations: [
-                      for (final m in moduller)
+                  // Bölümler üstte; Ayarlar, eşitleme, sürüm ve etkin hesap rayın altında (genişlik sabit 80 px).
+                  SolRay(
+                    hedefler: [
+                      for (final m in ust)
                         NavigationRailDestination(
                           icon: Tooltip(message: _ipucu(m), child: _rozetli(m.ikon, _rozet(m))),
                           selectedIcon: _rozetli(m.seciliIkon, _rozet(m)),
                           label: Text(m.ad),
                         ),
                     ],
+                    secili: ust.contains(_modul) ? ust.indexOf(_modul) : null,
+                    sec: (i) => setState(() => _modulSec(ust[i])),
+                    ayarlarSecili: _modul == Modul.ayarlar,
+                    ayarlarAc: () => setState(() => _modulSec(Modul.ayarlar)),
+                    ayarlarIkonu: _rozetli(_modul == Modul.ayarlar ? Modul.ayarlar.seciliIkon : Modul.ayarlar.ikon, _rozet(Modul.ayarlar)),
                   ),
                   VerticalDivider(width: 1, color: r.kenar),
                   Expanded(

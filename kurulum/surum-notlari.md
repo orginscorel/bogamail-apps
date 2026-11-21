@@ -1,3 +1,11 @@
+## 1.4.2
+
+**BogaMail (posta) — masaüstü**
+- Sol dar menünün altında Ayarlar, eşitleme durumu (renkli nokta), sürüm ve profil avatarı; menü genişlemez/taşmaz.
+- Posta listesi daha geniş ve ferah; liste ile okuma alanı arası sürüklenerek ayarlanır (genişlik hatırlanır).
+- Okuma alanı sadeleşti: kompakt konu ve gönderen satırı, Biçimli/Düz metin ⋯ menüsünde, içerik çerçevesiz ve tam genişlikte.
+- Aynı konudaki iletiler otomatik konuşma görünümünde açılır.
+
 ## 1.4.1
 
 - Posta listesi: fare iletinin üzerine gelince satır artık kaymıyor; işlem düğmeleri sağ üstte yüzerek belirir.

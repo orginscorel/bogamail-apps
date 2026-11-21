@@ -311,10 +311,9 @@ class _HtmlGovdeState extends State<HtmlGovde> {
         if (_gorselYukleniyor) const LinearProgressIndicator(minHeight: 2),
         kutu(
           Container(
-            // İleti HTML'i beyaz zemin varsayar: koyu temada beyaz bir kart içinde gösterilir.
-            margin: r.koyu ? const EdgeInsets.fromLTRB(10, 6, 10, 10) : EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(r.koyu ? 14 : 0)),
+            // İleti HTML'i beyaz zemin varsayar; ek çerçeve/dolgu yok, bölmenin tam genişliği (yan dolgu 16 px ve
+            // çok geniş bölmede 760 px ortalı sütun belgenin kendi stilinde).
+            color: Colors.white,
             child: belge == null
                 ? const Center(child: CircularProgressIndicator.adaptive())
                 : Semantics(

@@ -89,6 +89,11 @@ class _IletiSatiriState extends State<IletiSatiri> {
       child: Icon(i, size: boyut, color: renk ?? r.silik, semanticLabel: etiket),
     );
 
+    // Masaüstü: daha ferah (≈ 78 px, 11 px dikey dolgu, 36 px avatar, satır yüksekliği 1.35) ama yazı boyutları aynı.
+    final g = context.genis;
+    final avatar = g ? 36.0 : 32.0;
+    final sh = g ? 1.35 : 1.25;
+
     final icerik = Material(
       color: arka,
       child: InkWell(
@@ -97,7 +102,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
         child: Stack(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(14, context.genis ? 5 : 7, 12, context.genis ? 5 : 7),
+              padding: EdgeInsets.fromLTRB(g ? 16 : 14, g ? 11 : 7, g ? 14 : 12, g ? 11 : 7),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -111,8 +116,8 @@ class _IletiSatiriState extends State<IletiSatiri> {
                         child: widget.secili || widget.secimModu
                             ? Container(
                                 key: const ValueKey('s'),
-                                width: 32,
-                                height: 32,
+                                width: avatar,
+                                height: avatar,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: widget.secili ? r.vurgu : r.kart,
@@ -122,12 +127,12 @@ class _IletiSatiriState extends State<IletiSatiri> {
                               )
                             : Opacity(
                                 opacity: okunmamis ? 1 : .85,
-                                child: Avatar(gorunenAd(karsi), boyut: 32, tohum: tohum.isEmpty ? karsi : tohum),
+                                child: Avatar(gorunenAd(karsi), boyut: avatar, tohum: tohum.isEmpty ? karsi : tohum),
                               ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: g ? 14 : 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +152,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                 taslak ? 'Taslak' : ad,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 14, height: 1.25, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400, color: adRengi),
+                                style: TextStyle(fontSize: 14, height: sh, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400, color: adRengi),
                               ),
                             ),
                             if (widget.hesapRengi != null)
@@ -185,9 +190,9 @@ class _IletiSatiriState extends State<IletiSatiri> {
                             if (m.iletildi) simge(Simge.ilet, 'İletildi'),
                             const SizedBox(width: 6),
                             Text(
-                                kisaZaman(m.tarih),
-                                style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400),
-                              ),
+                              kisaZaman(m.tarih),
+                              style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 1),
@@ -200,7 +205,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 13.5,
-                                  height: 1.25,
+                                  height: sh,
                                   fontWeight: okunmamis ? FontWeight.w500 : FontWeight.w400,
                                   color: okunmamis ? r.metin : r.soluk,
                                 ),
@@ -231,7 +236,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
                               m.onizleme.trim(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13, color: r.soluk, height: 1.25),
+                              style: TextStyle(fontSize: 13, color: r.soluk, height: sh),
                             ),
                           ),
                         if (etiketler.isNotEmpty || m.ertelemeBitis != null || m.takip)
@@ -256,7 +261,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
             // Fare üzerindeyken eylemler satırın sağ üstünde yüzer; yerleşim (ad, tarih, yükseklik) hiç kaymaz.
             if (!widget.secimModu)
               Positioned(
-                top: context.genis ? 3 : 5,
+                top: g ? 9 : 5,
                 right: 8,
                 child: IgnorePointer(
                   ignoring: !_uzerinde,

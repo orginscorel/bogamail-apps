@@ -98,10 +98,70 @@ class HesapBlogu extends StatelessWidget {
   }
 }
 
+/// Sol raydaki (geniş ekran) hesap düğmesi: 36 px avatar, diğer hesaplarda okunmamış varsa küçük nokta,
+/// ipucu "Ad — adres". Dokununca hesap menüsü rayın sağında yukarı doğru açılır.
+class HesapRayDugmesi extends StatelessWidget {
+  const HesapRayDugmesi({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    return ListenableBuilder(
+      listenable: Listenable.merge([Uyg.kutu, BirlesikDurum.ben]),
+      builder: (context, _) {
+        final adres = Uyg.adres.trim();
+        final ad = Uyg.ad.trim();
+        final gorunen = ad.isNotEmpty ? ad : (adres.isNotEmpty ? adres : 'Hesabım');
+        final benId = '${Uyg.kutu.value?['mailbox_id'] ?? ''}';
+        final digerOkunmamis =
+            BirlesikDurum.ben.hesapOkunmamis.entries.any((e) => e.key != benId && e.value > 0) ||
+            sonHesaplar.any((h) => !h.etkin && !h.cikisYapti && h.okunmamis > 0);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12, top: 8),
+          child: Tooltip(
+            message: ad.isNotEmpty && adres.isNotEmpty ? '$ad — $adres' : gorunen,
+            child: Semantics(
+              button: true,
+              label: 'Hesap: $gorunen${digerOkunmamis ? ', diğer hesaplarda okunmamış ileti var' : ''}',
+              child: InkResponse(
+                key: const ValueKey('ray-hesap'),
+                radius: 24,
+                onTap: () => hesapMenusuAc(context, sagda: true),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Avatar(ad.isNotEmpty ? ad : (adres.isNotEmpty ? adres.split('@').first : gorunen), boyut: 36, tohum: adres.isEmpty ? gorunen : adres),
+                    if (digerOkunmamis)
+                      Positioned(
+                        right: -1,
+                        top: -1,
+                        child: Container(
+                          key: const ValueKey('ray-hesap-nokta'),
+                          width: 11,
+                          height: 11,
+                          decoration: BoxDecoration(
+                            color: r.vurgu,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: r.zemin, width: 2),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// Hesap menüsünü açar: geniş ekranda bloğun üstüne açılan açılır pencere, telefonda alt sayfa.
-Future<void> hesapMenusuAc(BuildContext context) async {
+/// [sagda]: sol raydaki düğmeden; pencere rayın sağında, düğmenin altından yukarı doğru açılır.
+Future<void> hesapMenusuAc(BuildContext context, {bool sagda = false}) async {
   unawaited(hesaplariTazele());
-  if (!context.genis) {
+  if (!context.genis && !sagda) {
     await showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const HesapMenusu());
     return;
   }
@@ -109,7 +169,9 @@ Future<void> hesapMenusuAc(BuildContext context) async {
   final ust = Overlay.of(context).context.findRenderObject() as RenderBox?;
   if (kutu == null || ust == null) return;
   final sol = kutu.localToGlobal(Offset.zero, ancestor: ust);
-  final altKenar = ust.size.height - sol.dy + 6;
+  final altKenar = sagda ? ust.size.height - (sol.dy + kutu.size.height) : ust.size.height - sol.dy + 6;
+  final solKenar = sagda ? sol.dx + kutu.size.width + 8 : sol.dx + 8;
+  final ustBosluk = sagda ? ust.size.height - altKenar : sol.dy;
   await showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
@@ -119,7 +181,7 @@ Future<void> hesapMenusuAc(BuildContext context) async {
     pageBuilder: (c, _, _) => Stack(
       children: [
         Positioned(
-          left: sol.dx + 8,
+          left: solKenar,
           bottom: altKenar,
           width: 300,
           child: Material(
@@ -132,7 +194,7 @@ Future<void> hesapMenusuAc(BuildContext context) async {
             ),
             clipBehavior: Clip.antiAlias,
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: (sol.dy - 24).clamp(240, 640).toDouble()),
+              constraints: BoxConstraints(maxHeight: (ustBosluk - 24).clamp(240, 640).toDouble()),
               child: const HesapMenusu(acilir: true),
             ),
           ),

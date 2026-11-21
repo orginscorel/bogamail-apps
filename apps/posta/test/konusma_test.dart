@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:posta/ekranlar/okuyucu.dart';
+import 'package:posta/oturum.dart';
 import 'package:posta/veri/durum.dart';
 import 'package:posta/veri/html_temizle.dart';
 import 'package:posta/veri/onyukleme.dart';
@@ -143,6 +144,64 @@ void main() {
     r = htmlAlintiAyir(imzali, imza: true);
     expect(r.katlandi, isTrue);
     expect(r.ana, isNot(contains('Satış')));
+  });
+
+  Map<String, dynamic> ozet(String id) => (((s.yollar['GET /api/v1/mail/messages/$id']! as Yanit).$2! as Map)['message'] as Map).cast<String, dynamic>();
+
+  testWidgets('sunucu konuşmayı bağlayamazsa (tek ileti) aynı konudakiler konuşma görünümünde açılır; eski şerit yok', (t) async {
+    s.yollar['GET /api/v1/mail/messages/k8/thread'] = (
+      200,
+      {
+        'items': [ozet('k8')],
+      },
+    );
+    await ac(t, boyut: const Size(900, 900));
+    expect(find.byKey(const ValueKey('konusma')), findsOneWidget);
+    expect(find.textContaining('Bu konuşmada'), findsNothing);
+    expect(s.istekler.any((i) => i.sorgu['in'] == 'subject'), isTrue);
+    await kapat(t);
+  });
+
+  testWidgets('tek ileti başlığı: kısa konu, çerçevesiz gönderen satırı, "kime: siz", biçim seçimi ⋯ menüsünde', (t) async {
+    Uyg.kutu.value = {'mailbox_id': 'm1', 'address': 'semih@ornek.com', 'display_name': 'Semih Boğa'};
+    addTearDown(() => Uyg.kutu.value = null);
+    s.yollar
+      ..['GET /api/v1/mail/messages/k8/thread'] = (
+        200,
+        {
+          'items': [ozet('k8')],
+        },
+      )
+      ..['GET /api/v1/mail/messages'] = (
+        200,
+        {
+          'items': [ozet('k8')],
+          'total': 1,
+          'page': 1,
+          'page_size': 25,
+        },
+      );
+    await ac(t, boyut: const Size(900, 900));
+    expect(find.byKey(const ValueKey('konusma')), findsNothing);
+    final konu = t.widget<Text>(find.byKey(const ValueKey('okuyucu-konu')));
+    expect(konu.maxLines, 2);
+    expect(konu.style!.fontSize, inInclusiveRange(19, 20));
+    expect(t.widget<Text>(find.byKey(const ValueKey('okuyucu-kime'))).data, startsWith('kime: siz'));
+    expect(find.descendant(of: find.byKey(const ValueKey('gonderen-karti')), matching: find.byType(Avatar)), findsOneWidget);
+    expect(t.getSize(find.descendant(of: find.byKey(const ValueKey('gonderen-karti')), matching: find.byType(Avatar))).width, 36);
+    expect(find.byType(SegmentedButton<bool>), findsNothing);
+    expect(find.text('Biçimli'), findsNothing);
+    // Gövde, başlığın hemen altında başlar (eskiden ~650 px sonra).
+    expect(t.getTopLeft(find.byKey(const ValueKey('gonderen-karti'))).dy, lessThan(200));
+    await t.tap(find.byTooltip('Diğer işlemler'));
+    await t.pumpAndSettle();
+    expect(find.text('Düz metin olarak göster'), findsOneWidget);
+    await t.tap(find.text('Düz metin olarak göster'));
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('Diğer işlemler'));
+    await t.pumpAndSettle();
+    expect(find.text('Biçimli göster'), findsOneWidget);
+    await kapat(t);
   });
 
   test('düz metin imza ayırma ("-- " ayıracı)', () {

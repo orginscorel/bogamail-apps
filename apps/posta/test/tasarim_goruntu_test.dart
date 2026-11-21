@@ -16,9 +16,11 @@ import 'package:posta/ekranlar/birlesik_ekrani.dart';
 import 'package:posta/ekranlar/ileti_listesi.dart';
 import 'package:posta/ekranlar/ileti_satiri.dart';
 import 'package:posta/ekranlar/okuyucu.dart';
+import 'package:posta/ekranlar/sol_ray.dart';
 import 'package:posta/ekranlar/yan_menu.dart';
 import 'package:posta/oturum.dart';
 import 'package:posta/veri/birlesik.dart';
+import 'package:posta/veri/canli.dart';
 import 'package:posta/veri/durum.dart';
 import 'package:posta/veri/modeller.dart';
 import 'package:posta/veri/onyukleme.dart';
@@ -79,6 +81,10 @@ void main() {
     await initializeDateFormatting('tr_TR');
     SharedPreferences.setMockInitialValues({});
     s.kur();
+    Guncelleme.surum = '1.4.2';
+    Guncelleme.derleme = 11;
+    Canli.ben.durum.value = const CanliDurumu(CanliTur.bagli);
+    Canli.ben.sonOlay.value = DateTime.now().subtract(const Duration(seconds: 21));
     if (dizin == null) return;
     const f = '../../packages/boga_ortak/assets/fonts';
     await _font('packages/boga_ortak/Poppins', ['$f/Poppins-Regular.ttf', '$f/Poppins-Medium.ttf', '$f/Poppins-SemiBold.ttf', '$f/Poppins-Bold.ttf']);
@@ -172,17 +178,32 @@ void main() {
     await t.pump(const Duration(seconds: 10));
   }
 
-  Widget genis(Widget liste) => Scaffold(
+  // Kabuk'un geniş düzeni: sabit 80 px sol ray (bölümler üstte; Ayarlar, eşitleme, sürüm, hesap altta), klasör
+  // çubuğu, liste (1280'de 420, 1400+'da 460 px) ve okuyucu.
+  Widget genis(Widget liste, {Widget? okuyucu, double kenar = 280, double listeEni = 420}) => Scaffold(
     body: Row(
       children: [
+        SolRay(
+          hedefler: const [
+            NavigationRailDestination(icon: Icon(Simge.posta), label: Text('Posta')),
+            NavigationRailDestination(icon: Icon(Simge.sohbet), label: Text('Sohbet')),
+            NavigationRailDestination(icon: Icon(Simge.takvimAy), label: Text('Takvim')),
+            NavigationRailDestination(icon: Icon(Simge.gorev), label: Text('Görevler')),
+          ],
+          secili: 0,
+          sec: (_) {},
+          ayarlarSecili: false,
+          ayarlarAc: () {},
+        ),
+        const VerticalDivider(width: 1),
         SizedBox(
-          width: 280,
+          width: kenar,
           child: YanMenu(sec: (_) {}, yeniIleti: () {}),
         ),
         const VerticalDivider(width: 1),
-        SizedBox(width: 420, child: liste),
-        const VerticalDivider(width: 1),
-        const Expanded(child: SizedBox()),
+        SizedBox(width: listeEni, child: liste),
+        BolmeCizgisi(renk: const Color(0xFFE5E7EB), surukle: (_) {}, bitti: () {}, sifirla: () {}),
+        Expanded(child: okuyucu ?? const SizedBox()),
       ],
     ),
   );
@@ -198,6 +219,58 @@ void main() {
   testWidgets('gelen kutusu', (t) async {
     await ciz(t, 'gelen-telefon', telefon, () => IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, klasorler: () {}));
     await ciz(t, 'gelen-genis', masaustu, () => genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {})));
+    await ciz(t, 'gelen-genis-1440', const Size(1440, 900), () => genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}), listeEni: 460));
+  });
+
+  testWidgets('sol ray (kısa ve orta pencere)', (t) async {
+    for (final h in [600.0, 800.0]) {
+      await ciz(t, 'ray-${h.round()}', Size(1280, h), () => genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {})));
+    }
+  });
+
+  testWidgets('okuyucu (geniş, tek ileti)', (t) async {
+    s.yollar
+      ..['GET /api/v1/mail/messages/a/thread'] = (
+        200,
+        {
+          'items': [_iletiler.first],
+        },
+      )
+      ..['GET /api/v1/mail/messages/a'] = (
+        200,
+        {
+          'message': _iletiler.first,
+          'view': {
+            'subject': 'Teklif: kurumsal paket yenileme ve 2027 yılı için güncellenmiş hizmet koşulları hakkında bilgilendirme',
+            'from': [
+              {'name': 'Ayşe Yılmaz', 'email': 'ayse@ornek.com'},
+            ],
+            'to': [
+              {'name': 'Semih Boğa', 'email': 'semih@ornek.com'},
+            ],
+            'cc': [
+              {'name': 'Can Demir', 'email': 'can@ornek.com'},
+            ],
+            'reply_to': [],
+            'date': _iso(9),
+            'text': 'Merhaba Semih Bey,\n\nEkte güncel teklifi bulabilirsiniz.',
+            'html':
+                '<p>Merhaba Semih Bey,</p><p>Kurumsal paketinizin yenileme dönemi yaklaşıyor. Ekte 2027 yılı için güncel teklifi ve hizmet '
+                'koşullarını bulabilirsiniz.</p><p>Sorularınız için bu iletiyi yanıtlayabilirsiniz.</p><p>Saygılarımla,<br>Ayşe</p>',
+            'attachments': [],
+          },
+        },
+      )
+      ..['PATCH /api/v1/mail/messages/a'] = (200, {'ok': true});
+    await ciz(
+      t,
+      'okuyucu-genis',
+      masaustu,
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, seciliId: 'a'),
+        okuyucu: const Okuyucu(id: 'a'),
+      ),
+    );
   });
 
   testWidgets('kenar menüsü (telefon)', (t) async {

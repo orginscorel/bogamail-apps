@@ -9,6 +9,10 @@ class Tercihler {
   static const _gorsel = 'posta.uzakGorseller';
   static const _imzaYeni = 'posta.imza.yeni';
   static const _imzaYanit = 'posta.imza.yanit';
+  static const _listeEni = 'posta.listeEni';
+
+  /// Masaüstünde ileti listesi bölmesinin kullanıcının sürükleyerek verdiği genişliği (null: varsayılan).
+  static final listeEni = ValueNotifier<double?>(null);
 
   /// İmza varsayılan olarak yeni iletilere / yanıt ve iletmelere eklensin mi (yazarken tek tıkla değiştirilebilir).
   static final imzaYeni = ValueNotifier<bool>(true);
@@ -29,6 +33,7 @@ class Tercihler {
       uzakGorseller.value = p.getBool(_gorsel) ?? false;
       imzaYeni.value = p.getBool(_imzaYeni) ?? true;
       imzaYanit.value = p.getBool(_imzaYanit) ?? true;
+      listeEni.value = p.getDouble(_listeEni);
     } catch (_) {}
   }
 
@@ -57,6 +62,16 @@ class Tercihler {
     if (yanit != null) {
       imzaYanit.value = yanit;
       await p.setBool(_imzaYanit, yanit);
+    }
+  }
+
+  static Future<void> listeEniAyarla(double? v) async {
+    listeEni.value = v;
+    final p = await SharedPreferences.getInstance();
+    if (v == null) {
+      await p.remove(_listeEni);
+    } else {
+      await p.setDouble(_listeEni, v);
     }
   }
 }

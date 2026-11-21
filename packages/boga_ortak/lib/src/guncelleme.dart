@@ -172,17 +172,31 @@ class Guncelleme {
 
 /// Küçük sürüm yazısı: "Sürüm 1.1.0 (12)". Ayarlar altı, yan menü altı, giriş ekranı.
 class SurumEtiketi extends StatelessWidget {
-  const SurumEtiketi({super.key, this.renk, this.ortala = false});
+  const SurumEtiketi({super.key, this.renk, this.ortala = false, this.kisa = false});
   final Color? renk;
   final bool ortala;
+
+  /// true: dar raylar için yalnız "1.4.2" (10 px, soluk, ortalı); tam metin ipucunda.
+  final bool kisa;
   @override
   Widget build(BuildContext context) => FutureBuilder<void>(
     future: Guncelleme._surumuOku(),
-    builder: (_, _) => Text(
-      Guncelleme.surumMetni,
-      textAlign: ortala ? TextAlign.center : null,
-      style: TextStyle(fontSize: 11.5, color: renk ?? context.r.silik, fontWeight: FontWeight.w600, letterSpacing: .2),
-    ),
+    builder: (_, _) => kisa
+        ? Tooltip(
+            message: Guncelleme.surumMetni,
+            child: Text(
+              Guncelleme.surum,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              style: TextStyle(fontSize: 10, height: 1.2, color: renk ?? context.r.silik),
+            ),
+          )
+        : Text(
+            Guncelleme.surumMetni,
+            textAlign: ortala ? TextAlign.center : null,
+            style: TextStyle(fontSize: 11.5, color: renk ?? context.r.silik, fontWeight: FontWeight.w600, letterSpacing: .2),
+          ),
   );
 }
 

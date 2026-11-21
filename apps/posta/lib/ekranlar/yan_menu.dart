@@ -10,7 +10,6 @@ import '../veri/durum.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/yardimci.dart';
-import 'ayarlar.dart';
 import 'hesap/posta_yonetimi.dart';
 import '../veri/bildirim_izni.dart';
 import 'hesap_menusu.dart';
@@ -179,25 +178,15 @@ class _YanMenuState extends State<YanMenu> {
                           ],
                         ),
                 ),
-                Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
-                // Hesap bloğu altta: avatar, ad, adres; dokununca hesap menüsü (geçiş, ekle, yönet, çıkış).
-                HesapBlogu(cekmecede: cekmecede),
-                if (!sayfa && !cekmecede)
-                  ListTile(
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    leading: const Icon(Simge.ayarlar, size: 20),
-                    title: const Text('Ayarlar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                    onTap: () {
-                      final nav = Navigator.of(context);
-                      if (cekmecede) nav.pop();
-                      nav.push(MaterialPageRoute<void>(builder: (_) => const AyarlarEkrani()));
-                    },
-                  ),
-                // Eşitleme durumu: Canlı / Bağlanıyor… / Bağlantı yok — N sn (geri sayım), son eşitleme, Şimdi eşitle.
-                const Padding(padding: EdgeInsets.fromLTRB(18, 2, 6, 0), child: EsitlemeDurumu()),
-                const Padding(padding: EdgeInsets.fromLTRB(20, 0, 16, 10), child: SurumEtiketi()),
+                // Telefonda (çekmece / klasörler sayfası) altta hesap bloğu, eşitleme durumu ve sürüm. Geniş ekranda
+                // bunların hepsi sol rayın altındadır; klasör çubuğunun altı boş kalır.
+                if (sayfa || cekmecede) ...[
+                  Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
+                  HesapBlogu(cekmecede: cekmecede),
+                  // Canlı / Bağlanıyor… / Bağlantı yok — N sn (geri sayım), son eşitleme, Şimdi eşitle.
+                  const Padding(padding: EdgeInsets.fromLTRB(18, 2, 6, 0), child: EsitlemeDurumu()),
+                  const Padding(padding: EdgeInsets.fromLTRB(20, 0, 16, 10), child: SurumEtiketi()),
+                ],
               ],
             ),
           ),

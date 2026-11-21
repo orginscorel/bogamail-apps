@@ -79,6 +79,12 @@ class OkuyucuState extends State<Okuyucu> {
   /// Konuşmadaki iletiler (eskiden yeniye). 2+ ileti varsa konuşma görünümü kullanılır.
   List<IletiOzet>? _konusma;
 
+  /// Başlıklarla (Message-ID) bağlanamayan konuşmalar için konu araması bir kez denendi mi.
+  bool _konuDenendi = false;
+
+  /// [_konusma] konu aramasıyla kuruldu.
+  bool _konudan = false;
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +110,8 @@ class OkuyucuState extends State<Okuyucu> {
         _ayrinti = false;
         _daralt = false;
         _konusma = Posta.konusmaHemen(widget.id);
+        _konuDenendi = false;
+        _konudan = false;
       });
       _yukle();
       unawaited(_konusmaYukle());
@@ -133,12 +141,48 @@ class OkuyucuState extends State<Okuyucu> {
       final l = await Posta.konusma(id);
       if (!mounted || id != widget.id) return;
       final eski = _konusma;
-      if (eski == null || eski.length != l.length || !Iterable.generate(l.length).every((i) => eski[i].id == l[i].id)) {
-        setState(() => _konusma = l);
+      // Konu aramasıyla kurulmuş bir konuşma, sunucunun tek iletilik yanıtıyla geri tek iletiye düşmez.
+      final degisti = eski == null || eski.length != l.length || !Iterable.generate(l.length).every((i) => eski[i].id == l[i].id);
+      if (degisti && !(_konudan && l.length < 2)) {
+        setState(() {
+          _konusma = l;
+          _konudan = false;
+        });
       }
     } catch (_) {
-      // Konuşma alınamazsa tek ileti görünümü (konu şeridiyle) kalır.
+      // Konuşma alınamazsa konu araması denenir; o da olmazsa tek ileti görünümü kalır.
     }
+    await _konuylaTamamla();
+  }
+
+  /// Sunucu konuşmayı Message-ID / In-Reply-To / References ile kurar; bu başlıkları taşımayan iletiler (ör. aynı
+  /// konulu bildirimler, bazı istemcilerin yanıtları) tek kalır. Eskiden bu durumda tek ileti okuyucusu ve konu
+  /// aramasıyla "Bu konuşmada N ileti daha" şeridi çıkıyordu; artık aynı yalın konudaki iletiler (Çöp, Gereksiz,
+  /// Taslaklar hariç; en çok 25) doğrudan konuşma görünümünde açılır.
+  Future<void> _konuylaTamamla() async {
+    final d = _d;
+    final id = widget.id;
+    if (d == null || d.ozet.id != id || _konuDenendi || _taslak || (_konusma?.length ?? 0) > 1) return;
+    final k = KonusmaSeridi.yalinKonu(d.ozet.konu.isNotEmpty ? d.ozet.konu : d.gorunum.konu);
+    if (k.length < 3) return;
+    _konuDenendi = true;
+    try {
+      final s = await Posta.liste(gorunum: 'all', arama: k, alan: 'subject', boyut: 25);
+      const disla = {'trash', 'junk', 'drafts', 'templates'};
+      final l = [
+        for (final m in s.ogeler)
+          if (m.id != id &&
+              KonusmaSeridi.yalinKonu(m.konu).toLowerCase() == k.toLowerCase() &&
+              !disla.contains(PostaDurum.ben.klasor(m.klasorId)?.rol ?? m.klasorRolu))
+            m,
+        d.ozet,
+      ]..sort((a, b) => (a.tarih ?? DateTime(0)).compareTo(b.tarih ?? DateTime(0)));
+      if (!mounted || id != widget.id || l.length < 2 || (_konusma?.length ?? 0) > 1) return;
+      setState(() {
+        _konusma = l;
+        _konudan = true;
+      });
+    } catch (_) {}
   }
 
   /// Okundu işareti iyimserdir: gösterimi bekletmez, ileti yeniden indirilmez (listeler yerinde güncellenir).
@@ -174,6 +218,7 @@ class OkuyucuState extends State<Okuyucu> {
         setState(() => _d = d);
       }
       _okundu(_d!);
+      unawaited(_konuylaTamamla());
     } on ApiHata catch (e) {
       if (!mounted || id != widget.id) return;
       if ((sessiz || _d != null) && e.durum == 404) {
@@ -439,6 +484,10 @@ class OkuyucuState extends State<Okuyucu> {
         _disaAktar();
       case 'duzenle':
         yazmaAc(context, taslakHazirla(d, taslakId: _rol == 'drafts' ? d.ozet.id : null));
+      case 'bicimli':
+        setState(() => _html = true);
+      case 'duz':
+        setState(() => _html = false);
     }
   }
 
@@ -466,6 +515,9 @@ class OkuyucuState extends State<Okuyucu> {
         o('olta', Simge.oltalama, 'Oltalama olarak bildir'),
       ],
       const PopupMenuDivider(),
+      // Biçimli / düz metin görünümü (eskiden gövdenin üstünde ayrı bir düğme grubuydu).
+      if (d.gorunum.html.trim().isNotEmpty && d.gorunum.metin.trim().isNotEmpty)
+        _html ? o('duz', Simge.duzMetin, 'Düz metin olarak göster') : o('bicimli', Simge.duzMetin, 'Biçimli göster'),
       o('disa', Simge.indir, 'İletiyi indir (.eml)'),
     ];
   }
@@ -570,24 +622,6 @@ class OkuyucuState extends State<Okuyucu> {
             metin: 'İleti çok uzun olduğu için kısaltıldı. Tamamı için iletiyi indirin.',
             ikon: Simge.kes,
           ),
-        if (!_taslak) KonusmaSeridi(key: ValueKey('konusma-${d.ozet.id}'), iletiId: d.ozet.id, konu: v.konu, ac: (m) => okuyucuAc(context, m.id)),
-        if (htmlVar && v.metin.trim().isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: SegmentedButton<bool>(
-                showSelectedIcon: false,
-                style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                segments: const [
-                  ButtonSegment(value: true, label: Text('Biçimli')),
-                  ButtonSegment(value: false, label: Text('Düz metin')),
-                ],
-                selected: {htmlGoster},
-                onSelectionChanged: (s) => setState(() => _html = s.first),
-              ),
-            ),
-          ),
         if (v.ekler.any((e) => e.davetiye)) DavetKarti(key: ValueKey('davet-${d.ozet.id}'), iletiId: d.ozet.id),
         if (v.dosyaEkleri.isNotEmpty)
           Padding(
@@ -676,6 +710,17 @@ class OkuyucuState extends State<Okuyucu> {
     ),
   );
 
+  /// "siz", "siz, Ali +2" gibi kısa alıcı özeti (kendi adresi "siz").
+  String _aliciOzeti(List<Adres> l) {
+    final ben = Uyg.adres.toLowerCase();
+    final adlar = [for (final a in l) a.eposta.toLowerCase() == ben ? 'siz' : (a.ad.isNotEmpty ? a.ad.split(' ').first : a.eposta)];
+    adlar.sort((a, b) => a == 'siz' ? -1 : (b == 'siz' ? 1 : 0));
+    if (adlar.isEmpty) return '—';
+    return adlar.length <= 2 ? adlar.join(', ') : '${adlar.take(2).join(', ')} +${adlar.length - 2}';
+  }
+
+  /// Toplu başlık: konu (en çok 2 satır, 19.5 px), altında rozetler, sonra çerçevesiz gönderen satırı
+  /// (36 px avatar · ad · adres · "kime: siz" · saat). Satıra dokununca tam alıcı/tarih ayrıntısı açılır.
   Widget _baslik(IletiDetay d) {
     final r = context.r;
     final v = d.gorunum;
@@ -683,8 +728,9 @@ class OkuyucuState extends State<Okuyucu> {
     final tarih = v.tarih ?? d.ozet.tarih;
     final etiketler = d.ozet.etiketler.map(PostaDurum.ben.etiket).whereType<Etiket>().toList();
     final ekSayisi = v.dosyaEkleri.length;
+    final konu = v.konu.isEmpty ? '(konu yok)' : v.konu;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -692,18 +738,32 @@ class OkuyucuState extends State<Okuyucu> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: SelectableText(v.konu.isEmpty ? '(konu yok)' : v.konu, style: gosterim(21, agirlik: FontWeight.w600, satir: 1.25)),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Tooltip(
+                    message: konu,
+                    waitDuration: const Duration(milliseconds: 600),
+                    child: Text(
+                      konu,
+                      key: const ValueKey('okuyucu-konu'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: gosterim(19.5, agirlik: FontWeight.w600, satir: 1.3),
+                    ),
+                  ),
+                ),
               ),
               IconButton(
                 tooltip: d.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla',
+                visualDensity: VisualDensity.compact,
                 onPressed: _mesgul ? null : () => _menu('yildiz'),
-                icon: Icon(d.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz, color: d.ozet.yildizli ? yildizRengi : r.silik),
+                icon: Icon(d.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz, size: 20, color: d.ozet.yildizli ? yildizRengi : r.silik),
               ),
             ],
           ),
           if (etiketler.isNotEmpty || d.ozet.onemli || ekSayisi > 0 || d.ozet.takip)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 6, right: 8),
               child: Wrap(
                 spacing: 6,
                 runSpacing: 6,
@@ -715,98 +775,81 @@ class OkuyucuState extends State<Okuyucu> {
                 ],
               ),
             ),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: r.kart,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: r.kenar),
-              boxShadow: r.hafifGolge,
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                key: const ValueKey('gonderen-karti'),
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => setState(() => _ayrinti = !_ayrinti),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Avatar(gonderen.gorunen, boyut: 44, tohum: gonderen.eposta),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        gonderen.gorunen,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5, color: r.metin),
-                                      ),
-                                    ),
-                                    Tooltip(
-                                      message: tamZaman(tarih),
-                                      child: Text(
-                                        kisaZaman(tarih),
-                                        style: TextStyle(color: r.silik, fontSize: 12.5, fontWeight: FontWeight.w600),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (gonderen.ad.isNotEmpty)
-                                  Text(
-                                    gonderen.eposta,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: r.soluk, fontSize: 12.5),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Icon(_ayrinti ? Simge.yukari : Simge.asagi, size: 20, color: r.silik),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 56),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AliciCipleri(etiket: 'Kime', adresler: v.kime),
-                            if (v.bilgi.isNotEmpty) AliciCipleri(etiket: 'Bilgi', adresler: v.bilgi),
-                          ],
-                        ),
-                      ),
-                      if (_ayrinti)
-                        Container(
-                          margin: const EdgeInsets.only(top: 10, right: 4),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 10),
+          InkWell(
+            key: const ValueKey('gonderen-karti'),
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => setState(() => _ayrinti = !_ayrinti),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 4, 8, 4),
+              child: Row(
+                children: [
+                  Avatar(gonderen.gorunen, boyut: 36, tohum: gonderen.eposta),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(
                             children: [
-                              _satir('Kimden', v.kimden.map(adresYaz).join(', ')),
-                              _satir('Kime', v.kime.map(adresYaz).join(', ')),
-                              if (v.bilgi.isNotEmpty) _satir('Bilgi', v.bilgi.map(adresYaz).join(', ')),
-                              if (v.yanitAdresi.isNotEmpty) _satir('Yanıt', v.yanitAdresi.map(adresYaz).join(', ')),
-                              _satir('Tarih', tamZaman(tarih)),
+                              TextSpan(
+                                text: gonderen.gorunen,
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: r.metin),
+                              ),
+                              if (gonderen.ad.isNotEmpty)
+                                TextSpan(
+                                  text: '  ${gonderen.eposta}',
+                                  style: TextStyle(fontSize: 12.5, color: r.silik),
+                                ),
                             ],
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                    ],
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'kime: ${_aliciOzeti([...v.kime, ...v.bilgi])}',
+                                key: const ValueKey('okuyucu-kime'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, color: r.soluk),
+                              ),
+                            ),
+                            Icon(_ayrinti ? Simge.yukari : Simge.asagi, size: 16, color: r.silik),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: tamZaman(tarih),
+                    child: Text(kisaZaman(tarih), style: TextStyle(color: r.silik, fontSize: 12.5)),
+                  ),
+                ],
               ),
             ),
           ),
+          if (_ayrinti)
+            Container(
+              margin: const EdgeInsets.fromLTRB(48, 4, 8, 4),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _satir('Kimden', v.kimden.map(adresYaz).join(', ')),
+                  _satir('Kime', v.kime.map(adresYaz).join(', ')),
+                  if (v.bilgi.isNotEmpty) _satir('Bilgi', v.bilgi.map(adresYaz).join(', ')),
+                  if (v.yanitAdresi.isNotEmpty) _satir('Yanıt', v.yanitAdresi.map(adresYaz).join(', ')),
+                  _satir('Tarih', tamZaman(tarih)),
+                ],
+              ),
+            ),
         ],
       ),
     );
