@@ -302,9 +302,9 @@ String sigdirilmisBelge(String belge, double oran) =>
 String gorunumBelgesi(String govde, {bool sikisik = false}) =>
     '<!doctype html><html><head><meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width, initial-scale=1">'
-    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; font-src data:">'
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; style-src \'unsafe-inline\'; img-src data:; font-src data:">'
     '<style>html,body{margin:0;font:14px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1f2328;background:#fff;'
-    'word-wrap:break-word;overflow-wrap:anywhere;color-scheme:light}body{padding:${sikisik ? '2px 16px 8px' : '10px 16px 24px'};display:flow-root}'
+    'word-wrap:break-word;overflow-wrap:anywhere;color-scheme:light}body{box-sizing:border-box;padding:${sikisik ? '2px 16px 8px' : '10px 16px 24px'};display:flow-root}'
     'img{max-width:100%;height:auto}table{max-width:100%}pre{white-space:pre-wrap}a{color:#4f46e5}'
     'blockquote{margin:0 0 0 .8ex;border-left:2px solid #d0d7de;padding-left:1ex;color:#57606a}$alintiCss</style>'
     '</head><body>$govde</body></html>';

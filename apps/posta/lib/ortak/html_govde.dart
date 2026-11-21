@@ -102,12 +102,19 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   double _oran = 1;
   double _en = 0;
 
-  String? get _gosterilen => _belge == null ? null : sigdirilmisBelge(_belge!, _oran);
+  // Masaüstünde sığdırma ölçümle (JS, _olcMasaustu) yapılır; belgeye sabit oran eklenmez.
+  String? get _gosterilen => _belge == null ? null : (_masaustu ? _belge : sigdirilmisBelge(_belge!, _oran));
 
   /// Genişlik değişince oran yeniden hesaplanır; değiştiyse belge yeniden yüklenir.
   void _genislikDegisti(double en) {
     if ((en - _en).abs() < 1) return;
     _en = en;
+    if (_masaustu) {
+      // Genişlik değişti: metin yeniden akar, yükseklik/sığdırma yeniden ölçülür.
+      final c = _k;
+      if (c != null && widget.otomatikYukseklik) WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_olc(c)));
+      return;
+    }
     final o = sigdirmaOrani(_dogal, en);
     if ((o - _oran).abs() < .01) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -124,15 +131,16 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     await _k!.loadData(data: g, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank'));
   }
 
-  /// macOS/Windows/Linux eklentisi içerik yüksekliğini sayfada JavaScript çalıştırarak ölçer; ileti görüntüleyicide
-  /// JavaScript kapalı olduğundan ölçüm hiç dönmez ve gövde 120 px'lik kutuda kalırdı. Masaüstünde baştan "ölçülemez"
-  /// kipine geçilir: görüntüleyici pencere yüksekliğini alır ve içerik kendi içinde kayar. iOS/Android yerel ölçer.
-  static bool get _yukseklikOlculur => kIsWeb || !(Platform.isMacOS || Platform.isWindows || Platform.isLinux);
+  /// macOS/Windows/Linux'ta eklenti içerik yüksekliğini yerel olarak ölçemez (JavaScript ister). Masaüstünde
+  /// görüntüleyicide JavaScript yalnızca uygulamanın ölçümü için açıktır: posta içindeki betikler temizleyicide
+  /// silinir ve belgenin CSP'si (default-src/script-src 'none') hiçbir sayfa betiğinin çalışmasına izin vermez;
+  /// uygulamanın evaluateJavascript çağrısı CSP'ye tabi değildir. iOS/Android yüksekliği yerel ölçer, JS kapalıdır.
+  static bool get _masaustu => !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
 
   @override
   void initState() {
     super.initState();
-    _olculemedi = !_yukseklikOlculur;
+    _olculemedi = false;
     _gorseller = widget.otomatikGorsel;
     unawaited(_baslat());
   }
@@ -148,7 +156,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     _engellenen = 0;
     _gorseller = widget.otomatikGorsel;
     _gorselYukleniyor = false;
-    _olculemedi = !_yukseklikOlculur;
+    _olculemedi = false;
     _yukseklik = null;
     unawaited(_baslat());
   }
@@ -267,7 +275,8 @@ class _HtmlGovdeState extends State<HtmlGovde> {
 
   /// İçerik yüksekliğini ölçer (yükleme bitince ve görseller yerleşince birkaç kez).
   Future<void> _olc(InAppWebViewController c) async {
-    if (!widget.otomatikYukseklik || !_yukseklikOlculur) return;
+    if (!widget.otomatikYukseklik) return;
+    if (_masaustu) return _olcMasaustu(c);
     for (final bekle in const [0, 250, 900]) {
       if (bekle > 0) await Future<void>.delayed(Duration(milliseconds: bekle));
       if (!mounted || _k != c) return;
@@ -282,6 +291,36 @@ class _HtmlGovdeState extends State<HtmlGovde> {
       }
       final y = h.toDouble() + 8;
       if (_yukseklik == null || (y - _yukseklik!).abs() > 2) {
+        setState(() {
+          _yukseklik = y;
+          _olculemedi = false;
+        });
+      }
+    }
+  }
+
+  /// Masaüstü: doğal genişlik ölçülür, taşıyorsa web gibi alana sığdırılır (transform: ölçüm her motorda aynı),
+  /// sonra görünen yükseklik okunur. Görseller yerleştikçe birkaç kez tekrarlanır.
+  static const _olcBetigi = """(function(){var d=document.documentElement,b=document.body;if(!b)return '0';d.style.overflow='hidden';
+b.style.transform='';b.style.width='';var cw=d.clientWidth,sw=Math.max(d.scrollWidth,b.scrollWidth);
+var z=(sw>cw+2&&cw>0)?Math.max(0.5,cw/sw):1;if(z<1){b.style.transformOrigin='0 0';b.style.transform='scale('+z+')';b.style.width=(100/z)+'%';}
+return String(Math.ceil(b.getBoundingClientRect().height));})()""";
+
+  Future<void> _olcMasaustu(InAppWebViewController c) async {
+    for (final bekle in const [0, 200, 700, 1800]) {
+      if (bekle > 0) await Future<void>.delayed(Duration(milliseconds: bekle));
+      if (!mounted || _k != c) return;
+      double? h;
+      try {
+        h = double.tryParse('${await c.evaluateJavascript(source: _olcBetigi)}');
+      } catch (_) {}
+      if (!mounted) return;
+      if (h == null || h <= 0) {
+        if (_yukseklik == null) setState(() => _olculemedi = true);
+        continue;
+      }
+      final y = h + 8;
+      if (_yukseklik == null || _olculemedi || (y - _yukseklik!).abs() > 2) {
         setState(() {
           _yukseklik = y;
           _olculemedi = false;
@@ -357,7 +396,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
                         child: InAppWebView(
                           initialData: InAppWebViewInitialData(data: belge, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank')),
                           initialSettings: InAppWebViewSettings(
-                            javaScriptEnabled: false,
+                            javaScriptEnabled: _masaustu && oto,
                             javaScriptCanOpenWindowsAutomatically: false,
                             useShouldOverrideUrlLoading: true,
                             blockNetworkLoads: true,
@@ -384,7 +423,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
                             _yuklenen = belge;
                           },
                           onLoadStop: oto ? (c, _) => _olc(c) : null,
-                          onContentSizeChanged: oto && _yukseklikOlculur
+                          onContentSizeChanged: oto && !_masaustu
                               ? (c, _, yeni) {
                                   if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
                                     setState(() => _yukseklik = yeni.height + 8);

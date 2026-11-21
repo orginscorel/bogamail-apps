@@ -660,7 +660,8 @@ class OkuyucuState extends State<Okuyucu> {
             ),
           // Gövde: HTML belge kendi 16 px yan dolgusunu taşır, bu yüzden girinti 16 px az.
           Padding(
-            padding: EdgeInsets.fromLTRB(htmlGoster ? 0 : _girinti, 12, htmlGoster ? 0 : _yan, 12),
+            // HTML gövdenin kendi 16 px dolgusu var: başlıkla aynı hizadan (_yan) başlar.
+            padding: EdgeInsets.fromLTRB(htmlGoster ? _yan - 16 : _girinti, 12, htmlGoster ? _yan - 16 : _yan, 12),
             child: htmlGoster
                 ? HtmlGovde(
                     key: ValueKey('ileti-html-${d.ozet.id}'),

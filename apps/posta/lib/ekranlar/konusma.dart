@@ -931,7 +931,8 @@ class _KonusmaIletisiState extends State<KonusmaIletisi> {
       children: [
         // HTML gövde tam genişlik kullanır (çoğu posta kendi ortalanmış tablosunu taşır; girinti sağa kaydırıyordu).
         Padding(
-          padding: EdgeInsets.zero,
+          // Başlık satırıyla aynı hiza (geniş: 24, dar: 16; gövdenin kendi 16 px dolgusu düşülür).
+          padding: EdgeInsets.symmetric(horizontal: context.genis ? 8 : 0),
           child: HtmlGovde(
             key: ValueKey('html-${d.ozet.id}-$_alinti'),
             iletiId: d.ozet.id,
