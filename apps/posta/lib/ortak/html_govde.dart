@@ -115,6 +115,10 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   /// önce kısa kutuda görünüp sonra uzamaz, ölçülünce doğru boyunda tek seferde görünür.
   String? _olculen;
 
+  /// Masaüstü: ölçülüp gösterilmiş son ileti. Aynı iletinin belgesi yeniden yüklenince (görseller geldi, genişlik
+  /// değişti) örtü tekrar inmez; içerik görünür kalır, yalnız boy güncellenir.
+  String? _gosterilenIleti;
+
   /// Genişlik değişince oran yeniden hesaplanır; değiştiyse belge yeniden yüklenir.
   void _genislikDegisti(double en) {
     if ((en - _en).abs() < 1) return;
@@ -348,6 +352,7 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
           _yukseklik = y;
           _olculemedi = false;
           _olculen = _yuklenen;
+          _gosterilenIleti = widget.iletiId;
         });
       }
     }
@@ -469,7 +474,7 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
                               ),
                             ),
                           ),
-                          if (_masaustu && oto && !_olculemedi && _olculen != _yuklenen)
+                          if (_masaustu && oto && !_olculemedi && _olculen != _yuklenen && _gosterilenIleti != widget.iletiId)
                             const Positioned.fill(
                               child: IgnorePointer(child: ColoredBox(color: Colors.white)),
                             ),

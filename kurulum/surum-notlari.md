@@ -1,3 +1,8 @@
+## 1.6.3
+
+- Posta içerikleri daha hızlı: sunucu açılan postaları ayrıştırılmış hâlde bellekte tutar (önyükleme sırasında da gecikme yok).
+- macOS/Windows: görseller yüklenince posta gövdesi bir an kaybolup yeniden görünmez.
+
 ## 1.6.2
 
 - macOS/Windows: posta önce kısa, kaydırma çubuklu kutuda görünüp sonra uzamıyor; ölçülünce tek seferde tam boyunda görünür.
