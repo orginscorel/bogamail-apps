@@ -1,3 +1,7 @@
+## 1.5.1
+
+- macOS/Windows: HTML postalar küçük bir kutuda kesik açılıyordu; artık okuma alanının tamamını kullanır ve içerik kaydırılarak okunur.
+
 ## 1.5.0
 
 **BogaMail (posta) — webmail ile aynı görünüm**

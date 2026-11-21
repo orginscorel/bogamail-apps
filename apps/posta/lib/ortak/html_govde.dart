@@ -124,9 +124,15 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     await _k!.loadData(data: g, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank'));
   }
 
+  /// macOS/Windows/Linux eklentisi içerik yüksekliğini sayfada JavaScript çalıştırarak ölçer; ileti görüntüleyicide
+  /// JavaScript kapalı olduğundan ölçüm hiç dönmez ve gövde 120 px'lik kutuda kalırdı. Masaüstünde baştan "ölçülemez"
+  /// kipine geçilir: görüntüleyici pencere yüksekliğini alır ve içerik kendi içinde kayar. iOS/Android yerel ölçer.
+  static bool get _yukseklikOlculur => kIsWeb || !(Platform.isMacOS || Platform.isWindows || Platform.isLinux);
+
   @override
   void initState() {
     super.initState();
+    _olculemedi = !_yukseklikOlculur;
     _gorseller = widget.otomatikGorsel;
     unawaited(_baslat());
   }
@@ -142,7 +148,8 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     _engellenen = 0;
     _gorseller = widget.otomatikGorsel;
     _gorselYukleniyor = false;
-    _olculemedi = false;
+    _olculemedi = !_yukseklikOlculur;
+    _yukseklik = null;
     unawaited(_baslat());
   }
 
@@ -260,7 +267,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
 
   /// İçerik yüksekliğini ölçer (yükleme bitince ve görseller yerleşince birkaç kez).
   Future<void> _olc(InAppWebViewController c) async {
-    if (!widget.otomatikYukseklik) return;
+    if (!widget.otomatikYukseklik || !_yukseklikOlculur) return;
     for (final bekle in const [0, 250, 900]) {
       if (bekle > 0) await Future<void>.delayed(Duration(milliseconds: bekle));
       if (!mounted || _k != c) return;
@@ -304,7 +311,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     final belge = _gosterilen;
     final oto = widget.otomatikYukseklik;
     // Ölçülemezse (ör. JavaScript'siz masaüstü) sınırlı yükseklik; içerik kendi içinde kayar.
-    final sinir = (MediaQuery.sizeOf(context).height * .7).clamp(240.0, 640.0);
+    final sinir = (MediaQuery.sizeOf(context).height - 160).clamp(360.0, 4000.0);
     final yukseklik = _olculemedi ? sinir : (_yukseklik ?? 120);
     Widget kutu(Widget c) => oto ? SizedBox(height: yukseklik, child: c) : Expanded(child: c);
     if (_testOrtami) {
@@ -377,7 +384,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
                             _yuklenen = belge;
                           },
                           onLoadStop: oto ? (c, _) => _olc(c) : null,
-                          onContentSizeChanged: oto
+                          onContentSizeChanged: oto && _yukseklikOlculur
                               ? (c, _, yeni) {
                                   if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
                                     setState(() => _yukseklik = yeni.height + 8);
