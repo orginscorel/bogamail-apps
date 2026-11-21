@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'ekranlar/hesaplar.dart';
 import 'ekranlar/kabuk.dart';
 import 'veri/arkaplan.dart';
+import 'veri/baglanti.dart';
 import 'veri/bildirim.dart';
 import 'veri/birlesik.dart';
 import 'veri/canli.dart';
 import 'veri/durum.dart';
+import 'veri/esitleyici.dart';
 import 'veri/onbellek.dart';
 import 'veri/posta_servisi.dart';
 import 'veri/push_kaydi.dart';
@@ -58,16 +61,74 @@ class Uyg {
   static String get adres => '${kutu.value?['address'] ?? ''}';
   static String get ad => '${kutu.value?['display_name'] ?? ''}';
 
-  /// Sunucudan kutuyu yükler. Oturum yoksa false.
-  static Future<bool> yukle() async {
+  static const _kutuAnahtari = 'posta.kutu';
+
+  /// Kutuyu yükler. Oturum yoksa false. Soğuk açılışta (önceki oturumun kutusu kayıtlıysa) ağ beklenmez: kabuk
+  /// yerel verilerle hemen açılır, kutu sunucudan arkada doğrulanır (çevrimdışıyken de açılır). [ag]: girişten
+  /// hemen sonra olduğu gibi sunucudan alınması gerekir.
+  static Future<bool> yukle({bool ag = false}) async {
     if (!await api.oturumVar()) return false;
+    api.ulasilabilirlik ??= Baglanti.ben.bildir;
+    if (!ag && kutu.value == null) {
+      final o = await _kayitliKutu();
+      final id = '${o?['mailbox_id'] ?? ''}';
+      if (o != null && id.isNotEmpty) {
+        kutu.value = o;
+        await Esitleyici.ben.hesapAc(id);
+        unawaited(_kutuTazele(arka: true));
+        return true;
+      }
+    }
+    return _kutuTazele(arka: false);
+  }
+
+  static Future<Map<String, dynamic>?> _kayitliKutu() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final s = p.getString(_kutuAnahtari);
+      if (s == null) return null;
+      final v = jsonDecode(s);
+      return v is Map ? Map<String, dynamic>.from(v) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> _kutuKaydet(Map<String, dynamic>? m) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      if (m == null) {
+        await p.remove(_kutuAnahtari);
+      } else {
+        await p.setString(_kutuAnahtari, jsonEncode(m));
+      }
+    } catch (_) {}
+  }
+
+  /// GET auth/me. [arka]: kabuk zaten yerel verilerle açık; bağlantı yoksa sessiz kalınır, oturum düştüyse giriş
+  /// ekranına dönülür.
+  static Future<bool> _kutuTazele({required bool arka}) async {
     try {
       final v = await api.get('/api/v1/mail/auth/me');
-      kutu.value = Map<String, dynamic>.from(v['mailbox'] as Map);
-      unawaited(Onbellek.ben.hesapAc('${kutu.value?['mailbox_id'] ?? ''}'));
+      final m = Map<String, dynamic>.from(v['mailbox'] as Map);
+      final eski = '${kutu.value?['mailbox_id'] ?? ''}';
+      final yeni = '${m['mailbox_id'] ?? ''}';
+      kutu.value = m;
+      await _kutuKaydet(m);
+      if (arka && eski.isNotEmpty && eski != yeni) {
+        // Oturum başka bir kutuya ait (başka yerde hesap değişti): yeni kabuk o hesabın verileriyle açılır.
+        await Esitleyici.ben.hesapAc(yeni);
+        kokGezgin.currentState?.pushAndRemoveUntil(HizliRota(builder: (_) => const Kabuk()), (_) => false);
+      } else if (!arka || eski != yeni) {
+        unawaited(Esitleyici.ben.hesapAc(yeni));
+      }
       return true;
     } on ApiHata catch (e) {
-      if (e.durum == 401 || e.durum == 403) return false;
+      if (e.durum == 401 || e.durum == 403) {
+        if (arka) oturumDustu();
+        return false;
+      }
+      if (arka) return true;
       rethrow;
     }
   }
@@ -110,6 +171,7 @@ class Uyg {
   /// Hesaba özgü bellek içi durumu temizler (klasörler, listeler, canlı akış, sohbet).
   static void _durumuTemizle() {
     Canli.ben.durdur();
+    Esitleyici.ben.durdur();
     SohbetDurum.ben.sifirla();
     PostaDurum.ben.sifirla();
     BirlesikDurum.ben.sifirla();
@@ -117,7 +179,7 @@ class Uyg {
 
   /// Kutuyu yükler ve yeni bir kabuk açar (tüm hesap durumu sıfırlanır: klasörler, listeler, canlı akış, sohbet, push kaydı).
   static Future<void> kabugaGec() async {
-    await yukle();
+    await yukle(ag: true);
     kokGezgin.currentState?.pushAndRemoveUntil(HizliRota(builder: (_) => const Kabuk()), (_) => false);
   }
 
@@ -147,7 +209,8 @@ class Uyg {
         ..gecisKonumu = korunan;
       if (h != null) {
         kutu.value = {'mailbox_id': h.id, 'address': h.adres, 'display_name': h.ad, 'avatar_url': ?h.avatarUrl};
-        await Onbellek.ben.hesapAc(h.id);
+        unawaited(_kutuKaydet(kutu.value));
+        await Esitleyici.ben.hesapAc(h.id);
         // Hedef hesabın klasörleri ve açılacak liste diskten belleğe alınır: yeni kabuk ilk karede dolu çizilir.
         await _onbellegiIsit(rol, korunan).timeout(const Duration(milliseconds: 400), onTimeout: () {});
         kokGezgin.currentState?.pushAndRemoveUntil(_GecisRotasi(builder: (_) => const Kabuk()), (_) => false);
@@ -187,7 +250,7 @@ class Uyg {
   /// Hesabı bu cihazdan kaldırır (etkin hesap değilse).
   static Future<void> hesabiKaldir(String id) async {
     await api.delete('$_k/accounts/$id');
-    await Onbellek.ben.hesabiSil(id);
+    await Esitleyici.ben.hesabiSil(id);
   }
 
   /// Çıkış. [unut]: hesabı bu cihazdan da kaldır. Sunucu sıradaki kayıtlı hesabı döndürürse ona geçilir.
@@ -201,9 +264,10 @@ class Uyg {
     } catch (_) {}
     final eski = '${kutu.value?['mailbox_id'] ?? ''}';
     kutu.value = null;
+    await _kutuKaydet(null);
     _durumuTemizle();
-    // Unutulan hesabın önbelleği silinir; yalnız çıkışta (kayıtlı kalır) korunur.
-    if (unut) await Onbellek.ben.hesabiSil(eski);
+    // Çıkışta hesabın tüm yerel verisi (önbellek, bekleyen değişiklikler, Giden Kutusu) bu cihazdan silinir.
+    await Esitleyici.ben.hesabiSil(eski);
     await Bildirim.temizle();
     await Push.rozet(0);
     PushKaydi.sifirla();
@@ -217,6 +281,7 @@ class Uyg {
   static void oturumDustu() {
     if (kutu.value == null) return;
     kutu.value = null;
+    unawaited(_kutuKaydet(null));
     _durumuTemizle();
     kokGezgin.currentState?.pushAndRemoveUntil(HizliRota(builder: (_) => girisEkrani(bilgi: 'Oturum kapandı. Hesabınızı seçin.')), (_) => false);
   }

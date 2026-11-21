@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:boga_ortak/boga_ortak.dart';
 
 import '../oturum.dart';
+import 'onbellek.dart';
 
 String _s(Object? v) => v == null ? '' : '$v';
 int _i(Object? v) => v is int ? v : (v is num ? v.toInt() : int.tryParse('$v') ?? 0);
@@ -511,13 +512,17 @@ class Hesap {
   static Future<void> planErtele(String id, DateTime z) => _api.patch('$_k/scheduled/$id', {'send_at': z.toUtc().toIso8601String()});
 
   // ---- kişiler ----
-  static Future<({List<Kisi> ogeler, int toplam})> kisiler({String q = '', String? tur, int sayfa = 1}) async {
-    final v = await _api.get(
-      '$_k/contacts',
-      q: {'page': sayfa, 'page_size': 100, 'sort': 'name', 'order': 'asc', if (q.trim().isNotEmpty) 'q': q.trim(), 'kind': ?tur},
-    );
-    return (ogeler: _ogeler(v).map(Kisi.json).toList(), toplam: _i(_m(v)['total']));
-  }
+  static Future<({List<Kisi> ogeler, int toplam})> kisiler({
+    String q = '',
+    String? tur,
+    int sayfa = 1,
+    void Function(({List<Kisi> ogeler, int toplam}))? yerel,
+  }) => yerelOnce(
+    q.trim().isEmpty && sayfa == 1 ? 'kisiler:${tur ?? ''}' : null,
+    () => _api.get('$_k/contacts', q: {'page': sayfa, 'page_size': 100, 'sort': 'name', 'order': 'asc', if (q.trim().isNotEmpty) 'q': q.trim(), 'kind': ?tur}),
+    (v) => (ogeler: _ogeler(v).map(Kisi.json).toList(), toplam: _i(_m(v)['total'])),
+    yerel: yerel,
+  );
 
   static Future<void> kisiKaydet(Kisi k) => k.id.isEmpty ? _api.post('$_k/contacts', k.govde()) : _api.patch('$_k/contacts/${k.id}', k.govde());
   static Future<void> kisiSil(String id) => _api.delete('$_k/contacts/$id');

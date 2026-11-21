@@ -75,7 +75,14 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
   Future<void> _yukle() async {
     final no = ++_no;
     try {
-      final l = await GorevApi.liste(kapsam: _kapsam.deger, durum: _tamamlananlar ? 'done' : 'open', q: _ara.text);
+      final l = await GorevApi.liste(
+        kapsam: _kapsam.deger,
+        durum: _tamamlananlar ? 'done' : 'open',
+        q: _ara.text,
+        yerel: (o) {
+          if (mounted && no == _no) setState(() => _l = o);
+        },
+      );
       if (!mounted || no != _no) return;
       setState(() {
         _l = l;

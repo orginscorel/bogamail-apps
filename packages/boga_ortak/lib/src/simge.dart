@@ -90,6 +90,7 @@ abstract final class Simge {
   static const gizle = IconData(0xe224, fontFamily: _ince, fontPackage: _paket); // eyeSlash
   static const gizlilik = IconData(0xe412, fontFamily: _ince, fontPackage: _paket); // shieldWarning
   static const gonder = IconData(0xe398, fontFamily: _ince, fontPackage: _paket); // paperPlaneTilt
+  static const gidenKutusu = IconData(0xee52, fontFamily: _ince, fontPackage: _paket); // trayArrowUp
   static const gonderimDurumu = IconData(0xe000, fontFamily: _ince, fontPackage: _paket); // pulse
   static const gorev = IconData(0xe184, fontFamily: _ince, fontPackage: _paket); // checkCircle
   static const gorevEkle = IconData(0xe2f8, fontFamily: _ince, fontPackage: _paket); // listPlus

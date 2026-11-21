@@ -87,7 +87,27 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
     }
     final (bas, son) = _aralik;
     try {
-      final sonuc = await Future.wait([TakvimApi.etkinlikler(bas, son), if (_takvimler.isEmpty || !sessiz) TakvimApi.takvimler()]);
+      // Önce yerel: ay / hafta önbellekten hemen çizilir, ağ yanıtı yerine konur.
+      final sonuc = await Future.wait([
+        TakvimApi.etkinlikler(
+          bas,
+          son,
+          yerel: (o) {
+            if (mounted && no == _istek) {
+              setState(() {
+                _etkinlikler = o;
+                _yukleniyor = false;
+              });
+            }
+          },
+        ),
+        if (_takvimler.isEmpty || !sessiz)
+          TakvimApi.takvimler(
+            yerel: (o) {
+              if (mounted && no == _istek && _takvimler.isEmpty) setState(() => _takvimler = o);
+            },
+          ),
+      ]);
       if (!mounted || no != _istek) return;
       setState(() {
         _etkinlikler = sonuc[0] as List<Etkinlik>;

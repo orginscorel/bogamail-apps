@@ -294,13 +294,23 @@ class IletiListesiState extends State<IletiListesi> {
       return;
     }
     if (!sessiz) {
-      setState(() {
-        _yukleniyor = true;
-        _hata = null;
-      });
-      // Önce önbellek: liste anında görünür, ağ yanıtı gelince sessizce güncellenir.
+      // Önce önbellek: liste anında görünür (bellekteyse aynı karede, döner simge hiç çizilmez), ağ yanıtı gelince
+      // sessizce güncellenir.
       final a = _onbellekAnahtari;
-      if (a != null) {
+      final h = a == null ? null : Posta.listeHemen(a);
+      setState(() {
+        _hata = null;
+        if (h != null) {
+          _ogeler = h.ogeler;
+          _toplam = h.toplam;
+          _yukleniyor = false;
+        } else {
+          _yukleniyor = true;
+        }
+      });
+      if (h != null) {
+        sessiz = true;
+      } else if (a != null) {
         final sw = Stopwatch()..start();
         final o = await Posta.listeOnbellek(a).catchError((_) => null);
         if (!mounted || no != _istek) return;
@@ -336,7 +346,7 @@ class IletiListesiState extends State<IletiListesi> {
       if (!mounted || no != _istek) return;
       setState(() {
         _yukleniyor = false;
-        if (!sessiz || _ogeler.isEmpty) _hata = hataMetni(e);
+        if (!sessiz || _ogeler.isEmpty) _hata = e is ApiHata && e.baglantiYok ? 'Çevrimdışısınız. Bu liste henüz bu cihaza eşitlenmedi.' : hataMetni(e);
       });
     }
   }

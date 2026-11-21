@@ -4,6 +4,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
 import '../ortak/simgeler.dart';
+import 'esitleyici.dart';
 import 'modeller.dart';
 import 'onyukleme.dart';
 import 'posta_servisi.dart';
@@ -90,6 +91,7 @@ class PostaDurum extends ChangeNotifier {
   /// SSE olayı: sayıları tazeler; kendi değişikliğimizin yankısıysa listeleri/okuyucuyu yeniden yüklemez; yeni
   /// postanın gövdesini hemen önbelleğe alır.
   void canliOlay(CanliOlay o) {
+    if (const {'new_mail', 'unified_new', 'changed', 'flag', 'move', 'scheduled'}.contains(o.tur)) Esitleyici.ben.tetikle();
     if (o.tur != 'new_mail' && o.tur != 'changed' && o.tur != 'scheduled') return;
     final id = '${o.veri['message_id'] ?? ''}';
     if (o.tur == 'new_mail' && id.isNotEmpty) Onyukleme.ben.hemen(id);
@@ -189,7 +191,8 @@ class PostaDurum extends ChangeNotifier {
       _rozet();
       notifyListeners();
     } catch (e) {
-      hata = hataMetni(e);
+      // Önbellekten açıldıysa (çevrimdışı) hata ekranı gösterilmez; eşitleme durumu "Çevrimdışı" der.
+      hata = yuklendi ? null : hataMetni(e);
       notifyListeners();
     }
     unawaited(ayarlariYukle());
@@ -212,7 +215,29 @@ class PostaDurum extends ChangeNotifier {
     }
   }
 
+  /// Klasörleri ve sayıları ağdan tazeler (arka plan eşitlemesi; hata yukarı iletilir).
+  Future<void> klasorleriTazele() async {
+    final r = await Future.wait([Posta.klasorler(), Posta.etiketler().catchError((_) => etiketler)]);
+    klasorler = r[0] as List<Klasor>;
+    etiketler = r[1] as List<Etiket>;
+    if (!yuklendi) {
+      yuklendi = true;
+      hata = null;
+      konum ??= _baslangicKonumu();
+    }
+    _rozet();
+    notifyListeners();
+  }
+
   Future<void> ayarlariYukle() async {
+    if (ayarlar == null) {
+      final o = await Posta.ayarlarOnbellek().catchError((_) => null);
+      if (o != null && ayarlar == null) {
+        ayarlar = o;
+        okumaAlani.value = o.okumaAlani;
+        notifyListeners();
+      }
+    }
     try {
       ayarlar = await Posta.ayarlar();
       okumaAlani.value = ayarlar!.okumaAlani;

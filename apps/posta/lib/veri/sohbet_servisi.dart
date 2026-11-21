@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import '../oturum.dart';
 import 'canli.dart';
 import 'modeller.dart';
+import 'onbellek.dart';
 
 String _s(Object? v) => v == null ? '' : '$v';
 int _i(Object? v) => v is int ? v : (v is num ? v.toInt() : int.tryParse('$v') ?? 0);
@@ -296,7 +297,28 @@ class Sohbet {
 
   static List<dynamic> _ogeler(Object? v) => _l(_m(v)['items']);
 
-  static Future<List<SohbetOdasi>> odalar() async => _ogeler(await _api.get('$_k/rooms')).map(SohbetOdasi.json).toList();
+  static Future<List<SohbetOdasi>> odalar() async {
+    final v = await _api.get('$_k/rooms');
+    unawaited(Onbellek.ben.yaz('sohbet:odalar', v));
+    return _ogeler(v).map(SohbetOdasi.json).toList();
+  }
+
+  /// Önbellekteki oda listesi (önce yerel; yoksa null).
+  static Future<List<SohbetOdasi>?> odalarOnbellek() async {
+    final v = await Onbellek.ben.oku('sohbet:odalar');
+    return v == null ? null : _ogeler(v).map(SohbetOdasi.json).toList();
+  }
+
+  /// Önbellekteki son iletiler (bellekte varsa eşzamanlı).
+  static List<SohbetMesaji>? mesajlarHemen(String oda) {
+    final v = Onbellek.ben.hemen('sohbet:oda:$oda');
+    return v == null ? null : _ogeler(v).map(SohbetMesaji.json).toList();
+  }
+
+  static Future<List<SohbetMesaji>?> mesajlarOnbellek(String oda) async {
+    final v = await Onbellek.ben.oku('sohbet:oda:$oda');
+    return v == null ? null : _ogeler(v).map(SohbetMesaji.json).toList();
+  }
 
   /// Bir kişi ve ad yoksa birebir sohbet (varsa mevcut oda döner); aksi hâlde grup.
   static Future<String> odaOlustur(List<String> uyeler, {String ad = ''}) async =>
@@ -305,6 +327,7 @@ class Sohbet {
   /// En yeni 100 ileti (eskiden yeniye). [once]: bu kimlikten eskiler; [sonra]: bu kimlikten yeniler.
   static Future<List<SohbetMesaji>> mesajlar(String oda, {int? once, int? sonra}) async {
     final v = await _api.get('$_k/rooms/$oda/messages', q: {'before': ?once, 'after': ?sonra});
+    if (once == null && sonra == null) unawaited(Onbellek.ben.yaz('sohbet:oda:$oda', v));
     return _ogeler(v).map(SohbetMesaji.json).toList();
   }
 
@@ -456,6 +479,16 @@ class SohbetDurum extends ChangeNotifier {
   }
 
   Future<void> yenile() async {
+    if (!yuklendi) {
+      // Önce yerel: oda listesi ağ beklenmeden çizilir.
+      final o = await Sohbet.odalarOnbellek().catchError((_) => null);
+      if (o != null && !yuklendi) {
+        odalar = o;
+        yuklendi = true;
+        okunmamis.value = odalar.fold(0, (t, x) => t + x.okunmamis);
+        notifyListeners();
+      }
+    }
     try {
       final l = await Sohbet.odalar();
       odalar = l;
@@ -472,7 +505,8 @@ class SohbetDurum extends ChangeNotifier {
         kapali = true;
         _nabiz?.cancel();
       }
-      hata = e.mesaj;
+      // Çevrimdışı ama yerel liste var: hata gösterilmez.
+      hata = e.baglantiYok && odalar.isNotEmpty ? null : e.mesaj;
       yuklendi = true;
     } catch (_) {
       hata = 'Sohbetler yüklenemedi.';

@@ -142,7 +142,7 @@ void main() {
   testWidgets('bağlantı yokken nokta kırmızı ve geri sayım gösterir', (t) async {
     Canli.ben.durum.value = CanliDurumu(CanliTur.yok, sonrakiDeneme: DateTime.now().add(const Duration(seconds: 12)));
     await genis(t);
-    expect(find.byKey(const ValueKey('ray-esitleme-yok')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ray-esitleme-cevrimdisi')), findsOneWidget);
     expect(find.textContaining(RegExp(r'^1[12] sn$')), findsOneWidget);
     expect(t.getSize(find.byKey(const ValueKey('sol-ray'))).width, rayGenisligi);
   });

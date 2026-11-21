@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -110,6 +111,15 @@ class Onbellek {
     }
   }
 
+  /// "kalici:" ile başlayan kayıtlar (bekleyen işlemler, Giden Kutusu) boyut sınırında hiçbir zaman silinmez.
+  static bool kalici(String anahtar) => anahtar.startsWith('kalici:');
+
+  /// Önekle başlayan tüm kayıt anahtarları (bellek + disk).
+  Iterable<String> anahtarlar(String onek) => {..._bellek.keys, ..._indeks.keys}.where((k) => k.startsWith(onek));
+
+  /// Hesabın önbelleği açıldı (disk dizini ve indeks okundu).
+  Future<void> get hazir => _acilis ?? Future.value();
+
   bool bellekte(String anahtar) => _bellek.containsKey(anahtar);
   bool var_(String anahtar) => _bellek.containsKey(anahtar) || _indeks.containsKey(anahtar);
 
@@ -207,7 +217,8 @@ class Onbellek {
     _bellek[anahtar] = s;
     _bellekBoyut += s.length;
     while (_bellekBoyut > azamiBellek && _bellek.length > 1) {
-      final ilk = _bellek.keys.first;
+      final ilk = _bellek.keys.firstWhere((k) => !kalici(k) && k != anahtar, orElse: () => '');
+      if (ilk.isEmpty) break;
       _bellekBoyut -= _bellek.remove(ilk)!.length;
     }
   }
@@ -219,7 +230,8 @@ class Onbellek {
 
   Future<void> _sinirla(Directory d) async {
     while (_diskBoyut > azamiDisk && _indeks.length > 1) {
-      final ilk = _indeks.keys.first;
+      final ilk = _indeks.keys.firstWhere((k) => !kalici(k), orElse: () => '');
+      if (ilk.isEmpty) break;
       _diskBoyut -= _indeks.remove(ilk)!.$1;
       final s = _bellek.remove(ilk);
       if (s != null) _bellekBoyut -= s.length;
@@ -280,4 +292,30 @@ class Onbellek {
 
   @visibleForTesting
   int get diskBoyut => _diskBoyut;
+
+  /// Disk sınırının dolu oranı (0..1).
+  double get doluluk => azamiDisk <= 0 ? 1 : _diskBoyut / azamiDisk;
+}
+
+/// Önce yerel, sonra ağ (stale-while-revalidate). [anahtar] null ise yalnız ağ. Önbellekte kayıt varsa [yerel]
+/// onunla hemen (bellekteyse eşzamanlı) çağrılır; ağ yanıtı önbelleğe yazılıp döndürülür. Ağa ulaşılamazsa ve yerel
+/// kayıt varsa hata atılmaz, yerel kayıt döner (çevrimdışında hata ekranı yok).
+Future<T> yerelOnce<T>(String? anahtar, Future<Object?> Function() ag, T Function(Object?) ayristir, {void Function(T)? yerel}) async {
+  Object? eski;
+  if (anahtar != null) {
+    eski = Onbellek.ben.hemen(anahtar) ?? await Onbellek.ben.oku(anahtar).catchError((_) => null);
+    if (eski != null && yerel != null) {
+      try {
+        yerel(ayristir(eski));
+      } catch (_) {}
+    }
+  }
+  try {
+    final v = await ag();
+    if (anahtar != null) unawaited(Onbellek.ben.yaz(anahtar, v));
+    return ayristir(v);
+  } catch (e) {
+    if (eski != null && e is ApiHata && e.baglantiYok) return ayristir(eski);
+    rethrow;
+  }
 }

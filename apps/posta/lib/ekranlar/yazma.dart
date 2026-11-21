@@ -17,6 +17,8 @@ import '../ortak/ek_listesi.dart';
 import '../ortak/izin.dart';
 import '../ortak/zengin_duzenleyici.dart';
 import '../ortak/simgeler.dart';
+import '../veri/baglanti.dart';
+import '../veri/kuyruk.dart';
 import '../veri/durum.dart';
 import '../veri/html_temizle.dart';
 import '../veri/modeller.dart';
@@ -52,6 +54,9 @@ Future<void> yazmaAc(BuildContext context, [YazmaBaslangic? b]) async {
 
 class _YerelEk {
   _YerelEk(this.ad, this.boyut, this._oku);
+
+  /// Giden Kutusu'nda saklanmış (base64) ek.
+  _YerelEk.hazir(this.ad, String b64) : boyut = b64.length * 3 ~/ 4, _oku = (() async => base64Decode(b64)), _b64 = b64;
   final String ad;
   final int boyut;
   final Future<List<int>> Function() _oku;
@@ -103,6 +108,11 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
   @override
   void initState() {
     super.initState();
+    for (final (ad, b64) in b.yerelEkler) {
+      _yerel.add(_YerelEk.hazir(ad, b64));
+    }
+    // Giden Kutusu'ndan düzenleniyor: pencere açıkken otomatik gönderilmez.
+    if (b.gidenId != null) GidenKutusu.ben.duzenlemeBasla(b.gidenId!);
     for (final c in [_konu, _metin]) {
       c.addListener(_degisti);
     }
@@ -124,6 +134,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
 
   @override
   void dispose() {
+    if (b.gidenId != null) GidenKutusu.ben.duzenlemeBitti(b.gidenId!);
     for (final d in [_kime, _bilgi, _gizli]) {
       d.dispose();
     }
@@ -277,10 +288,13 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
         _ilerleme = 0;
         _hata = null;
       });
+      Map<String, dynamic>? r;
       try {
-        final r = await _istek();
+        r = await _istek();
         if (dlpOnay) r['dlp_confirm'] = true;
         if (zaman != null) r['send_at'] = zaman.toUtc().toIso8601String();
+        // Çevrimdışı: beklemeden Giden Kutusu'na (bağlantı gelince sırayla gönderilir).
+        if (Baglanti.ben.cevrimdisi.value) return await _gidenKutusuna(r);
         final s = await Posta.gonder(
           r,
           ilerleme: (a, t) {
@@ -288,11 +302,13 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
           },
         );
         _bitti = true;
+        if (b.gidenId != null) unawaited(GidenKutusu.ben.sil(b.gidenId!));
         PostaDurum.ben.sayilariYenile();
         if (mounted) Navigator.of(context).pop();
         _sonucBildir(s, zaman);
         return;
       } on GonderimHatasi catch (e) {
+        if (e.baglantiYok && r != null) return await _gidenKutusuna(r);
         if (!mounted) return;
         setState(() {
           _mesgul = false;
@@ -319,6 +335,19 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
         return;
       }
     }
+  }
+
+  /// Sunucuya ulaşılamıyor: ileti (ekleriyle) Giden Kutusu'na alınır, pencere kapanır.
+  Future<void> _gidenKutusuna(Map<String, dynamic> r) async {
+    final ek = {
+      'dahil': [
+        for (final d in _dahil) {'ad': d.ad, 'tur': d.tur, 'boyut': d.boyut},
+      ],
+    };
+    await GidenKutusu.ben.ekle(r, ek: ek, eskiId: b.gidenId);
+    _bitti = true;
+    if (mounted) Navigator.of(context).pop();
+    bildir('Çevrimdışı: ileti Giden Kutusu\'nda', mesaj: 'Bağlantı gelince otomatik gönderilecek.');
   }
 
   static void _sonucBildir(GonderimSonucu s, DateTime? zaman) {

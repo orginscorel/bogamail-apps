@@ -5,6 +5,8 @@
 
 import 'dart:async';
 
+import 'package:boga_ortak/boga_ortak.dart';
+
 import 'html_temizle.dart';
 import 'modeller.dart';
 import 'onbellek.dart';
@@ -22,6 +24,12 @@ class Onyukleme {
   static bool etkin = true;
 
   final _kuyruk = <String>[];
+
+  /// Arka plan eşitlemesinin düşük öncelikli kuyruğu (görünen liste boşaldıktan sonra işlenir).
+  final _arka = <String>[];
+
+  /// Arka plan önyüklemesi önbellek diskinin en çok bu oranını doldurur (kullanıcının gördüğü kayıtlar silinmesin).
+  static double arkaDolulukSiniri = .6;
   final _suruyor = <String>{};
   final _eski = <String>{};
   int _calisan = 0;
@@ -45,6 +53,17 @@ class Onyukleme {
       ..insert(0, id);
     _calis();
   }
+
+  /// Arka plan eşitlemesi: verilen iletilerin gövdelerini (sırayla, düşük öncelikle) önbelleğe alır.
+  void arkaPlan(Iterable<String> idler) {
+    if (!etkin) return;
+    for (final id in idler) {
+      if (!_arka.contains(id) && _gerekli(id)) _arka.add(id);
+    }
+    _calis();
+  }
+
+  int get arkaBekleyen => _arka.length;
 
   /// Başka oturumda değişti: önbellekteki kopya bir sonraki önyüklemede yenilenir (açılınca zaten tazelenir).
   void eskit(String id) => _eski.add(id);
@@ -76,14 +95,19 @@ class Onyukleme {
 
   void iptal() {
     _kuyruk.clear();
+    _arka.clear();
     _eski.clear();
   }
 
   bool _gerekli(String id) => id.isNotEmpty && !_suruyor.contains(id) && (_eski.contains(id) || !Onbellek.ben.var_('ileti:$id'));
 
   void _calis() {
-    while (_calisan < esZamanli && _kuyruk.isNotEmpty) {
-      final id = _kuyruk.removeAt(0);
+    while (_calisan < esZamanli && (_kuyruk.isNotEmpty || _arka.isNotEmpty)) {
+      if (_kuyruk.isEmpty && Onbellek.ben.doluluk > arkaDolulukSiniri) {
+        _arka.clear();
+        return;
+      }
+      final id = _kuyruk.isNotEmpty ? _kuyruk.removeAt(0) : _arka.removeAt(0);
       if (!_gerekli(id)) continue;
       _calisan++;
       _suruyor.add(id);
@@ -91,10 +115,16 @@ class Onyukleme {
       final s = Stopwatch()..start();
       unawaited(
         Posta.iletiHam(id)
-            .then((ham) {
-              zamanLogu('önyükleme', s);
-              _gorselleriOnyukle(ham);
-            }, onError: (_) {})
+            .then(
+              (ham) {
+                zamanLogu('önyükleme', s);
+                _gorselleriOnyukle(ham);
+              },
+              onError: (Object e) {
+                // Bağlantı yok: arka plan kuyruğu boşuna denenmez (sonraki eşitlemede yeniden kurulur).
+                if (e is ApiHata && e.baglantiYok) _arka.clear();
+              },
+            )
             .whenComplete(() {
               _calisan--;
               _suruyor.remove(id);

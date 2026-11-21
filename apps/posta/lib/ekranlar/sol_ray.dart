@@ -11,6 +11,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../ortak/esitleme.dart';
+import '../veri/baglanti.dart';
+import '../veri/kuyruk.dart';
 import '../veri/canli.dart';
 import 'hesap_menusu.dart';
 
@@ -183,8 +185,7 @@ class _RayEsitlemeState extends State<RayEsitleme> {
   @override
   void initState() {
     super.initState();
-    Canli.ben.durum.addListener(_degisti);
-    Canli.ben.sonOlay.addListener(_degisti);
+    esitlemeDinleyicisi.addListener(_degisti);
     _saat = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -192,8 +193,7 @@ class _RayEsitlemeState extends State<RayEsitleme> {
 
   @override
   void dispose() {
-    Canli.ben.durum.removeListener(_degisti);
-    Canli.ben.sonOlay.removeListener(_degisti);
+    esitlemeDinleyicisi.removeListener(_degisti);
     _saat?.cancel();
     super.dispose();
   }
@@ -214,9 +214,16 @@ class _RayEsitlemeState extends State<RayEsitleme> {
       CanliTur.kapali => r.silik,
     };
     final kalan = d.tur == CanliTur.yok && d.sonrakiDeneme != null ? d.sonrakiDeneme!.difference(simdi).inSeconds + 1 : 0;
-    final ipucu = rayEsitlemeIpucu(d, Canli.ben.sonOlay.value, simdi);
+    final cd = cevrimdisiMi;
+    final bekleyen = bekleyenMetni();
+    final ipucu = [
+      cd ? cevrimdisiMetni(Baglanti.ben.sonEsitleme.value ?? Canli.ben.sonOlay.value, simdi) : rayEsitlemeIpucu(d, Canli.ben.sonOlay.value, simdi),
+      ?bekleyen,
+    ].join('\n');
+    final ozet = cd || bekleyen != null;
+    final nokta = cd ? Marka.gul : renk;
     return Tooltip(
-      message: '$ipucu\nDokun: Şimdi eşitle',
+      message: '$ipucu\nDokun: ${ozet ? 'Ayrıntılar' : 'Şimdi eşitle'}',
       child: Semantics(
         button: true,
         liveRegion: true,
@@ -224,24 +231,34 @@ class _RayEsitlemeState extends State<RayEsitleme> {
         excludeSemantics: true,
         child: InkResponse(
           key: const ValueKey('ray-esitleme'),
-          onTap: simdiEsitle,
+          onTap: ozet ? () => bekleyenleriGoster(context) : simdiEsitle,
           radius: 16,
           child: SizedBox(
             width: 40,
-            height: kalan > 0 ? 30 : 20,
+            height: (kalan > 0 ? 30 : 20) + (bekleyen != null ? 12 : 0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  key: ValueKey('ray-esitleme-${d.tur.name}'),
+                  key: ValueKey('ray-esitleme-${cd ? 'cevrimdisi' : d.tur.name}'),
                   width: 9,
                   height: 9,
                   decoration: BoxDecoration(
-                    color: renk,
+                    color: nokta,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: renk.withValues(alpha: .35), blurRadius: 4)],
+                    boxShadow: [BoxShadow(color: nokta.withValues(alpha: .35), blurRadius: 4)],
                   ),
                 ),
+                if (bekleyen != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '${GidenKutusu.ben.ogeler.value.length + IslemKuyrugu.ben.ogeler.value.length}',
+                      key: const ValueKey('ray-bekleyen'),
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 9.5, height: 1.1, fontWeight: FontWeight.w700, color: Marka.kehribar),
+                    ),
+                  ),
                 if (kalan > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),

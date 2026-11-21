@@ -9,13 +9,17 @@ import 'package:dio/dio.dart';
 
 import '../oturum.dart';
 import 'bildirim.dart';
+import 'kuyruk.dart';
 import 'modeller.dart';
 import 'onbellek.dart';
 
 /// Gönderim/taslak hatası: DLP raporu veya alan bilgisiyle.
 class GonderimHatasi implements Exception {
-  GonderimHatasi(this.mesaj, {this.kod = '', this.alan, this.dlp});
+  GonderimHatasi(this.mesaj, {this.kod = '', this.alan, this.dlp, this.baglantiYok = false});
   final String mesaj;
+
+  /// Sunucuya ulaşılamadı (ileti Giden Kutusu'na alınabilir).
+  final bool baglantiYok;
   final String kod;
   final String? alan;
   final DlpRapor? dlp;
@@ -127,6 +131,7 @@ class Posta {
     String? baslangic,
     String? bitis,
     Siralama siralama = Siralama.yeni,
+    int? onbellekBoyut,
   }) async {
     final q = <String, dynamic>{'page': sayfa, 'page_size': boyut, 'sort': siralama.alan, 'order': siralama.yon};
     if (filtre != null) q['filter'] = filtre;
@@ -156,7 +161,13 @@ class Posta {
       if (etiketId != null) q['label'] = etiketId;
       v = await _api.get('/api/v1/mail/messages', q: q);
     }
-    if (anahtar != null) unawaited(Onbellek.ben.yaz(anahtar, v));
+    if (anahtar != null) {
+      // Arka plan eşitlemesi daha büyük bir sayfa ister; önbelleğe listenin ilk sayfası kadarı yazılır.
+      final kayit = onbellekBoyut != null && v is Map && v['items'] is List && (v['items'] as List).length > onbellekBoyut
+          ? {...v, 'items': (v['items'] as List).take(onbellekBoyut).toList(), 'page_size': onbellekBoyut}
+          : v;
+      unawaited(Onbellek.ben.yaz(anahtar, kayit));
+    }
     return Sayfa.json(v);
   }
 
@@ -173,6 +184,12 @@ class Posta {
   }) {
     if (sayfa != 1 || filtre != null || (arama != null && arama.trim().isNotEmpty) || baslangic != null || bitis != null) return null;
     return klasorId != null ? 'liste:k:$klasorId' : 'liste:g:$gorunum:${etiketId ?? ''}';
+  }
+
+  /// Bellekteki liste (ilk karede, eşzamanlı; yoksa null).
+  static Sayfa? listeHemen(String anahtar) {
+    final v = Onbellek.ben.hemen(anahtar);
+    return v == null ? null : Sayfa.json(v);
   }
 
   /// Önbellekteki liste (yoksa null).
@@ -235,10 +252,109 @@ class Posta {
     if (o is Map) m['message'] = {...o, ...alanlar};
   });
 
-  static Future<void> guncelle(String id, Map<String, dynamic> govde) => _api.patch('/api/v1/mail/messages/$id', govde);
+  static Future<void> guncelle(String id, Map<String, dynamic> govde) async {
+    await _degistir('PATCH', '/api/v1/mail/messages/$id', govde, _aciklama(govde, 1));
+    _yerelUygula([id], govde);
+  }
 
   /// Çöpe taşır; Çöp Kutusu'ndaysa kalıcı siler.
-  static Future<void> sil(String id) => _api.delete('/api/v1/mail/messages/$id');
+  static Future<void> sil(String id) async {
+    await _degistir('DELETE', '/api/v1/mail/messages/$id', null, 'Sil (1 ileti)');
+    _yerelUygula([id], const {'action': 'delete'});
+  }
+
+  /// Değişikliği sunucuya gönderir; ulaşılamazsa (ya da önünde bekleyen değişiklik varsa, sıra bozulmasın diye)
+  /// kalıcı kuyruğa yazar ve başarılı sayar (arayüz iyimser kalır). Sunucunun reddi (4xx/5xx) olduğu gibi iletilir.
+  static Future<dynamic> _degistir(String yontem, String yol, Map<String, dynamic>? govde, String aciklama) async {
+    final k = IslemKuyrugu.ben;
+    if (k.bos) {
+      try {
+        return await IslemKuyrugu.istekGonder(yontem, yol, govde);
+      } on ApiHata catch (e) {
+        if (!e.baglantiYok) rethrow;
+      }
+    }
+    await k.ekle(yontem, yol, govde, aciklama);
+    unawaited(k.oynat());
+    return null;
+  }
+
+  static const _eylemAdlari = {
+    'read': 'Okundu işaretle',
+    'unread': 'Okunmadı işaretle',
+    'flag': 'Yıldızla',
+    'unflag': 'Yıldızı kaldır',
+    'important': 'Önemli işaretle',
+    'unimportant': 'Önemli işaretini kaldır',
+    'move': 'Taşı',
+    'label': 'Etiketle',
+    'unlabel': 'Etiketi kaldır',
+    'delete': 'Sil',
+    'spam': 'Gereksiz olarak işaretle',
+    'notspam': 'Gereksiz değil',
+    'archive': 'Arşivle',
+  };
+
+  static String _aciklama(Map<String, dynamic> g, int n) {
+    final String ad;
+    if (g['action'] is String) {
+      ad = _eylemAdlari[g['action']] ?? 'Değişiklik';
+    } else if (g.containsKey('seen')) {
+      ad = g['seen'] == true ? 'Okundu işaretle' : 'Okunmadı işaretle';
+    } else if (g.containsKey('flagged')) {
+      ad = g['flagged'] == true ? 'Yıldızla' : 'Yıldızı kaldır';
+    } else if (g.containsKey('important')) {
+      ad = g['important'] == true ? 'Önemli işaretle' : 'Önemli işaretini kaldır';
+    } else if (g.containsKey('snooze_until')) {
+      ad = g['snooze_until'] == null ? 'Ertelemeyi kaldır' : 'Ertele';
+    } else if (g.containsKey('add_label') || g.containsKey('remove_label')) {
+      ad = g.containsKey('add_label') ? 'Etiketle' : 'Etiketi kaldır';
+    } else {
+      ad = 'Değişiklik';
+    }
+    return '$ad ($n ileti)';
+  }
+
+  /// Değişikliği önbellekteki listelere ve ileti ayrıntısına uygular: uygulama çevrimdışı yeniden açılsa da
+  /// kullanıcı kendi değişikliğini görür (arşivlenen ileti listeye geri gelmez, okundu kalır).
+  static void _yerelUygula(List<String> idler, Map<String, dynamic> g) {
+    final eylem = g['action'];
+    final alanlar = <String, dynamic>{
+      if (g['seen'] is bool) 'seen': g['seen'],
+      if (g['flagged'] is bool) 'flagged': g['flagged'],
+      if (g['important'] is bool) 'important': g['important'],
+      if (eylem == 'read') 'seen': true,
+      if (eylem == 'unread') 'seen': false,
+      if (eylem == 'flag') 'flagged': true,
+      if (eylem == 'unflag') 'flagged': false,
+      if (eylem == 'important') 'important': true,
+      if (eylem == 'unimportant') 'important': false,
+    };
+    final kaldir = const {'move', 'delete', 'spam', 'notspam', 'archive'}.contains(eylem) || g.containsKey('folder_id') || g['snooze_until'] != null;
+    if (alanlar.isEmpty && !kaldir) return;
+    final ids = idler.toSet();
+    unawaited(() async {
+      try {
+        if (alanlar.isNotEmpty) {
+          for (final id in ids) {
+            await iletiYerelGuncelle(id, alanlar);
+          }
+        }
+        for (final a in Onbellek.ben.anahtarlar('liste:').toList()) {
+          await Onbellek.ben.degistir(a, (m) {
+            final l = m['items'];
+            if (l is! List) return;
+            final once = l.length;
+            m['items'] = [
+              for (final o in l)
+                if (!(o is Map && ids.contains('${o['id']}'))) o else if (!kaldir) {...o, ...alanlar},
+            ];
+            if (kaldir && m['total'] is num) m['total'] = (m['total'] as num) - (once - (m['items'] as List).length);
+          });
+        }
+      } catch (_) {}
+    }());
+  }
 
   /// action: read unread flag unflag important unimportant move label unlabel delete spam notspam archive
   static Future<int> toplu(List<String> idler, String eylem, {String? klasorId, String? etiketId}) async {
@@ -248,7 +364,9 @@ class Posta {
       final govde = <String, dynamic>{'ids': parca, 'action': eylem};
       if (klasorId != null) govde['folder_id'] = klasorId;
       if (etiketId != null) govde['label_id'] = etiketId;
-      n += _sayi(await _api.post('/api/v1/mail/messages/bulk', govde), 'updated');
+      final v = await _degistir('POST', '/api/v1/mail/messages/bulk', govde, _aciklama(govde, parca.length));
+      n += v == null ? parca.length : _sayi(v, 'updated');
+      _yerelUygula(parca, govde);
     }
     return n;
   }
@@ -320,10 +438,13 @@ class Posta {
       );
     } on DioException catch (e) {
       final zaman = e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.sendTimeout || e.type == DioExceptionType.receiveTimeout;
+      if (e.type != DioExceptionType.cancel) _api.ulasilabilirlik?.call(false);
       throw GonderimHatasi(
         zaman ? 'Sunucu zamanında yanıt vermedi. Bağlantınızı kontrol edip tekrar deneyin.' : 'Sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin.',
+        baglantiYok: true,
       );
     }
+    _api.ulasilabilirlik?.call(true);
     final d = c.statusCode ?? 0;
     if (d >= 200 && d < 300) return c.data;
     if (d == 401) {
@@ -359,9 +480,16 @@ class Posta {
   // ---- ayarlar ----
 
   static Future<PostaAyarlari> ayarlar() async {
-    final a = PostaAyarlari.json(await _api.get('/api/v1/mail/settings'));
+    final v = await _api.get('/api/v1/mail/settings');
+    unawaited(Onbellek.ben.yaz('ayarlar', v));
+    final a = PostaAyarlari.json(v);
     unawaited(Bildirim.tercihleriUygula(masaustu: a.bildirimMasaustu, ses: a.bildirimSes));
     return a;
+  }
+
+  static Future<PostaAyarlari?> ayarlarOnbellek() async {
+    final v = await Onbellek.ben.oku('ayarlar');
+    return v == null ? null : PostaAyarlari.json(v);
   }
 
   static Future<void> ayarKaydet(Map<String, dynamic> degisen) => _api.patch('/api/v1/mail/settings', degisen);

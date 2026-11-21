@@ -1,6 +1,8 @@
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 
+import '../veri/kuyruk.dart';
+import 'giden_kutusu.dart';
 import '../ortak/esitleme.dart';
 import '../ortak/simgeler.dart';
 import '../ortak/surukle.dart';
@@ -69,7 +71,7 @@ class _YanMenuState extends State<YanMenu> {
   Widget build(BuildContext context) {
     final r = context.r;
     return ListenableBuilder(
-      listenable: PostaDurum.ben,
+      listenable: Listenable.merge([PostaDurum.ben, GidenKutusu.ben.ogeler]),
       builder: (context, _) {
         final d = PostaDurum.ben;
         if (widget.dar) return _dar(context, d);
@@ -167,6 +169,28 @@ class _YanMenuState extends State<YanMenu> {
                             ])
                               _oge(context, gorunumSimgesi(id), ad, Konum.gorunum(id), renk: gorunumRengi(id)),
                             for (final k in digerSistem) _klasorOgesi(context, k),
+                            // Outlook gibi: çevrimdışıyken gönderilenler (yalnız doluyken görünür; sayı rozeti).
+                            ValueListenableBuilder<List<GidenOge>>(
+                              valueListenable: GidenKutusu.ben.ogeler,
+                              builder: (context, l, _) => l.isEmpty
+                                  ? const SizedBox.shrink()
+                                  : KeyedSubtree(
+                                      key: const ValueKey('yan-giden-kutusu'),
+                                      child: _ogeGovdesi(
+                                        context,
+                                        Simge.gidenKutusu,
+                                        'Giden Kutusu',
+                                        null,
+                                        sayi: l.length,
+                                        renk: l.any((o) => o.durum == GidenDurum.hata) ? Marka.gul : null,
+                                        dokun: () {
+                                          final nav = Navigator.of(context);
+                                          if (cekmecede) nav.pop();
+                                          uyarlanirAc<void>(nav.context, (_) => const GidenKutusuEkrani());
+                                        },
+                                      ),
+                                    ),
+                            ),
                             _arac(context, Simge.planliGonder, 'Planlanan', PlanlananlarEkrani.new),
                             _arac(context, Simge.gereksiz, 'Karantina', KarantinaEkrani.new),
                             _arac(context, Simge.gonderimDurumu, 'Gönderim durumu', GonderimDurumuEkrani.new),
@@ -377,6 +401,15 @@ class _YanMenuState extends State<YanMenu> {
                     Konum.klasor(k.id),
                     sayi: const {'sent', 'trash', 'drafts', 'templates', 'snoozed'}.contains(k.rol) ? 0 : k.okunmamis,
                     renk: klasorRengi(k.rol),
+                  ),
+                if (GidenKutusu.ben.ogeler.value.isNotEmpty)
+                  simge(
+                    'giden',
+                    Simge.gidenKutusu,
+                    'Giden Kutusu',
+                    null,
+                    sayi: GidenKutusu.ben.ogeler.value.length,
+                    dokun: () => uyarlanirAc<void>(context, (_) => const GidenKutusuEkrani()),
                   ),
                 simge('planlanan', Simge.planliGonder, 'Planlanan', null, dokun: () => uyarlanirAc<void>(context, (_) => const PlanlananlarEkrani())),
                 simge('karantina', Simge.gereksiz, 'Karantina', null, dokun: () => uyarlanirAc<void>(context, (_) => const KarantinaEkrani())),

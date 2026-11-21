@@ -43,7 +43,15 @@ class YazmaBaslangic {
     this.oncelik,
     this.okunduBilgisi = false,
     this.takipGun = 0,
+    this.gidenId,
+    this.yerelEkler = const [],
   });
+
+  /// Giden Kutusu'ndaki bir iletinin düzenlenmesi: gönderilince / yeniden kuyruğa alınınca bu öğenin yerine geçer.
+  final String? gidenId;
+
+  /// Giden Kutusu'nda saklanan yerel ekler (ad, base64 içerik).
+  final List<(String, String)> yerelEkler;
 
   final YazmaTuru tur;
   final List<Adres> kime;
@@ -182,4 +190,51 @@ YazmaBaslangic taslakHazirla(IletiDetay d, {String? taslakId, Map<String, dynami
     h.write('<div><br></div>$alintiHtml');
   }
   return (metin: m.toString(), html: h.toString());
+}
+
+/// Giden Kutusu'ndaki gönderim isteğinden yazma penceresi (düzenleme). [ek]: dahil edilen eklerin adları/boyutları.
+YazmaBaslangic gidenHazirla(String gidenId, Map<String, dynamic> istek, Map<String, dynamic> ek) {
+  List<Adres> adresler(String alan) => ((istek[alan] as List?) ?? const []).map((e) => adresCoz('$e')).where((a) => a.eposta.isNotEmpty).toList();
+  final dahil = <DahilEk>[];
+  final adlar = (ek['dahil'] as List?) ?? const [];
+  for (final (i, p) in ((istek['include_parts'] as List?) ?? const []).indexed) {
+    if (p is! Map) continue;
+    final m = i < adlar.length && adlar[i] is Map ? adlar[i] as Map : const {};
+    dahil.add(
+      DahilEk(
+        iletiId: '${p['message_id'] ?? ''}',
+        sira: (p['index'] as num?)?.toInt() ?? 0,
+        ad: '${m['ad'] ?? 'Ek ${i + 1}'}',
+        tur: '${m['tur'] ?? ''}',
+        boyut: (m['boyut'] as num?)?.toInt() ?? 0,
+      ),
+    );
+  }
+  final html = '${istek['html'] ?? ''}';
+  String? s(String k) => istek[k] is String && (istek[k] as String).isNotEmpty ? istek[k] as String : null;
+  return YazmaBaslangic(
+    tur: YazmaTuru.taslak,
+    kime: adresler('to'),
+    bilgi: adresler('cc'),
+    gizli: adresler('bcc'),
+    konu: '${istek['subject'] ?? ''}',
+    metin: '${istek['text'] ?? ''}',
+    htmlTaslak: html.trim().isNotEmpty,
+    htmlGovde: html.trim().isNotEmpty ? html : null,
+    inReplyTo: s('in_reply_to'),
+    references: s('references'),
+    yanitlananId: s('reply_to_id'),
+    iletilenId: s('forward_of_id'),
+    taslakId: s('draft_id'),
+    dahilEkler: dahil,
+    imzaEkle: false,
+    oncelik: s('priority'),
+    okunduBilgisi: istek['read_receipt'] == true,
+    takipGun: (istek['followup_days'] as num?)?.toInt() ?? 0,
+    gidenId: gidenId,
+    yerelEkler: [
+      for (final a in (istek['attachments'] as List?) ?? const [])
+        if (a is Map) ('${a['filename'] ?? 'ek'}', '${a['data'] ?? ''}'),
+    ],
+  );
 }

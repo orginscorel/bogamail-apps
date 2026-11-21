@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 
 import '../oturum.dart';
 import '../ortak/html_govde.dart';
+import '../veri/esitleyici.dart';
+import '../veri/kuyruk.dart';
 import '../veri/bildirim.dart';
 import '../veri/birlesik.dart';
 import '../veri/canli.dart';
@@ -86,6 +88,12 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     _abonelikler.add(Canli.ben.olaylar.listen(_canliOlay));
     Canli.ben.durdur(); // hesap değiştiyse yeni oturumla yeniden bağlan
     Canli.ben.baslat();
+    // Önce yerel: arka plan eşitlemesi (bekleyen değişiklikler, Giden Kutusu, klasörler, gövde önyükleme).
+    GidenKutusu.gonderildi = () {
+      _durum.sayilariYenile();
+      bildir('Giden Kutusu\'ndaki ileti gönderildi', tur: MesajTur.basari);
+    };
+    Esitleyici.ben.baslat();
     SohbetDurum.ben.sifirla();
     SohbetDurum.ben.addListener(_degisti);
     SohbetDurum.ben.baslat();
@@ -108,6 +116,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     if (_etkin == this) {
       _etkin = null;
       Canli.ben.durdur();
+      Esitleyici.ben.durdur();
       SohbetDurum.ben.durdur();
       BirlesikDurum.ben.durdur();
     }
@@ -133,6 +142,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     if (s == AppLifecycleState.resumed) {
       Canli.ben.baslat();
       _durum.sayilariYenile();
+      Esitleyici.ben.tetikle(hemen: true);
       SohbetDurum.ben.etkin(true);
       SohbetDurum.ben.yenile();
     } else if (s == AppLifecycleState.paused || s == AppLifecycleState.hidden) {

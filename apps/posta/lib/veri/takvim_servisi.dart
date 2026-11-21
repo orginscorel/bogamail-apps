@@ -4,6 +4,7 @@
 import 'package:boga_ortak/boga_ortak.dart';
 
 import '../oturum.dart';
+import 'onbellek.dart';
 
 String _s(Object? v) => v == null ? '' : '$v';
 int _i(Object? v) => v is int ? v : (v is num ? v.toInt() : int.tryParse('$v') ?? 0);
@@ -224,12 +225,17 @@ class TakvimApi {
   static BogaApi get _api => Uyg.api;
   static const _k = '/api/v1/mail';
 
-  static Future<List<Takvim>> takvimler() async => _ogeler(await _api.get('$_k/calendars')).map(Takvim.json).toList();
+  static Future<List<Takvim>> takvimler({void Function(List<Takvim>)? yerel}) =>
+      yerelOnce('takvim:liste', () => _api.get('$_k/calendars'), (v) => _ogeler(v).map(Takvim.json).toList(), yerel: yerel);
   static Future<void> takvimOlustur(String ad, String renk) => _api.post('$_k/calendars', {'name': ad.trim(), 'color': renk});
   static Future<void> takvimSil(String id) => _api.delete('$_k/calendars/$id');
 
-  static Future<List<Etkinlik>> etkinlikler(DateTime bas, DateTime son) async =>
-      _ogeler(await _api.get('$_k/calendar/events', q: {'from': _utc(bas), 'to': _utc(son)})).map(Etkinlik.json).toList();
+  static Future<List<Etkinlik>> etkinlikler(DateTime bas, DateTime son, {void Function(List<Etkinlik>)? yerel}) => yerelOnce(
+    'takvim:etk:${_utc(bas)}:${_utc(son)}',
+    () => _api.get('$_k/calendar/events', q: {'from': _utc(bas), 'to': _utc(son)}),
+    (v) => _ogeler(v).map(Etkinlik.json).toList(),
+    yerel: yerel,
+  );
 
   static Future<EtkinlikSonucu> kaydet(Etkinlik e, {bool davetGonder = false}) async {
     final v = _m(
@@ -357,10 +363,12 @@ class GorevApi {
   static const _k = '/api/v1/mail/tasks';
 
   /// [kapsam]: '' (hepsi) | assigned | created; [durum]: open | done | all.
-  static Future<List<Gorev>> liste({String kapsam = '', String durum = 'open', String q = ''}) async =>
-      _ogeler(await _api.get(_k, q: {if (kapsam.isNotEmpty) 'scope': kapsam, 'status': durum, if (q.trim().isNotEmpty) 'q': q.trim()}))
-          .map(Gorev.json)
-          .toList();
+  static Future<List<Gorev>> liste({String kapsam = '', String durum = 'open', String q = '', void Function(List<Gorev>)? yerel}) => yerelOnce(
+    q.trim().isEmpty ? 'gorev:$kapsam:$durum' : null,
+    () => _api.get(_k, q: {if (kapsam.isNotEmpty) 'scope': kapsam, 'status': durum, if (q.trim().isNotEmpty) 'q': q.trim()}),
+    (v) => _ogeler(v).map(Gorev.json).toList(),
+    yerel: yerel,
+  );
 
   static Future<List<GorevKisi>> kisiler() async => _ogeler(await _api.get('$_k/people')).map(GorevKisi.json).toList();
 

@@ -11,6 +11,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:posta/ekranlar/giden_kutusu.dart';
+import 'package:posta/veri/baglanti.dart';
+import 'package:posta/veri/kuyruk.dart';
 import 'package:posta/ekranlar/ayarlar.dart';
 import 'package:posta/ekranlar/birlesik_ekrani.dart';
 import 'package:posta/ekranlar/ileti_listesi.dart';
@@ -384,6 +387,34 @@ void main() {
         },
       );
     }
+  });
+
+  testWidgets('çevrimdışı: şerit, kenar menüsünde Giden Kutusu, Giden Kutusu ekranı', (t) async {
+    Baglanti.ben.cevrimdisi.value = true;
+    Baglanti.ben.sonEsitleme.value = DateTime.now().subtract(const Duration(minutes: 7));
+    GidenKutusu.ben.ogeler.value = [
+      GidenOge(id: 'o1', konu: 'Teklif revizyonu', kime: 'Ayşe Yılmaz <ayse@ornek.com>', zaman: DateTime.now(), ekSayisi: 1, boyut: 482000),
+      GidenOge(
+        id: 'o2',
+        konu: 'Toplantı saati',
+        kime: 'ekip@ornek.com',
+        zaman: DateTime.now(),
+        durum: GidenDurum.hata,
+        hata: 'Alıcı posta kutusu bulunamadı. Adresi kontrol edin.',
+      ),
+    ];
+    IslemKuyrugu.ben.ogeler.value = [
+      BekleyenIslem(id: 'i1', yontem: 'POST', yol: '/x', aciklama: 'Arşivle (2 ileti)', zaman: DateTime.now()),
+      BekleyenIslem(id: 'i2', yontem: 'PATCH', yol: '/y', aciklama: 'Okundu işaretle (1 ileti)', zaman: DateTime.now()),
+    ];
+    addTearDown(() {
+      Baglanti.ben.testSifirla();
+      GidenKutusu.ben.sifirla();
+      IslemKuyrugu.ben.sifirla();
+    });
+    await ciz(t, 'cevrimdisi-telefon', telefon, () => IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, klasorler: () {}));
+    await ciz(t, 'cevrimdisi-klasorler-telefon', telefon, () => YanMenu(sec: (_) {}, sayfa: true));
+    await ciz(t, 'giden-kutusu-telefon', telefon, () => const GidenKutusuEkrani());
   });
 
   testWidgets('kenar menüsü (telefon)', (t) async {

@@ -115,10 +115,23 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
 
   Future<void> _yukle() async {
     final oda = widget.odaId;
+    // Önce yerel: son iletiler önbellekten hemen çizilir, ağ yanıtı gelince yerine konur.
+    final h = Sohbet.mesajlarHemen(oda);
     setState(() {
-      _yukleniyor = true;
       _hata = null;
+      if (h != null) _mesajlar = h;
+      _yukleniyor = h == null;
     });
+    if (h == null) {
+      final o = await Sohbet.mesajlarOnbellek(oda).catchError((_) => null);
+      if (!mounted || oda != widget.odaId) return;
+      if (o != null && _yukleniyor) {
+        setState(() {
+          _mesajlar = o;
+          _yukleniyor = false;
+        });
+      }
+    }
     try {
       final l = await Sohbet.mesajlar(oda);
       if (!mounted || oda != widget.odaId) return;
@@ -129,9 +142,9 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
       });
       unawaited(SohbetDurum.ben.okunduIsaretle(oda));
     } catch (e) {
-      if (mounted) {
+      if (mounted && oda == widget.odaId) {
         setState(() {
-          _hata = hataMetni(e);
+          if (_mesajlar.isEmpty || !(e is ApiHata && e.baglantiYok)) _hata = hataMetni(e);
           _yukleniyor = false;
         });
       }

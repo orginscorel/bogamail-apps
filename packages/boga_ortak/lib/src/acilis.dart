@@ -10,6 +10,7 @@ import 'package:path_drawing/path_drawing.dart';
 
 import 'api.dart';
 import 'guncelleme.dart';
+import 'ortak.dart';
 import 'tema.dart';
 
 /// Hangi uygulamanın işareti: posta → indigo zemin + zarf rozeti, yönetim → grafit zemin + yeşil kontrol rozeti.
@@ -231,7 +232,8 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
       return;
     }
     if (!_giris.isAnimating) return;
-    final ms = ((1 - _giris.value) * _sure * .5).round();
+    // Posta: yerel verilerle hazırsa açılış animasyonu beklenmez (anında açılış).
+    final ms = kimlik == Kimlik.posta ? 120 : ((1 - _giris.value) * _sure * .5).round();
     await _giris.animateTo(1, duration: Duration(milliseconds: ms)).orCancel.catchError((_) {});
   }
 
@@ -249,17 +251,29 @@ class _AcilisEkraniState extends State<AcilisEkrani> with TickerProviderStateMix
       setState(() => _hata = e is ApiHata ? e.mesaj : 'Uygulama başlatılamadı. Tekrar deneyin.');
       return;
     }
-    await denetim;
+    if (kimlik == Kimlik.posta) {
+      // Posta çevrimdışı / yavaş ağda da hemen açılır: sürüm denetimi arkada sürer, zorunluysa sonra gösterilir.
+      unawaited(
+        denetim.then((_) {
+          if (api != null && Guncelleme.zorunlu.value) {
+            kokGezgin.currentState?.pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => ZorunluGuncellemeEkrani(api: api)), (_) => false);
+          }
+        }),
+      );
+    } else {
+      await denetim;
+    }
     if (!mounted) return;
     if (api != null && Guncelleme.zorunlu.value) sonraki = ZorunluGuncellemeEkrani(api: api);
     await _girisiBitir();
     if (!mounted) return;
+    if (kimlik == Kimlik.posta) _cikis.duration = const Duration(milliseconds: 120);
     await _cikis.forward();
     if (!mounted) return;
     final hedef = sonraki;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: Duration(milliseconds: hareketAzalt(context) ? 0 : 380),
+        transitionDuration: Duration(milliseconds: hareketAzalt(context) ? 0 : (kimlik == Kimlik.posta ? 200 : 380)),
         pageBuilder: (_, _, _) => hedef,
         transitionsBuilder: (_, a, _, child) {
           final e = Curves.easeOutCubic.transform(a.value);

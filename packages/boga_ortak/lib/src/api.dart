@@ -60,6 +60,10 @@ class BogaApi {
   /// 401 geldiğinde (giriş istekleri hariç) çağrılır: uygulama giriş ekranına döner.
   VoidCallback? oturumDustu;
 
+  /// Her istekten sonra sunucuya ulaşılıp ulaşılamadığını bildirir (çevrimdışı göstergesi, kuyruk yeniden oynatma).
+  /// Yalnız posta uygulaması kullanır; null ise hiçbir şey yapılmaz.
+  void Function(bool ulasildi)? ulasilabilirlik;
+
   Future<void> baslat() async {
     final prefs = await SharedPreferences.getInstance();
     sunucu = prefs.getString('$uygulama.sunucu') ?? varsayilanSunucu;
@@ -153,8 +157,10 @@ class BogaApi {
         onReceiveProgress: ilerleme,
       );
     } on DioException catch (e) {
+      if (e.type != DioExceptionType.cancel) ulasilabilirlik?.call(false);
       throw _agHatasi(e);
     }
+    ulasilabilirlik?.call(true);
     final d = c.statusCode ?? 0;
     if (d >= 400) {
       if (d == 401) oturumDustu?.call();
@@ -178,8 +184,10 @@ class BogaApi {
         options: Options(method: yontem),
       );
     } on DioException catch (e) {
+      if (e.type != DioExceptionType.cancel) ulasilabilirlik?.call(false);
       throw _agHatasi(e);
     }
+    ulasilabilirlik?.call(true);
     final d = c.statusCode ?? 0;
     if (d >= 200 && d < 300) return c.data;
     var mesaj = 'İstek başarısız (HTTP $d).';

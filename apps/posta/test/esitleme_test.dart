@@ -32,6 +32,7 @@ void main() {
     await t.pump();
     expect(find.byKey(const ValueKey('esitleme-serit')), findsOneWidget);
     expect(find.textContaining('sn sonra yeniden denenecek'), findsOneWidget);
+    expect(find.textContaining('Çevrimdışı — henüz eşitlenmedi'), findsOneWidget);
     expect(find.text('Şimdi eşitle'), findsOneWidget);
     Canli.ben.durum.value = const CanliDurumu(CanliTur.bagli);
     await t.pump();

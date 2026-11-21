@@ -25,6 +25,9 @@ class YolSunucusu implements HttpClientAdapter {
   /// "GET /api/v1/mail/chat/rooms" → (durum, gövde) ya da istekten üreten işlev.
   final yollar = <String, Object>{};
 
+  /// true: sunucuya ulaşılamıyor (bağlantı hatası; istek kaydedilir ama yanıt yok).
+  bool cevrimdisi = false;
+
   void kur() {
     Uyg.api.dio = Dio(BaseOptions(baseUrl: 'http://sahte.invalid', validateStatus: (_) => true))..httpClientAdapter = this;
   }
@@ -41,6 +44,7 @@ class YolSunucusu implements HttpClientAdapter {
     }
     final ist = Istek(o.method, o.uri.path, o.queryParameters, g);
     istekler.add(ist);
+    if (cevrimdisi) throw DioException(requestOptions: o, type: DioExceptionType.connectionError, message: 'çevrimdışı');
     final h = yollar['${o.method} ${o.uri.path}'];
     final Yanit y = switch (h) {
       null => (

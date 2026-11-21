@@ -148,7 +148,19 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
   Future<void> _yukle() async {
     final no = ++_istek;
     try {
-      final v = await Hesap.kisiler(q: _ara.text, tur: _tur);
+      final v = await Hesap.kisiler(
+        q: _ara.text,
+        tur: _tur,
+        // Önce yerel: kişi listesi önbellekten hemen.
+        yerel: (o) {
+          if (mounted && no == _istek && _l == null) {
+            setState(() {
+              _l = o.ogeler;
+              _toplam = o.toplam;
+            });
+          }
+        },
+      );
       if (!mounted || no != _istek) return;
       setState(() {
         _l = v.ogeler;
