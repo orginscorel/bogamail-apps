@@ -846,9 +846,9 @@ class OkuyucuState extends State<Okuyucu> {
           key: const ValueKey('masaustu-okuyucu'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Başlık bloğu: en çok bölmenin %55'i (uzun konuşmada kendi içinde kayar); gövde hep hemen altında.
+            // Başlık bloğu: en çok bölmenin %70'i (uzun konuşmada kendi içinde kayar); gövde hep hemen altında.
             ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: k.maxHeight * .55),
+              constraints: BoxConstraints(maxHeight: k.maxHeight * .7),
               child: SingleChildScrollView(key: const ValueKey('okuyucu-ust'), child: ust),
             ),
             Divider(height: 1, color: r.kenar),

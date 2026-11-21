@@ -1,3 +1,13 @@
+## 1.7.0
+
+**BogaMail (posta) — masaüstü okuyucu (macOS/Windows), Outlook düzeni**
+- Üstte sabit başlık bloğu (konu, gönderen, spam satırı, ekler, Biçimli/Düz metin); posta gövdesi altında kalan alanın tamamını kaplar ve kendi içinde kayar. Beyaz sayfa, sonradan uzama, iç içe kaydırma yok; fare tekerleği ve iz paneli her yerde çalışır.
+- Gövde her postada aynı yerden, başlığın hemen altından başlar; postaya geçince en üstten açılır.
+- Görüntüleyici iletiler arasında korunur: postalar arası geçiş anında; görseller sayfa yeniden yüklenmeden yerine oturur; açılmış postaya dönünce görselleriyle aynı hâlde anında gelir.
+- Konuşma: önceki iletiler kısa satırlar; tıklanan ileti aynı tam boy alanda açılır, yanıt o iletiye gider.
+- Altta sabit Yanıtla / Tümünü yanıtla / İlet çubuğu.
+- Tümü / Okunmamış / Yıldızlı / Ekli sekmeleri sabit genişlikte; seçim ya da sayı değişince kaymaz.
+
 ## 1.6.4
 
 - Posta görselleri beklemeden: sunucu yeni gelen postanın içeriğini ve görsellerini posta gelir gelmez hazırlar; uygulama görselleri hepsini beklemeden geldikçe gösterir.
