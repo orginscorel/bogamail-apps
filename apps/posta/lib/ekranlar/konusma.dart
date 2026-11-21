@@ -66,6 +66,9 @@ class KonusmaGorunumuState extends State<KonusmaGorunumu> {
   /// "▸ N önceki ileti" açıldı mı.
   bool _oncekilerAcik = false;
 
+  /// Bir kez görünen önceki ileti görünür kalır (kapatılınca gizli gruba geri kaçmaz; liste zıplamaz).
+  final _gorunenler = <String>{};
+
   /// Yapışkan şerit: o an okunan ileti ("Ad · bugün 09:12").
   final _serit = ValueNotifier<String?>(null);
   bool _kullaniciEtkilesti = false;
@@ -86,6 +89,7 @@ class KonusmaGorunumuState extends State<KonusmaGorunumu> {
     _acik = {widget.acilan.ozet.id, if (l.isNotEmpty) l.last.id, ...l.where((m) => !m.okundu).map((m) => m.id)};
     _hedef = l.where((m) => !m.okundu).firstOrNull?.id ?? widget.acilan.ozet.id;
     _oncekilerAcik = false;
+    _gorunenler.clear();
     _kullaniciEtkilesti = false;
     WidgetsBinding.instance.addPostFrameCallback((_) => _hedefeKaydir());
   }
@@ -172,7 +176,10 @@ class KonusmaGorunumuState extends State<KonusmaGorunumu> {
     final c = l.indexWhere((m) => m.id == widget.acilan.ozet.id);
     if (c < 0) return [...l];
     final once = l.sublist(0, c);
-    bool gorunur(int i) => i == once.length - 1 || _acik.contains(once[i].id);
+    bool gorunur(int i) => i == once.length - 1 || _acik.contains(once[i].id) || _gorunenler.contains(once[i].id);
+    for (var i = 0; i < once.length; i++) {
+      if (gorunur(i)) _gorunenler.add(once[i].id);
+    }
     final gizli = [
       for (var i = 0; i < once.length; i++)
         if (!gorunur(i)) i,
@@ -204,63 +211,69 @@ class KonusmaGorunumuState extends State<KonusmaGorunumu> {
       for (final m in _l)
         if (!onceGorulen.add(adresCoz(m.kimden).eposta.toLowerCase())) m.id,
     };
-    final govde = NotificationListener<ScrollNotification>(
-      onNotification: (n) {
-        if (n is ScrollStartNotification && n.dragDetails != null) _kullaniciEtkilesti = true;
-        if (n.depth == 0) _seritiGuncelle();
-        return false;
-      },
-      child: CustomScrollView(
-        key: const ValueKey('konusma'),
-        controller: _kaydirma,
-        slivers: [
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _KonuBasligi(konu: konu, sayi: _l.length, kisi: kisiler.length, etiketler: etiketler, onemli: d.ozet.onemli, renkler: r, serit: _serit),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.only(bottom: 16),
-            sliver: SliverList.list(
-              children: [
-                for (final o in _sira())
-                  if (o is int)
-                    _OncekiDenetimi(
-                      key: const ValueKey('konusma-daha'),
-                      sayi: o,
-                      acik: _oncekilerAcik,
-                      degistir: () => setState(() {
-                        _oncekilerAcik = !_oncekilerAcik;
-                        _kullaniciEtkilesti = true;
-                      }),
-                    )
-                  else if (o is IletiOzet)
-                    Builder(
-                      builder: (_) {
-                        // Aynı gönderenin daha önce iletisi varsa imzası tekrardır: "•••" arkasına katlanır.
-                        final imzaTekrar = imzaTekrarlar.contains(o.id);
-                        final acilan = o.id == d.ozet.id;
-                        return KeyedSubtree(
-                          key: _anahtar(o.id),
-                          child: _acik.contains(o.id)
-                              ? KonusmaIletisi(
-                                  key: ValueKey('konusma-ileti-${o.id}'),
-                                  ozet: o,
-                                  detay: _detaylar[o.id],
-                                  imzayiKatla: imzaTekrar,
-                                  yuklendi: _yuklendi,
-                                  kapat: () => _degistir(o.id),
-                                  yanitla: _yanitla,
-                                  acilan: acilan,
-                                  ayriAc: acilan ? null : () => _baskaAc(o.id),
-                                )
-                              : _KapaliIleti(key: ValueKey('konusma-kapali-${o.id}'), ozet: o, detay: _detaylar[o.id], ac: () => _degistir(o.id)),
-                        );
-                      },
-                    ),
-              ],
+    final govde = Listener(
+      // Fare tekerleği (masaüstü) de kullanıcı kaydırmasıdır.
+      onPointerSignal: (_) => _kullaniciEtkilesti = true,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          // Sürükleme, tekerlek, klavye: kullanıcı kaydırdıysa içerik yüklendikçe hedefe geri atlanmaz.
+          if (n is ScrollStartNotification && n.dragDetails != null) _kullaniciEtkilesti = true;
+          if (n is UserScrollNotification && n.direction != ScrollDirection.idle) _kullaniciEtkilesti = true;
+          if (n.depth == 0) _seritiGuncelle();
+          return false;
+        },
+        child: CustomScrollView(
+          key: const ValueKey('konusma'),
+          controller: _kaydirma,
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _KonuBasligi(konu: konu, sayi: _l.length, kisi: kisiler.length, etiketler: etiketler, onemli: d.ozet.onemli, renkler: r, serit: _serit),
             ),
-          ),
-        ],
+            SliverPadding(
+              padding: const EdgeInsets.only(bottom: 16),
+              sliver: SliverList.list(
+                children: [
+                  for (final o in _sira())
+                    if (o is int)
+                      _OncekiDenetimi(
+                        key: const ValueKey('konusma-daha'),
+                        sayi: o,
+                        acik: _oncekilerAcik,
+                        degistir: () => setState(() {
+                          _oncekilerAcik = !_oncekilerAcik;
+                          _kullaniciEtkilesti = true;
+                        }),
+                      )
+                    else if (o is IletiOzet)
+                      Builder(
+                        builder: (_) {
+                          // Aynı gönderenin daha önce iletisi varsa imzası tekrardır: "•••" arkasına katlanır.
+                          final imzaTekrar = imzaTekrarlar.contains(o.id);
+                          final acilan = o.id == d.ozet.id;
+                          return KeyedSubtree(
+                            key: _anahtar(o.id),
+                            child: _acik.contains(o.id)
+                                ? KonusmaIletisi(
+                                    key: ValueKey('konusma-ileti-${o.id}'),
+                                    ozet: o,
+                                    detay: _detaylar[o.id],
+                                    imzayiKatla: imzaTekrar,
+                                    yuklendi: _yuklendi,
+                                    kapat: () => _degistir(o.id),
+                                    yanitla: _yanitla,
+                                    acilan: acilan,
+                                    ayriAc: acilan ? null : () => _baskaAc(o.id),
+                                  )
+                                : _KapaliIleti(key: ValueKey('konusma-kapali-${o.id}'), ozet: o, detay: _detaylar[o.id], ac: () => _degistir(o.id)),
+                          );
+                        },
+                      ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
     final son = _sonDetay;
@@ -812,12 +825,14 @@ class _KonusmaIletisiState extends State<KonusmaIletisi> {
             for (final t in d.tehditler) GuvenlikBandi(tur: BantTuru.tehlike, baslik: 'Güvenlik uyarısı', metin: t, ikon: Simge.gereksiz),
             ...sezgiselUyarilar(d),
             if (v!.ekler.any((e) => e.davetiye)) DavetKarti(key: ValueKey('davet-${d.ozet.id}'), iletiId: d.ozet.id),
-            _govde(d, tehlikeli),
+            // Ekler gövdeden önce, okuyucudaki gibi kartlar (dokununca açılır / PDF önizlenir; menüden paylaş, kaydet).
             if (ekler.isNotEmpty)
               Padding(
-                padding: EdgeInsets.fromLTRB(genis ? 60 : 16, 4, 16, 12),
-                child: EkSeridi(iletiId: d.ozet.id, ekler: ekler),
+                key: const ValueKey('konusma-ekler'),
+                padding: EdgeInsets.fromLTRB(genis ? 60 : 16, 4, 16, 8),
+                child: EkListesi(iletiId: d.ozet.id, ekler: ekler),
               ),
+            _govde(d, tehlikeli),
           ] else if (_hata != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(58, 4, 16, 14),

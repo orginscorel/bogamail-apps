@@ -229,7 +229,18 @@ class IletiGorunum {
 
 /// GET /api/v1/mail/messages/{id}
 class IletiDetay {
-  IletiDetay({required this.ozet, required this.gorunum, this.tehditler = const [], this.baglantilar = const {}});
+  IletiDetay({
+    required this.ozet,
+    required this.gorunum,
+    this.tehditler = const [],
+    this.baglantilar = const {},
+    this.spamPuani,
+    this.spamKurallari = const [],
+  });
+
+  /// Gelen spam denetimi (spam.score / spam.rules; web reader "Spam denetimi: puan …"). Puan yoksa null.
+  final double? spamPuani;
+  final List<String> spamKurallari;
   final IletiOzet ozet;
   final IletiGorunum gorunum;
 
@@ -247,6 +258,8 @@ class IletiDetay {
       gorunum: IletiGorunum.json(m['view']),
       tehditler: _l(m['threats']).map((t) => _s(_m(t)['banner'])).where((s) => s.isNotEmpty).toList(),
       baglantilar: b.map((k, v) => MapEntry(k, _s(v))),
+      spamPuani: _m(m['spam'])['score'] is num ? (_m(m['spam'])['score'] as num).toDouble() : null,
+      spamKurallari: _l(_m(m['spam'])['rules']).map(_s).where((s) => s.isNotEmpty).toList(),
     );
   }
 }

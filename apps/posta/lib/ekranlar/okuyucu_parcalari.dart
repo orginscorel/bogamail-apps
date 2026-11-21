@@ -348,3 +348,68 @@ class YanitCubugu extends StatelessWidget {
     );
   }
 }
+
+/// Web reader: temiz iletide "Spam denetimi: puan -0.7 (temiz)" — dokununca eşleşen kurallar (eş aralıklı haplar).
+class SpamDenetimi extends StatefulWidget {
+  const SpamDenetimi({super.key, required this.puan, required this.kurallar});
+  final double puan;
+  final List<String> kurallar;
+
+  @override
+  State<SpamDenetimi> createState() => _SpamDenetimiState();
+}
+
+class _SpamDenetimiState extends State<SpamDenetimi> {
+  bool _acik = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    return Column(
+      key: const ValueKey('spam-denetimi'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => setState(() => _acik = !_acik),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedRotation(
+                  turns: _acik ? .25 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Icon(Simge.ileri, size: 12, color: r.silik),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text('Spam denetimi: puan ${widget.puan.toStringAsFixed(1)} (temiz)', style: TextStyle(fontSize: 12, color: r.silik)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_acik)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (final k in widget.kurallar)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: r.ic, borderRadius: BorderRadius.circular(4)),
+                    child: Text(
+                      k,
+                      style: TextStyle(fontSize: 11.5, color: r.silik, fontFeatures: const [FontFeature.tabularFigures()]),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}

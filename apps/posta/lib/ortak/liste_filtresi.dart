@@ -31,7 +31,7 @@ enum ListeFiltresi {
 
 /// "Tümü · Okunmamış (N) · Yıldızlı · Ekli" bölümlü süzgeç çubuğu. Etkin bölüm dolu vurgu rengiyle belirgindir.
 /// Web (message-list.tsx) sekmeleri: h-8 yuvarlak düğmeler, seçili olan birincil dolgu + beyaz yazı, diğerleri soluk.
-/// [sayilar] yalnız erişilebilirlik etiketinde kullanılır (web'de sekmede sayı yok).
+/// [sayilar]: sekmede küçük sayı (ör. okunmamış) ve erişilebilirlik etiketi.
 class FiltreCubugu extends StatelessWidget {
   const FiltreCubugu({super.key, required this.secili, required this.degisti, this.sayilar = const {}});
   final ListeFiltresi secili;
@@ -96,11 +96,30 @@ class _BolumState extends State<_Bolum> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: secili ? const [BoxShadow(color: Color(0x0D000000), blurRadius: 2, offset: Offset(0, 1))] : null,
             ),
-            child: Text(
-              widget.filtre.ad,
-              maxLines: 1,
-              softWrap: false,
-              style: TextStyle(fontSize: 14, height: 20 / 14, color: secili ? Colors.white : (_uzerinde ? r.metin : r.silik)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.filtre.ad,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(fontSize: 14, height: 20 / 14, color: secili ? Colors.white : (_uzerinde ? r.metin : r.silik)),
+                ),
+                // 1.4'teki gibi okunmamış sayısı sekmede (küçük, soluk).
+                if (sayiVar) ...[
+                  const SizedBox(width: 5),
+                  Text(
+                    sayiYaz(widget.sayi!),
+                    key: ValueKey('filtre-sayi-${widget.filtre.name}'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: secili ? Colors.white.withValues(alpha: .85) : r.birincil,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),

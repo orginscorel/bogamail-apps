@@ -13,8 +13,31 @@ final kokMesaj = GlobalKey<ScaffoldMessengerState>();
 
 enum MesajTur { bilgi, basari, uyari, hata }
 
-/// Alttan kayan kısa bildirim.
-void bildir(String baslik, {String? mesaj, MesajTur tur = MesajTur.bilgi}) {
+OverlayEntry? _tost;
+
+/// Kısa bildirim. Postada bilgi / başarı bildirimleri sağ üstte (telefonda üst ortada) kendiliğinden kapanan
+/// tost kartıdır ([onde]: avatar / renk noktası); uyarı ve hatalar ile yönetim uygulaması alttan kayan bant.
+void bildir(String baslik, {String? mesaj, MesajTur tur = MesajTur.bilgi, Widget? onde}) {
+  final kat = kokGezgin.currentState?.overlay;
+  if (kimlik == Kimlik.posta && (tur == MesajTur.bilgi || tur == MesajTur.basari) && kat != null && kat.mounted) {
+    _tost?.remove();
+    late final OverlayEntry e;
+    e = OverlayEntry(
+      builder: (_) => _Tost(
+        baslik: baslik,
+        mesaj: mesaj,
+        tur: tur,
+        onde: onde,
+        bitti: () {
+          if (_tost == e) _tost = null;
+          if (e.mounted) e.remove();
+        },
+      ),
+    );
+    _tost = e;
+    kat.insert(e);
+    return;
+  }
   final m = kokMesaj.currentState;
   if (m == null) return;
   final renk = switch (tur) {
@@ -56,6 +79,108 @@ void bildir(String baslik, {String? mesaj, MesajTur tur = MesajTur.bilgi}) {
       ),
     ),
   );
+}
+
+/// Tost kartı: sağ üst (telefonda üst orta), ~2.5 sn sonra solarak kapanır; dokununca hemen kapanır.
+class _Tost extends StatefulWidget {
+  const _Tost({required this.baslik, required this.mesaj, required this.tur, required this.onde, required this.bitti});
+  final String baslik;
+  final String? mesaj;
+  final MesajTur tur;
+  final Widget? onde;
+  final VoidCallback bitti;
+
+  @override
+  State<_Tost> createState() => _TostState();
+}
+
+class _TostState extends State<_Tost> with SingleTickerProviderStateMixin {
+  late final _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 180))..forward();
+  bool _kapaniyor = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 2500), _kapat);
+  }
+
+  Future<void> _kapat() async {
+    if (!mounted || _kapaniyor) return;
+    _kapaniyor = true;
+    await _a.reverse();
+    widget.bitti();
+  }
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    final mq = MediaQuery.of(context);
+    final genis = mq.size.width >= 600;
+    final ikon = widget.tur == MesajTur.basari ? Simge.basari : Simge.bilgiDolu;
+    final renk = widget.tur == MesajTur.basari ? Marka.zumrut : r.birincil;
+    final kart = Material(
+      type: MaterialType.transparency,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _kapat,
+        child: Container(
+          key: const ValueKey('tost'),
+          constraints: BoxConstraints(maxWidth: genis ? 360 : mq.size.width - 32),
+          padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+          decoration: BoxDecoration(
+            color: r.kart,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: r.kenar),
+            boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 4))],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              widget.onde ?? Icon(ikon, color: renk, size: 20),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.baslik,
+                      style: TextStyle(color: r.metin, fontWeight: FontWeight.w600, fontSize: 13.5),
+                    ),
+                    if (widget.mesaj != null && widget.mesaj!.isNotEmpty) Text(widget.mesaj!, style: TextStyle(color: r.silik, fontSize: 12.5)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final hareket = FadeTransition(
+      opacity: _a,
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, -.25), end: Offset.zero).animate(CurvedAnimation(parent: _a, curve: Curves.easeOut)),
+        child: kart,
+      ),
+    );
+    return Positioned(
+      top: mq.padding.top + 12,
+      right: genis ? 16 : 16,
+      left: genis ? null : 16,
+      child: SafeArea(
+        top: false,
+        bottom: false,
+        child: Align(alignment: genis ? Alignment.topRight : Alignment.topCenter, widthFactor: genis ? 1 : null, child: hareket),
+      ),
+    );
+  }
 }
 
 /// Hata nesnesini kullanıcıya gösterilecek metne çevirir.

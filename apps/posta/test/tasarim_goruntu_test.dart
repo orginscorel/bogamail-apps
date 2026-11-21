@@ -154,7 +154,10 @@ void main() {
         debugShowCheckedModeBanner: false,
         theme: temaKur(Brightness.light),
         scaffoldMessengerKey: kokMesaj,
-        home: RepaintBoundary(key: anahtar, child: ekran()),
+        navigatorKey: kokGezgin,
+        // Gezgin (ve tost katmanı) da görüntüye girsin.
+        builder: (_, c) => RepaintBoundary(key: anahtar, child: c),
+        home: ekran(),
       ),
     );
     await t.pump();
@@ -327,6 +330,60 @@ void main() {
         alan: 'off',
       ),
     );
+  });
+
+  testWidgets('okuyucu: PDF ekli tek ileti, spam denetimi, ayrıntılar; telefonda alt yanıt çubuğu', (t) async {
+    konusmaKur(s);
+    final d = ((s.yollar['GET /api/v1/mail/messages/k1']! as Yanit).$2! as Map).cast<String, dynamic>();
+    s.yollar['GET /api/v1/mail/messages/k1/thread'] = (
+      200,
+      {
+        'items': [d['message']],
+      },
+    );
+    s.yollar['GET /api/v1/mail/messages/k1'] = (
+      200,
+      {
+        ...d,
+        'message': {...(d['message'] as Map), 'size': 523000},
+        'spam': {
+          'score': -0.7,
+          'rules': ['DKIM_VALID', 'SPF_PASS', 'BAYES_00'],
+        },
+      },
+    );
+    s.yollar['PATCH /api/v1/mail/messages/k1'] = (200, {'ok': true});
+    await ciz(
+      t,
+      'okuyucu-ekli-genis',
+      const Size(1440, 900),
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}),
+        okuyucu: const Okuyucu(id: 'k1'),
+      ),
+      hazirla: () async {
+        await t.tap(find.textContaining('Spam denetimi'));
+        await t.tap(find.byKey(const ValueKey('gonderen-karti')));
+        await t.pump();
+      },
+    );
+    await ciz(t, 'okuyucu-ekli-telefon', telefon, () => const Okuyucu(id: 'k1', sayfa: true));
+  });
+
+  testWidgets('hesap değişimi tostu', (t) async {
+    for (final (ad, boyut) in [('tost-genis', const Size(1280, 800)), ('tost-telefon', telefon)]) {
+      await ciz(
+        t,
+        ad,
+        boyut,
+        () => boyut.width > 600 ? genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {})) : IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}),
+        hazirla: () async {
+          bildir('info@ornek.com hesabına geçildi', onde: const Avatar('info', boyut: 28, tohum: 'info@ornek.com'));
+          await t.pump();
+          await t.pump(const Duration(milliseconds: 250));
+        },
+      );
+    }
   });
 
   testWidgets('kenar menüsü (telefon)', (t) async {

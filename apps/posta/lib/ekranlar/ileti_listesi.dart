@@ -870,10 +870,11 @@ class IletiListesiState extends State<IletiListesi> {
           if (!_yukleniyor) ...[
             const SizedBox(width: 8),
             Tooltip(
-              message: okunmamis > 0 ? '${sayiYaz(okunmamis)} okunmamış' : '',
+              message: '${sayiYaz(_toplam)} ileti',
               child: Text(
                 key: okunmamis > 0 ? const ValueKey('baslik-okunmamis') : null,
-                sayiYaz(_toplam),
+                // 1.4'teki "N okunmamış · M ileti" bilgisi başlıkta kalır.
+                okunmamis > 0 ? '${sayiYaz(okunmamis)} okunmamış · ${sayiYaz(_toplam)}' : sayiYaz(_toplam),
                 style: TextStyle(fontSize: 12, color: r.silik, fontWeight: FontWeight.w400, fontFeatures: const [FontFeature.tabularFigures()]),
               ),
             ),

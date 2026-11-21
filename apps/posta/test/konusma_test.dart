@@ -89,8 +89,12 @@ void main() {
     }
     final k3 = find.byKey(const ValueKey('konusma-ileti-k3'));
     expect(k3, findsOneWidget);
-    expect(find.descendant(of: k3, matching: find.byKey(const ValueKey('ek-seridi'))), findsOneWidget);
-    expect(t.getSize(find.descendant(of: k3, matching: find.byKey(const ValueKey('ek-seridi')))).height, lessThanOrEqualTo(64));
+    expect(find.descendant(of: k3, matching: find.byKey(const ValueKey('konusma-ekler'))), findsOneWidget);
+    // Ekler gövdeden önce.
+    expect(
+      t.getTopLeft(find.descendant(of: k3, matching: find.byKey(const ValueKey('konusma-ekler')))).dy,
+      lessThan(t.getTopLeft(find.descendant(of: k3, matching: find.textContaining('Hafta sonu'))).dy),
+    );
     expect(find.text('Gecis-Plani-v2.docx'), findsOneWidget);
     // Başlığa dokununca yeniden kapanır.
     await t.tapAt(t.getTopLeft(find.descendant(of: k3, matching: find.byKey(const ValueKey('ileti-basligi')))) + const Offset(70, 12));

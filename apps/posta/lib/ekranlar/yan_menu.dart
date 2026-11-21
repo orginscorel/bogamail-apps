@@ -156,7 +156,15 @@ class _YanMenuState extends State<YanMenu> {
                             // Web sırası: Gelen, Yıldızlı, Önemli, Okunmamışlar, Takip, diğer sistem klasörleri, Planlanan,
                             // Karantina, Gönderim durumu (+ Kişiler; web'de ayrı uygulama).
                             for (final k in gelen) _klasorOgesi(context, k),
-                            for (final (id, ad) in const [('starred', 'Yıldızlı'), ('important', 'Önemli'), ('unread', 'Okunmamışlar'), ('followup', 'Takip')])
+                            // 1.4'teki "Ekli iletiler" ve "Tüm postalar" görünümleri de korunur.
+                            for (final (id, ad) in const [
+                              ('starred', 'Yıldızlı'),
+                              ('important', 'Önemli'),
+                              ('unread', 'Okunmamışlar'),
+                              ('followup', 'Takip'),
+                              ('attachments', 'Ekli iletiler'),
+                              ('all', 'Tüm postalar'),
+                            ])
                               _oge(context, gorunumSimgesi(id), ad, Konum.gorunum(id), renk: gorunumRengi(id)),
                             for (final k in digerSistem) _klasorOgesi(context, k),
                             _arac(context, Simge.planliGonder, 'Planlanan', PlanlananlarEkrani.new),
@@ -357,6 +365,10 @@ class _YanMenuState extends State<YanMenu> {
                 for (final k in gelen) simge(k.id, klasorSimgesi(k.rol), k.gorunenAd, Konum.klasor(k.id), sayi: k.okunmamis),
                 simge('starred', gorunumSimgesi('starred'), 'Yıldızlı', const Konum.gorunum('starred'), renk: gorunumRengi('starred')),
                 simge('unread', gorunumSimgesi('unread'), 'Okunmamışlar', const Konum.gorunum('unread')),
+                simge('important', gorunumSimgesi('important'), 'Önemli', const Konum.gorunum('important'), renk: gorunumRengi('important')),
+                simge('followup', gorunumSimgesi('followup'), 'Takip', const Konum.gorunum('followup'), renk: gorunumRengi('followup')),
+                simge('attachments', gorunumSimgesi('attachments'), 'Ekli iletiler', const Konum.gorunum('attachments')),
+                simge('all', gorunumSimgesi('all'), 'Tüm postalar', const Konum.gorunum('all')),
                 for (final k in digerSistem)
                   simge(
                     k.id,
@@ -367,7 +379,11 @@ class _YanMenuState extends State<YanMenu> {
                     renk: klasorRengi(k.rol),
                   ),
                 simge('planlanan', Simge.planliGonder, 'Planlanan', null, dokun: () => uyarlanirAc<void>(context, (_) => const PlanlananlarEkrani())),
+                simge('karantina', Simge.gereksiz, 'Karantina', null, dokun: () => uyarlanirAc<void>(context, (_) => const KarantinaEkrani())),
+                simge('gonderim', Simge.gonderimDurumu, 'Gönderim durumu', null, dokun: () => uyarlanirAc<void>(context, (_) => const GonderimDurumuEkrani())),
+                simge('kisiler', Simge.kisiler, 'Kişiler', null, dokun: () => uyarlanirAc<void>(context, (_) => const KisilerEkrani())),
                 for (final k in d.kullaniciKlasorleri) simge(k.id, klasorSimgesi(k.rol), k.gorunenAd, Konum.klasor(k.id), sayi: k.okunmamis),
+                for (final e in d.etiketler) simge('e-${e.id}', Simge.etiket, e.ad, Konum.etiket(e.id), sayi: e.okunmamis, renk: etiketRengi(e.renk)),
               ],
             ),
           ),

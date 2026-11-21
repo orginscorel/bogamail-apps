@@ -127,7 +127,8 @@ void main() {
       for (final ad in ['Tümü', 'Okunmamış', 'Yıldızlı', 'Ekli']) {
         expect(find.text(ad), findsOneWidget);
       }
-      expect(find.text('7'), findsNothing, reason: 'web gibi sekmede sayı yok');
+      expect(find.byKey(const ValueKey('filtre-sayi-okunmamis')), findsOneWidget, reason: '1.4 gibi okunmamış sayısı sekmede');
+      expect(find.text('7'), findsOneWidget);
       expect(find.byIcon(Simge.onay), findsNothing, reason: 'etkin bölüm dolu zeminle belirgin; onay simgesi yer kaplamaz (etiketler kesilmez)');
       await t.tap(find.byKey(const ValueKey('filtre-yildizli')));
       expect(secilen, ListeFiltresi.yildizli);

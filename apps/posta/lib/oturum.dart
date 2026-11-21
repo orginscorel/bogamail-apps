@@ -153,7 +153,9 @@ class Uyg {
         kokGezgin.currentState?.pushAndRemoveUntil(_GecisRotasi(builder: (_) => const Kabuk()), (_) => false);
         // Yeni kabuk (ve iskelesi) çizildikten sonra gösterilir.
         final ileti = '${h.adres} hesabına geçildi';
-        WidgetsBinding.instance.addPostFrameCallback((_) => bildir(ileti));
+        final avatar = Avatar(h.ad.isEmpty ? h.adres : h.ad, boyut: 28, tohum: h.adres);
+        // Sağ üstte (telefonda üst ortada) hesabın avatarıyla tost kartı.
+        WidgetsBinding.instance.addPostFrameCallback((_) => bildir(ileti, onde: avatar));
         // Sunucudaki kutu bilgisi (ad, avatar, izinler) arka planda tazelenir.
         unawaited(yukle().catchError((_) => false));
       } else {
