@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../oturum.dart';
 import '../../veri/ayar_servisi.dart';
 import '../../veri/bildirim.dart';
+import '../../veri/bildirim_sesi.dart';
 import '../../veri/canli.dart';
 import '../../veri/posta_servisi.dart';
 import '../../veri/sohbet_servisi.dart';
@@ -21,6 +22,7 @@ class BildirimlerAyari extends StatelessWidget {
   Widget build(BuildContext context) => SunucuAyarGovdesi(
     olustur: (context, a, kaydet) => [
       const _CihazBildirimleri(),
+      if (SesCalar.destekli || BildirimSesiKarti.zorla) const BildirimSesiKarti(),
       _TercihFormu(key: ValueKey('bil-${a.bildirimMasaustu}|${a.bildirimSes}|${a.esitlemeSaniye}'), a: a, kaydet: kaydet),
       IkiSutun(children: [const _CanliKarti(), if (a.ozellik('chat')) const SohbetGizliligiKarti()]),
     ],
@@ -175,6 +177,46 @@ class _CihazBildirimleriState extends State<_CihazBildirimleri> {
       icerik = Text('Bu platformda bildirim desteklenmiyor.', style: TextStyle(color: r.soluk));
     }
     return AyarKarti(ikon: Simge.telefon, baslik: 'Bu cihaz', aciklama: 'Yeni posta geldiğinde bu cihazda nasıl haberdar olacağınız.', child: icerik);
+  }
+}
+
+/// Bildirim sesi önizlemesi: bildirimlerde çalınan BogaMail seslerini dinletir (platforma göre aynı yol: iOS/macOS
+/// sistem sesi, Android MediaPlayer, Windows PlaySound).
+class BildirimSesiKarti extends StatelessWidget {
+  const BildirimSesiKarti({super.key});
+
+  /// Testlerde platform desteği olmadan da göster.
+  @visibleForTesting
+  static bool zorla = false;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget satir(BildirimSesi s, IconData ikon, String baslik, String alt) => ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(ikon),
+      title: Text(baslik),
+      subtitle: Text(alt),
+      trailing: OutlinedButton.icon(
+        key: ValueKey('ses-dinle-${s.name}'),
+        onPressed: () async {
+          if (!await SesCalar.cal(s)) bildir('Ses çalınamadı', mesaj: 'Cihazın sesi kapalı ya da sessiz modda olabilir.', tur: MesajTur.uyari);
+        },
+        icon: const Icon(Simge.oynat, size: 18),
+        label: const Text('Sesi dinle'),
+      ),
+    );
+    return AyarKarti(
+      ikon: Simge.ses,
+      baslik: 'Bildirim sesi',
+      aciklama: 'Yeni posta ve sohbet iletileri kendine özgü BogaMail sesiyle gelir. Sesli uyarı kapalıysa bu cihazın bildirimleri sessizdir.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          satir(BildirimSesi.posta, Simge.posta, 'Posta', 'Yeni e-posta geldiğinde'),
+          satir(BildirimSesi.sohbet, Simge.sohbet, 'Sohbet', 'Yeni sohbet iletisi geldiğinde'),
+        ],
+      ),
+    );
   }
 }
 

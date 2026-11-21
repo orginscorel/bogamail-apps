@@ -136,7 +136,11 @@ void main() {
   });
 
   testWidgets('Bildirimler: ses/masaüstü/eşitleme kaydedilir; sohbet gizliliği PUT', (t) async {
+    BildirimSesiKarti.zorla = true;
+    addTearDown(() => BildirimSesiKarti.zorla = false);
     await ac(t, const BildirimlerAyari());
+    expect(find.byKey(const ValueKey('ses-dinle-posta')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ses-dinle-sohbet')), findsOneWidget);
     await dokun(t, find.descendant(of: find.byKey(const ValueKey('bildirim-ses')), matching: find.byType(Switch)));
     await dokun(t, find.byKey(const ValueKey('bildirim-esitleme')));
     await t.pump(const Duration(milliseconds: 300));

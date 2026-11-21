@@ -1,3 +1,4 @@
+import AudioToolbox
 import Cocoa
 import FlutterMacOS
 import ServiceManagement
@@ -167,5 +168,26 @@ final class BogaArkaplan {
         result(FlutterMethodNotImplemented)
       }
     }
+  }
+}
+
+/// Bildirim sesi önizlemesi (Ayarlar › Bildirimler › Sesi dinle). Sesler Runner'a gömülüdür; APNs "sound" alanı da
+/// aynı dosya adlarını kullanır. Dart: lib/veri/bildirim_sesi.dart ("boga/ses").
+final class BogaSes {
+  static func bagla(_ messenger: FlutterBinaryMessenger) {
+    let ch = FlutterMethodChannel(name: "boga/ses", binaryMessenger: messenger)
+    ch.setMethodCallHandler { call, result in
+      guard call.method == "cal" else { result(FlutterMethodNotImplemented); return }
+      result(cal((call.arguments as? String) ?? "posta"))
+    }
+  }
+
+  static func cal(_ tur: String) -> Bool {
+    let ad = tur == "sohbet" ? "bogamail_sohbet" : "bogamail_posta"
+    guard let url = Bundle.main.url(forResource: ad, withExtension: "wav") else { return false }
+    var id: SystemSoundID = 0
+    guard AudioServicesCreateSystemSoundID(url as CFURL, &id) == kAudioServicesNoError else { return false }
+    AudioServicesPlaySystemSoundWithCompletion(id) { AudioServicesDisposeSystemSoundID(id) }
+    return true
   }
 }

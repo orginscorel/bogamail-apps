@@ -1,3 +1,4 @@
+import AudioToolbox
 import Flutter
 import UIKit
 import UserNotifications
@@ -17,6 +18,9 @@ import UserNotifications
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let r = engineBridge.pluginRegistry.registrar(forPlugin: "BogaPush") {
       BogaPush.register(with: r)
+    }
+    if let r = engineBridge.pluginRegistry.registrar(forPlugin: "BogaSes") {
+      BogaSes.register(with: r)
     }
     // Eklentiler (flutter_local_notifications vb.) temsilciyi değiştirmiş olabilir: APNs dokunma/öndeyken gösterme
     // BogaPush'ta kalsın.
@@ -130,5 +134,28 @@ final class BogaPush: NSObject, FlutterPlugin, UNUserNotificationCenterDelegate 
     acilis = v
     channel?.invokeMethod("acildi", arguments: v)
     completionHandler()
+  }
+}
+
+/// Bildirim sesi önizlemesi (Ayarlar › Bildirimler › Sesi dinle). Sesler Runner'a gömülüdür; APNs "sound" alanı da
+/// aynı dosya adlarını kullanır. Dart: lib/veri/bildirim_sesi.dart ("boga/ses").
+final class BogaSes: NSObject, FlutterPlugin {
+  static func register(with registrar: FlutterPluginRegistrar) {
+    let ch = FlutterMethodChannel(name: "boga/ses", binaryMessenger: registrar.messenger())
+    registrar.addMethodCallDelegate(BogaSes(), channel: ch)
+  }
+
+  func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard call.method == "cal" else { result(FlutterMethodNotImplemented); return }
+    result(BogaSes.cal((call.arguments as? String) ?? "posta"))
+  }
+
+  static func cal(_ tur: String) -> Bool {
+    let ad = tur == "sohbet" ? "bogamail_sohbet" : "bogamail_posta"
+    guard let url = Bundle.main.url(forResource: ad, withExtension: "wav") else { return false }
+    var id: SystemSoundID = 0
+    guard AudioServicesCreateSystemSoundID(url as CFURL, &id) == kAudioServicesNoError else { return false }
+    AudioServicesPlaySystemSoundWithCompletion(id) { AudioServicesDisposeSystemSoundID(id) }
+    return true
   }
 }

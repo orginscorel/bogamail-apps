@@ -54,6 +54,14 @@ END
 // remains consistent on all systems.
 IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// WAVE: bildirim sesleri (PlaySound SND_RESOURCE; flutter_window.cpp "boga/ses")
+//
+
+BOGAMAIL_POSTA          WAVE                    "resources\\bogamail_posta.wav"
+BOGAMAIL_SOHBET         WAVE                    "resources\\bogamail_sohbet.wav"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

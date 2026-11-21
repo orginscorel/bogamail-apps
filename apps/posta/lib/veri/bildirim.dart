@@ -16,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'arkaplan.dart';
+import 'bildirim_sesi.dart';
 import 'modeller.dart';
 import 'yardimci.dart';
 
@@ -24,15 +25,7 @@ const _sonAnahtar = 'posta.bildirim.son';
 const _arkaPlanAnahtar = 'posta.bildirim.arkaplan';
 const _sesAnahtar = 'posta.bildirim.ses';
 const _masaustuAnahtar = 'posta.bildirim.masaustu';
-const _kanal = AndroidNotificationDetails(
-  'yeni_posta',
-  'Yeni e-postalar',
-  channelDescription: 'Gelen Kutusu\'na yeni e-posta geldiğinde',
-  importance: Importance.high,
-  priority: Priority.high,
-  category: AndroidNotificationCategory.email,
-  color: Color(0xFF5443D2),
-);
+const _renk = Color(0xFF5443D2);
 
 class Bildirim {
   Bildirim._();
@@ -64,6 +57,35 @@ class Bildirim {
       );
       _hazir = true;
     } catch (_) {}
+    final a = _a;
+    if (_hazir && a != null) await kanallariKur(a);
+  }
+
+  /// Android kanalları: posta ve sohbet ayrı, kendi BogaMail sesleriyle, yüksek önemli. Kanal sesi oluşturulduktan
+  /// sonra değiştirilemez; bu yüzden yeni kimlikli kanallar açılır, eski sessiz/varsayılan sesli kanal silinir.
+  /// ("baglanti" ön plan hizmetinin kalıcı, sessiz kanalıdır; iletiler orada gösterilmez, dokunulmaz.)
+  @visibleForTesting
+  static Future<void> kanallariKur(AndroidFlutterLocalNotificationsPlugin a) async {
+    for (final k in eskiKanallar) {
+      try {
+        await a.deleteNotificationChannel(channelId: k);
+      } catch (_) {}
+    }
+    for (final s in BildirimSesi.values) {
+      try {
+        await a.createNotificationChannel(
+          AndroidNotificationChannel(
+            s.kanalId,
+            s.kanalAdi,
+            description: s.kanalAciklamasi,
+            importance: Importance.high,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound(s.kaynak),
+            enableVibration: true,
+          ),
+        );
+      } catch (_) {}
+    }
   }
 
   /// Uygulamayı bir bildirim açtıysa ileti kimliği (soğuk açılış).
@@ -113,18 +135,26 @@ class Bildirim {
     } catch (_) {}
   }
 
-  /// Kanal ayarı + açılınca tam metin (konu ve içerik önizlemesi birden fazla satır).
-  static AndroidNotificationDetails _androidAyrinti(bool ses, String metin) => AndroidNotificationDetails(
-    _kanal.channelId,
-    _kanal.channelName,
-    channelDescription: _kanal.channelDescription,
-    importance: _kanal.importance,
-    priority: _kanal.priority,
-    category: _kanal.category,
-    color: _kanal.color,
+  /// Kanal ayarı + açılınca tam metin (konu ve içerik önizlemesi birden fazla satır). Ses kanaldan gelir (Android 8+);
+  /// eski sürümler için bildirimde de belirtilir. Kullanıcı sesi kapattıysa (notify_sound) sessiz gösterilir.
+  @visibleForTesting
+  static AndroidNotificationDetails androidAyrinti(BildirimSesi tur, bool ses, String metin) => AndroidNotificationDetails(
+    tur.kanalId,
+    tur.kanalAdi,
+    channelDescription: tur.kanalAciklamasi,
+    importance: Importance.high,
+    priority: Priority.high,
+    category: tur == BildirimSesi.sohbet ? AndroidNotificationCategory.message : AndroidNotificationCategory.email,
+    color: _renk,
+    playSound: ses,
+    sound: RawResourceAndroidNotificationSound(tur.kaynak),
     silent: !ses,
     styleInformation: BigTextStyleInformation(metin),
   );
+
+  /// Windows toast'ı her zaman sessizdir: ses (açıksa) [SesCalar] ile ayrıca çalınır, çift ses olmaz.
+  @visibleForTesting
+  static WindowsNotificationDetails windowsAyrinti() => WindowsNotificationDetails(audio: WindowsNotificationAudio.silent());
 
   static Future<void> goster({required String iletiId, required String baslik, required String metin}) async {
     await hazirla();
@@ -135,17 +165,16 @@ class Bildirim {
       if (windows && !(p.getBool(_masaustuAnahtar) ?? true)) return;
       ses = p.getBool(_sesAnahtar) ?? true;
     } catch (_) {}
+    final tur = BildirimSesi.yuktan(iletiId);
     try {
       await _p.show(
         id: iletiId.hashCode & 0x7fffffff,
         title: baslik,
         body: metin,
-        notificationDetails: NotificationDetails(
-          android: _androidAyrinti(ses, metin),
-          windows: WindowsNotificationDetails(audio: ses ? null : WindowsNotificationAudio.silent()),
-        ),
+        notificationDetails: NotificationDetails(android: androidAyrinti(tur, ses, metin), windows: windowsAyrinti()),
         payload: iletiId,
       );
+      if (windows && ses) await SesCalar.cal(tur);
     } catch (_) {}
   }
 

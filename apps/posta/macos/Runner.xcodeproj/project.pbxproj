@@ -28,6 +28,8 @@
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		B0A0A0010000000000000002 /* bogamail_posta.wav in Resources */ = {isa = PBXBuildFile; fileRef = B0A0A0010000000000000001 /* bogamail_posta.wav */; };
+		B0A0A0010000000000000004 /* bogamail_sohbet.wav in Resources */ = {isa = PBXBuildFile; fileRef = B0A0A0010000000000000003 /* bogamail_sohbet.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +82,8 @@
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		B0A0A0010000000000000001 /* bogamail_posta.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = bogamail_posta.wav; path = Runner/bogamail_posta.wav; sourceTree = "<group>"; };
+		B0A0A0010000000000000003 /* bogamail_sohbet.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = bogamail_sohbet.wav; path = Runner/bogamail_sohbet.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +148,8 @@
 			isa = PBXGroup;
 			children = (
 				33CC10F22044A3C60003C045 /* Assets.xcassets */,
+				B0A0A0010000000000000003 /* bogamail_sohbet.wav */,
+				B0A0A0010000000000000001 /* bogamail_posta.wav */,
 				33CC10F42044A3C60003C045 /* MainMenu.xib */,
 				33CC10F72044A3C60003C045 /* Info.plist */,
 			);
@@ -294,6 +300,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */,
+				B0A0A0010000000000000004 /* bogamail_sohbet.wav in Resources */,
+				B0A0A0010000000000000002 /* bogamail_posta.wav in Resources */,
 				33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

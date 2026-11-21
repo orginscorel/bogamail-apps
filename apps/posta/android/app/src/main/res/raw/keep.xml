@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- R8 küçültmesinde bildirim simgesi silinmesin (flutter_local_notifications kaynağı adıyla arar). -->
+<!-- R8 küçültmesinde bildirim simgesi ve sesleri silinmesin (flutter_local_notifications kaynakları adıyla arar). -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_bildirim" />
+    tools:keep="@drawable/ic_bildirim,@raw/bogamail_posta,@raw/bogamail_sohbet" />

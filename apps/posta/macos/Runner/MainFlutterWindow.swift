@@ -13,6 +13,7 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
     BogaPush.shared.bagla(flutterViewController.engine.binaryMessenger)
     BogaArkaplan.bagla(flutterViewController.engine.binaryMessenger)
+    BogaSes.bagla(flutterViewController.engine.binaryMessenger)
     // flutter_local_notifications eklentisi kaydolurken bildirim merkezinin temsilcisini kendine alır ve kendi
     // olmayan bildirimleri yutar (APNs öndeyken gösterilmez, dokunma kaybolur). Temsilci BogaPush'a geri atanır.
     UNUserNotificationCenter.current().delegate = BogaPush.shared

@@ -1,6 +1,10 @@
 #include "flutter_window.h"
 
+#include <flutter/standard_method_codec.h>
+#include <mmsystem.h>
+
 #include <optional>
+#include <string>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -25,6 +29,24 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+
+  // Bildirim sesi: toast sessiz gösterilir, BogaMail sesi burada çalınır (Dart: lib/veri/bildirim_sesi.dart).
+  ses_kanali_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "boga/ses",
+      &flutter::StandardMethodCodec::GetInstance());
+  ses_kanali_->SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() != "cal") {
+          result->NotImplemented();
+          return;
+        }
+        std::string tur = "posta";
+        if (const auto* a = std::get_if<std::string>(call.arguments())) tur = *a;
+        const wchar_t* ad = tur == "sohbet" ? L"BOGAMAIL_SOHBET" : L"BOGAMAIL_POSTA";
+        const BOOL ok = PlaySoundW(ad, GetModuleHandle(nullptr), SND_RESOURCE | SND_ASYNC | SND_NODEFAULT);
+        result->Success(flutter::EncodableValue(ok != FALSE));
+      });
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -40,6 +62,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  ses_kanali_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
