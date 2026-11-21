@@ -1,3 +1,9 @@
+## 1.7.1
+
+- BogaMail'e özgü bildirim sesleri: posta için iki notalı çan, sohbet için kısa parlak ses (iPhone, Mac, Android, Windows).
+- Android: posta ve sohbet için yeni sesli bildirim kanalları (eski sessiz kalmış kanal kaldırılır).
+- Ayarlar › Bildirimler: "Sesi dinle" (Posta / Sohbet).
+
 ## 1.7.0
 
 **BogaMail (posta) — masaüstü okuyucu (macOS/Windows), Outlook düzeni**
