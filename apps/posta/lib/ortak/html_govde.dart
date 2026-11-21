@@ -274,16 +274,34 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     if (adresler.isEmpty || !mounted) return;
     setState(() => _gorselYukleniyor = true);
     final kuyruk = [...adresler];
-    final bulunan = <String, String>{};
+    final bulunan = <String, String>{..._uzak};
+    // Görseller geldikçe gösterilir (hepsini beklemeden): en fazla ~350 ms'de bir yeniden çizim.
+    var sonCizim = DateTime.fromMillisecondsSinceEpoch(0);
+    var cizimBekliyor = false;
+    Future<void> ara() async {
+      if (cizimBekliyor) return;
+      cizimBekliyor = true;
+      final gecen = DateTime.now().difference(sonCizim).inMilliseconds;
+      if (gecen < 350) await Future<void>.delayed(Duration(milliseconds: 350 - gecen));
+      cizimBekliyor = false;
+      if (!mounted || kimlik != widget.iletiId || kuyruk.isEmpty) return;
+      sonCizim = DateTime.now();
+      _uzak = Map.of(bulunan);
+      await _yenidenOlustur();
+    }
+
     Future<void> isci() async {
       while (kuyruk.isNotEmpty && mounted && kimlik == widget.iletiId) {
         final u = kuyruk.removeAt(0);
         final d = await Posta.uzakGorselVeri(u);
-        if (d != null) bulunan[u] = d;
+        if (d != null) {
+          bulunan[u] = d;
+          unawaited(ara());
+        }
       }
     }
 
-    await Future.wait(List.generate(adresler.length < 6 ? adresler.length : 6, (_) => isci()));
+    await Future.wait(List.generate(adresler.length < 8 ? adresler.length : 8, (_) => isci()));
     if (!mounted || kimlik != widget.iletiId) return;
     if (bulunan.length == _uzak.length && bulunan.keys.every(_uzak.containsKey)) {
       setState(() => _gorselYukleniyor = false);

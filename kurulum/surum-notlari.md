@@ -1,3 +1,7 @@
+## 1.6.4
+
+- Posta görselleri beklemeden: sunucu yeni gelen postanın içeriğini ve görsellerini posta gelir gelmez hazırlar; uygulama görselleri hepsini beklemeden geldikçe gösterir.
+
 ## 1.6.3
 
 - Posta içerikleri daha hızlı: sunucu açılan postaları ayrıştırılmış hâlde bellekte tutar (önyükleme sırasında da gecikme yok).
