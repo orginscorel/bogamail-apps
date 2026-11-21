@@ -30,40 +30,33 @@ enum ListeFiltresi {
 }
 
 /// "Tümü · Okunmamış (N) · Yıldızlı · Ekli" bölümlü süzgeç çubuğu. Etkin bölüm dolu vurgu rengiyle belirgindir.
+/// Web (message-list.tsx) sekmeleri: h-8 yuvarlak düğmeler, seçili olan birincil dolgu + beyaz yazı, diğerleri soluk.
+/// [sayilar] yalnız erişilebilirlik etiketinde kullanılır (web'de sekmede sayı yok).
 class FiltreCubugu extends StatelessWidget {
   const FiltreCubugu({super.key, required this.secili, required this.degisti, this.sayilar = const {}});
   final ListeFiltresi secili;
   final ValueChanged<ListeFiltresi> degisti;
 
-  /// Bilinen sayılar (ör. okunmamış). Olmayanlar sayısız gösterilir.
   final Map<ListeFiltresi, int> sayilar;
 
   @override
   Widget build(BuildContext context) {
-    final r = context.r;
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: r.ic,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: r.kenar),
-      ),
-      child: Row(
+    return SizedBox(
+      height: 32,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          for (final f in ListeFiltresi.values)
-            // Genişlik etiket (ve sayı) uzunluğuyla orantılı: dar bölmede de hiçbir etiket kesilmez.
-            Expanded(
-              flex: 30 + f.ad.length * 9 + ((sayilar[f] ?? 0) > 0 ? 30 : 0),
-              child: _Bolum(filtre: f, secili: f == secili, sayi: sayilar[f], dokun: () => degisti(f)),
-            ),
+          for (final f in ListeFiltresi.values) ...[
+            _Bolum(filtre: f, secili: f == secili, sayi: sayilar[f], dokun: () => degisti(f)),
+            const SizedBox(width: 4),
+          ],
         ],
       ),
     );
   }
 }
 
-class _Bolum extends StatelessWidget {
+class _Bolum extends StatefulWidget {
   const _Bolum({required this.filtre, required this.secili, required this.sayi, required this.dokun});
   final ListeFiltresi filtre;
   final bool secili;
@@ -71,54 +64,43 @@ class _Bolum extends StatelessWidget {
   final VoidCallback dokun;
 
   @override
+  State<_Bolum> createState() => _BolumState();
+}
+
+class _BolumState extends State<_Bolum> {
+  bool _uzerinde = false;
+
+  @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final sayiVar = sayi != null && sayi! > 0;
+    final secili = widget.secili;
+    final sayiVar = widget.sayi != null && widget.sayi! > 0;
     return Semantics(
       button: true,
       selected: secili,
-      label: '${filtre.ad}${sayiVar ? ', $sayi' : ''}${secili ? ', seçili' : ''}',
+      label: '${widget.filtre.ad}${sayiVar ? ', ${widget.sayi}' : ''}${secili ? ', seçili' : ''}',
       excludeSemantics: true,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        decoration: BoxDecoration(
-          color: secili ? r.vurgu : Colors.transparent,
-          borderRadius: BorderRadius.circular(9),
-          boxShadow: secili ? r.hafifGolge : null,
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            key: ValueKey('filtre-${filtre.name}'),
-            borderRadius: BorderRadius.circular(9),
-            onTap: dokun,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      filtre.ad,
-                      maxLines: 1,
-                      overflow: TextOverflow.fade,
-                      softWrap: false,
-                      style: TextStyle(fontSize: 13, fontWeight: secili ? FontWeight.w600 : FontWeight.w500, color: secili ? Colors.white : r.metin),
-                    ),
-                  ),
-                  if (sayiVar) ...[
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(color: secili ? Colors.white.withValues(alpha: .25) : r.vurgu, borderRadius: BorderRadius.circular(8)),
-                      child: Text(
-                        sayi! > 999 ? '999+' : '$sayi',
-                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _uzerinde = true),
+        onExit: (_) => setState(() => _uzerinde = false),
+        child: GestureDetector(
+          key: ValueKey('filtre-${widget.filtre.name}'),
+          onTap: widget.dokun,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: secili ? r.birincil : (_uzerinde ? r.ic : Colors.transparent),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: secili ? const [BoxShadow(color: Color(0x0D000000), blurRadius: 2, offset: Offset(0, 1))] : null,
+            ),
+            child: Text(
+              widget.filtre.ad,
+              maxLines: 1,
+              softWrap: false,
+              style: TextStyle(fontSize: 14, height: 20 / 14, color: secili ? Colors.white : (_uzerinde ? r.metin : r.silik)),
             ),
           ),
         ),
@@ -127,7 +109,6 @@ class _Bolum extends StatelessWidget {
   }
 }
 
-/// Süzgeç etkinken listenin üstünde ince bilgi şeridi: "Yalnızca okunmamış iletiler gösteriliyor · Temizle".
 class FiltreBandi extends StatelessWidget {
   const FiltreBandi({super.key, required this.filtre, required this.temizle, this.sonuc});
   final ListeFiltresi filtre;

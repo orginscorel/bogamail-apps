@@ -9,10 +9,15 @@ class Tercihler {
   static const _gorsel = 'posta.uzakGorseller';
   static const _imzaYeni = 'posta.imza.yeni';
   static const _imzaYanit = 'posta.imza.yanit';
-  static const _listeEni = 'posta.listeEni';
+  static const _listeOrani = 'posta.listeOrani';
+  static const _listeYOrani = 'posta.listeYOrani';
+  static const _kenar = 'posta.kenarCubugu';
 
-  /// Masaüstünde ileti listesi bölmesinin kullanıcının sürükleyerek verdiği genişliği (null: varsayılan).
-  static final listeEni = ValueNotifier<double?>(null);
+  /// Masaüstü yerleşimi (web mail-layout.ts gibi): liste genişliğinin / yüksekliğinin alana oranı (null: varsayılan
+  /// %36 / %45) ve klasör sütunu tercihi (auto: 1400 px altında daralt | collapsed | expanded).
+  static final listeOrani = ValueNotifier<double?>(null);
+  static final listeYOrani = ValueNotifier<double?>(null);
+  static final kenarCubugu = ValueNotifier<String>('auto');
 
   /// İmza varsayılan olarak yeni iletilere / yanıt ve iletmelere eklensin mi (yazarken tek tıkla değiştirilebilir).
   static final imzaYeni = ValueNotifier<bool>(true);
@@ -33,7 +38,9 @@ class Tercihler {
       uzakGorseller.value = p.getBool(_gorsel) ?? false;
       imzaYeni.value = p.getBool(_imzaYeni) ?? true;
       imzaYanit.value = p.getBool(_imzaYanit) ?? true;
-      listeEni.value = p.getDouble(_listeEni);
+      listeOrani.value = p.getDouble(_listeOrani);
+      listeYOrani.value = p.getDouble(_listeYOrani);
+      kenarCubugu.value = p.getString(_kenar) ?? 'auto';
     } catch (_) {}
   }
 
@@ -65,13 +72,27 @@ class Tercihler {
     }
   }
 
-  static Future<void> listeEniAyarla(double? v) async {
-    listeEni.value = v;
+  static Future<void> _yaz(String k, double? v) async {
     final p = await SharedPreferences.getInstance();
     if (v == null) {
-      await p.remove(_listeEni);
+      await p.remove(k);
     } else {
-      await p.setDouble(_listeEni, v);
+      await p.setDouble(k, v);
     }
+  }
+
+  static Future<void> listeOraniAyarla(double? v) async {
+    listeOrani.value = v;
+    await _yaz(_listeOrani, v);
+  }
+
+  static Future<void> listeYOraniAyarla(double? v) async {
+    listeYOrani.value = v;
+    await _yaz(_listeYOrani, v);
+  }
+
+  static Future<void> kenarCubuguAyarla(String v) async {
+    kenarCubugu.value = v;
+    await (await SharedPreferences.getInstance()).setString(_kenar, v);
   }
 }

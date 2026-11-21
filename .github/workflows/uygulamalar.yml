@@ -120,7 +120,9 @@ jobs:
           echo "$KS_B64" | base64 -d > android/app/imza.p12
           printf 'storeFile=imza.p12\nstorePassword=%s\nkeyAlias=bogamail\nkeyPassword=%s\nstoreType=pkcs12\n' "$KS_PASS" "$KS_PASS" > android/key.properties
       - run: flutter pub get
-      - run: flutter build apk --release --build-number ${{ github.run_number }}
+      # İşlemci başına ayrı APK: tek "şişman" APK (3 mimari, ~72 MB) yerine arm64 ~25 MB. Uygulama içi güncelleme
+      # ve indirme sayfası -Android.apk (arm64) kullanır; eski 32 bit cihazlar için -Android-armv7.apk da yüklenir.
+      - run: flutter build apk --release --split-per-abi --target-platform android-arm64,android-arm --obfuscate --split-debug-info=build/hata-ayiklama --build-number ${{ github.run_number }}
       - name: Adlandır ve yükle
         if: steps.g.outputs.var == '1'
         env:
@@ -130,11 +132,12 @@ jobs:
           rm -f android/app/imza.p12 android/key.properties
           V=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
           AD=$([ "${{ matrix.uygulama }}" = posta ] && echo BogaMail || echo BogaMail-Yonetim)
-          mkdir -p cikti && cp build/app/outputs/flutter-apk/app-release.apk "cikti/$AD-$V-${{ github.run_number }}-Android.apk"
+          mkdir -p cikti && cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "cikti/$AD-$V-${{ github.run_number }}-Android.apk"
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "cikti/$AD-$V-${{ github.run_number }}-Android-armv7.apk"
           gh release upload "${{ needs.hazirla.outputs.etiket }}" cikti/* --repo "${{ github.repository }}" --clobber
 
   ios:
-    needs: [hazirla, analiz]
+    needs: [hazirla]  # analizi beklemez: TestFlight önce gelsin (analiz yine aynı anda koşar)
     if: needs.hazirla.outputs.ios == 'true'
     runs-on: macos-15
     timeout-minutes: 60
@@ -239,7 +242,7 @@ jobs:
           rm -rf ~/.appstoreconnect
 
   macos:
-    needs: [hazirla, analiz]
+    needs: [hazirla]  # analizi beklemez: TestFlight önce gelsin (analiz yine aynı anda koşar)
     if: needs.hazirla.outputs.macos == 'true'
     runs-on: macos-15
     timeout-minutes: 60

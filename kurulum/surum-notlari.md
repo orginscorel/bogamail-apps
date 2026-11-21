@@ -1,3 +1,15 @@
+## 1.5.0
+
+**BogaMail (posta) — webmail ile aynı görünüm**
+- Webin yazı tipi ve renkleri; liste satırı webdeki gibi: okunmamışta nokta, solda şerit ve kalın yazı, sağda tarih; konu satırının sonunda ataç, "Okundu/Okunmadı yap" ve yıldız.
+- Klasör sütunu simgelere daraltılabilir (1400 px altında kendiliğinden); liste alanın %36'sı, okuma alanı daha geniş; aradaki çizgi sürüklenir.
+- Okuma alanı konumu: Sağda / Altta / Kapalı (webdeki ayarla ortak).
+- Konuşma: eski iletiler tek "N önceki ileti" düğmesinde, okundu işaretleri, kaydırınca üstte "Ad · saat" şeridi; konuşma gruplamasına sunucu karar verir, otomatik postalar (kodlar, bültenler) gruplanmaz.
+- Geniş HTML postalar yatay kaydırma yerine alana sığdırılır; HTML gövde sağa kaymaz.
+
+**Derleme**
+- Android: işlemci başına ayrı APK (arm64 ~25 MB; eski cihazlar için -armv7); iOS/macOS derlemeleri analizi beklemeden başlar.
+
 ## 1.4.3
 
 - Yeni posta bildirimleri: gönderen, konu ve içeriğin ilk satırları (önizleme) birlikte gösterilir; Android'de bildirim açılınca tam metin.

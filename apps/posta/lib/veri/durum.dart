@@ -195,9 +195,27 @@ class PostaDurum extends ChangeNotifier {
     unawaited(ayarlariYukle());
   }
 
+  /// Okuma alanının yeri (sunucu ayarı reading_pane: right | bottom | off); web ile ortak.
+  final okumaAlani = ValueNotifier<String>('right');
+
+  /// Okuma alanı ayarını değiştirir (iyimser; sunucuya yazılır, hata olursa geri alınır).
+  Future<void> okumaAlaniAyarla(String v) async {
+    final eski = okumaAlani.value;
+    okumaAlani.value = v;
+    notifyListeners();
+    try {
+      await Posta.ayarKaydet({'reading_pane': v});
+    } catch (_) {
+      okumaAlani.value = eski;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> ayarlariYukle() async {
     try {
       ayarlar = await Posta.ayarlar();
+      okumaAlani.value = ayarlar!.okumaAlani;
       notifyListeners();
     } catch (_) {}
   }
@@ -262,6 +280,7 @@ class PostaDurum extends ChangeNotifier {
     klasorler = [];
     etiketler = [];
     ayarlar = null;
+    okumaAlani.value = 'right';
     konum = null;
     yuklendi = false;
   }

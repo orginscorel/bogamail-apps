@@ -6,6 +6,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:posta/ekranlar/konusma.dart';
 import 'package:posta/ekranlar/okuyucu.dart';
 import 'package:posta/oturum.dart';
 import 'package:posta/veri/durum.dart';
@@ -53,12 +54,11 @@ void main() {
     }
   }
 
-  testWidgets('yığın: ilk ileti kapalı satır, ortadaki 5 ileti toplanır, okunmamışlar ve son ileti açık', (t) async {
+  testWidgets('web düzeni: önceki 6 ileti tek "▸ N önceki ileti" arkasında; hemen önceki (okunmamış) ve açılan açık', (t) async {
     await ac(t);
     expect(find.byKey(const ValueKey('konusma')), findsOneWidget);
-    expect(find.byKey(const ValueKey('konusma-kapali-k1')), findsOneWidget);
-    expect(find.text('5 ileti daha'), findsOneWidget);
-    for (final id in ['k2', 'k3', 'k4', 'k5', 'k6']) {
+    expect(find.text('6 önceki ileti'), findsOneWidget);
+    for (final id in ['k1', 'k2', 'k3', 'k4', 'k5', 'k6']) {
       expect(find.byKey(ValueKey('konusma-kapali-$id')), findsNothing);
     }
     expect(find.byKey(const ValueKey('konusma-ileti-k7')), findsOneWidget);
@@ -69,11 +69,19 @@ void main() {
     // Açılan okunmamış ileti (k7) okundu işaretlenir.
     expect(s.bul('PATCH', '/api/v1/mail/messages/k7').map((i) => i.json['seen']), contains(true));
 
-    await t.tap(find.text('5 ileti daha'));
+    // Okunmamışlar "● okunmadı" (açılışta okundu sayılsa da işaret kalır); açılan dışındakiler "Bu iletiyi aç".
+    expect(t.widget<OkunduIsareti>(find.descendant(of: find.byKey(const ValueKey('konusma-ileti-k7')), matching: find.byType(OkunduIsareti))).okundu, isFalse);
+    expect(find.descendant(of: find.byKey(const ValueKey('konusma-ileti-k7')), matching: find.byKey(const ValueKey('ileti-ayri-ac'))), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('konusma-ileti-k8')), matching: find.byKey(const ValueKey('ileti-ayri-ac'))), findsNothing);
+
+    await t.tap(find.text('6 önceki ileti'));
     await t.pump();
-    for (final id in ['k2', 'k3', 'k4', 'k5', 'k6']) {
+    expect(find.text('6 önceki iletiyi gizle'), findsOneWidget);
+    for (final id in ['k1', 'k2', 'k3', 'k4', 'k5', 'k6']) {
       expect(find.byKey(ValueKey('konusma-kapali-$id')), findsOneWidget);
     }
+    expect(find.descendant(of: find.byKey(const ValueKey('konusma-kapali-k1')), matching: find.byType(Avatar)), findsOneWidget);
+    expect(t.widget<Avatar>(find.descendant(of: find.byKey(const ValueKey('konusma-kapali-k1')), matching: find.byType(Avatar))).boyut, 24);
     // Kapalı satıra dokununca açılır; ekler tek satırlık şeritte.
     await t.tap(find.byKey(const ValueKey('konusma-kapali-k3')));
     for (var i = 0; i < 4; i++) {
@@ -120,7 +128,9 @@ void main() {
     final ust = t.getTopLeft(find.byKey(const ValueKey('konusma-ileti-k7'))).dy;
     final baslikAlti = t.getBottomLeft(find.byKey(const ValueKey('konusma-baslik'))).dy;
     expect((ust - baslikAlti).abs(), lessThan(4), reason: 'ilk okunmamış ileti yapışkan başlığın hemen altında');
-    expect(find.byKey(const ValueKey('konusma-kapali-k1')).hitTestable(), findsNothing);
+    expect(find.byKey(const ValueKey('konusma-daha')).hitTestable(), findsNothing);
+    // Başlık kaydı: 32 px şerit "Ad · zaman".
+    expect(t.getSize(find.byKey(const ValueKey('konusma-baslik'))).height, 32);
     await kapat(t);
   });
 
@@ -148,7 +158,7 @@ void main() {
 
   Map<String, dynamic> ozet(String id) => (((s.yollar['GET /api/v1/mail/messages/$id']! as Yanit).$2! as Map)['message'] as Map).cast<String, dynamic>();
 
-  testWidgets('sunucu konuşmayı bağlayamazsa (tek ileti) aynı konudakiler konuşma görünümünde açılır; eski şerit yok', (t) async {
+  testWidgets('konuşmayı sunucu kurar: thread tek ileti dönerse istemci konu araması yapmaz, tek ileti görünümü', (t) async {
     s.yollar['GET /api/v1/mail/messages/k8/thread'] = (
       200,
       {
@@ -156,13 +166,13 @@ void main() {
       },
     );
     await ac(t, boyut: const Size(900, 900));
-    expect(find.byKey(const ValueKey('konusma')), findsOneWidget);
+    expect(find.byKey(const ValueKey('konusma')), findsNothing);
+    expect(s.istekler.any((i) => i.sorgu['in'] == 'subject'), isFalse);
     expect(find.textContaining('Bu konuşmada'), findsNothing);
-    expect(s.istekler.any((i) => i.sorgu['in'] == 'subject'), isTrue);
     await kapat(t);
   });
 
-  testWidgets('tek ileti başlığı: kısa konu, çerçevesiz gönderen satırı, "kime: siz", biçim seçimi ⋯ menüsünde', (t) async {
+  testWidgets('tek ileti: web gibi başlık (konu 18 px, 32 px avatar, "Kime: bana"), Biçimli/Düz metin, gövde sonunda yanıt düğmeleri', (t) async {
     Uyg.kutu.value = {'mailbox_id': 'm1', 'address': 'semih@ornek.com', 'display_name': 'Semih Boğa'};
     addTearDown(() => Uyg.kutu.value = null);
     s.yollar
@@ -183,25 +193,36 @@ void main() {
       );
     await ac(t, boyut: const Size(900, 900));
     expect(find.byKey(const ValueKey('konusma')), findsNothing);
-    final konu = t.widget<Text>(find.byKey(const ValueKey('okuyucu-konu')));
-    expect(konu.maxLines, 2);
-    expect(konu.style!.fontSize, inInclusiveRange(19, 20));
-    expect(t.widget<Text>(find.byKey(const ValueKey('okuyucu-kime'))).data, startsWith('kime: siz'));
-    expect(find.descendant(of: find.byKey(const ValueKey('gonderen-karti')), matching: find.byType(Avatar)), findsOneWidget);
-    expect(t.getSize(find.descendant(of: find.byKey(const ValueKey('gonderen-karti')), matching: find.byType(Avatar))).width, 36);
-    expect(find.byType(SegmentedButton<bool>), findsNothing);
-    expect(find.text('Biçimli'), findsNothing);
-    // Gövde, başlığın hemen altında başlar (eskiden ~650 px sonra).
-    expect(t.getTopLeft(find.byKey(const ValueKey('gonderen-karti'))).dy, lessThan(200));
-    await t.tap(find.byTooltip('Diğer işlemler'));
-    await t.pumpAndSettle();
-    expect(find.text('Düz metin olarak göster'), findsOneWidget);
-    await t.tap(find.text('Düz metin olarak göster'));
-    await t.pumpAndSettle();
-    await t.tap(find.byTooltip('Diğer işlemler'));
-    await t.pumpAndSettle();
-    expect(find.text('Biçimli göster'), findsOneWidget);
+    final konu = t.widget<SelectableText>(find.byKey(const ValueKey('okuyucu-konu')));
+    expect(konu.style!.fontSize, 18);
+    expect(t.widget<Text>(find.byKey(const ValueKey('okuyucu-kime'))).data, startsWith('Kime: bana'));
+    expect(find.byWidgetPredicate((w) => w is Avatar && w.boyut == 32), findsOneWidget);
+    expect(find.byKey(const ValueKey('bicim-secimi')), findsOneWidget);
+    expect(find.byKey(const ValueKey('yanit-dugmeleri')), findsOneWidget);
+    await t.tap(find.text('Düz metin'));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('gonderen-karti')));
+    await t.pump();
+    expect(find.text('Kimden'), findsOneWidget);
     await kapat(t);
+  });
+
+  test('geniş HTML yatay kaymaz: sabit 650 px tablo okuyucuya sığacak oranda küçültülür (web zoom, en az 0.5)', () {
+    // İş Bankası bildirimi gibi: <table width="650"> içinde sabit hücreler.
+    const banka =
+        '<table width="650" align="center" style="width:650px"><tr><td style="padding:0;width:650px">'
+        '<table width="100%"><tr><td width="325">Hesap</td><td width="325">Tutar</td></tr></table></td></tr></table>';
+    expect(dogalGenislik(banka), 650);
+    expect(dogalGenislik('<p>Akışkan metin</p><table width="100%"><tr><td>x</td></tr></table>'), 0);
+    expect(dogalGenislik('<div style="max-width:600px">yalnız üst sınır</div>'), 0);
+    expect(dogalGenislik('<table width="700px"><tr><td>x</td></tr></table>'), 700);
+    expect(sigdirmaOrani(650, 1000), 1, reason: 'sığıyor');
+    expect(sigdirmaOrani(650, 520), closeTo(520 / 682, 1e-9));
+    expect(sigdirmaOrani(650, 200), .5, reason: 'en az 0.5');
+    expect(sigdirmaOrani(0, 300), 1);
+    final b = gorunumBelgesi(banka);
+    expect(sigdirilmisBelge(b, 1), b);
+    expect(sigdirilmisBelge(b, .762), contains('<style>body{zoom:0.762}</style></head>'));
   });
 
   test('düz metin imza ayırma ("-- " ayıracı)', () {

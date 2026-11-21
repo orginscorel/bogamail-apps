@@ -131,7 +131,7 @@ void main() {
     expect(find.byTooltip('Canlı · Son eşitleme 21 sn önce\nDokun: Şimdi eşitle'), findsOneWidget);
     expect(find.byTooltip('Sürüm 1.4.2 (11)'), findsOneWidget);
     expect(t.widget<Text>(surum).style!.fontSize, 10);
-    expect(t.getSize(find.byType(NavigationRail)).width, rayGenisligi);
+    expect(t.getSize(find.byKey(const ValueKey('sol-ray'))).width, rayGenisligi);
     // Klasör çubuğunda eşitleme / sürüm / hesap yok.
     expect(find.byKey(const ValueKey('esitleme-durumu')), findsNothing);
     expect(find.textContaining('Sürüm 1.4.2'), findsNothing);
@@ -144,7 +144,7 @@ void main() {
     await genis(t);
     expect(find.byKey(const ValueKey('ray-esitleme-yok')), findsOneWidget);
     expect(find.textContaining(RegExp(r'^1[12] sn$')), findsOneWidget);
-    expect(t.getSize(find.byType(NavigationRail)).width, rayGenisligi);
+    expect(t.getSize(find.byKey(const ValueKey('sol-ray'))).width, rayGenisligi);
   });
 
   for (final h in [600.0, 700.0, 800.0, 900.0, 1000.0]) {
@@ -152,7 +152,7 @@ void main() {
       Canli.ben.durum.value = CanliDurumu(CanliTur.yok, sonrakiDeneme: DateTime.now().add(const Duration(seconds: 12)));
       await genis(t, yukseklik: h, ayarlarSecili: true);
       expect(t.takeException(), isNull);
-      expect(t.getSize(find.byType(NavigationRail)).width, rayGenisligi);
+      expect(t.getSize(find.byKey(const ValueKey('sol-ray'))).width, rayGenisligi);
       expect(t.getBottomRight(find.byKey(const ValueKey('ray-hesap'))).dy, lessThanOrEqualTo(h));
       // Kısa pencerede önce sürüm gizlenir.
       expect(find.text('1.4.2'), h < 640 ? findsNothing : findsOneWidget);
@@ -173,7 +173,7 @@ void main() {
                 SizedBox(width: en),
                 BolmeCizgisi(
                   renk: Colors.grey,
-                  surukle: (dx) => yenile(() => en = (en + dx).clamp(listeEnAz, listeEnCok)),
+                  surukle: (dx) => yenile(() => en = bolmeBoyu(alan: 1280, oran: (en + dx) / 1280, enAz: 340, enCok: 600, kalan: 600)),
                   bitti: () => bitti++,
                   sifirla: () {},
                 ),
@@ -190,12 +190,17 @@ void main() {
     expect(bitti, 1);
     await t.drag(find.byKey(const ValueKey('liste-bolme')), const Offset(-400, 0));
     await t.pump();
-    expect(en, listeEnAz);
-    await Tercihler.listeEniAyarla(512);
-    Tercihler.listeEni.value = null;
+    expect(en, 340);
+    // Web mail-view.tsx: %36 varsayılan, 340–600 px, okumaya ≥ 600 px; oran saklanır.
+    expect(bolmeBoyu(alan: 1200, oran: .36, enAz: 340, enCok: 600, kalan: 600), 432);
+    expect(bolmeBoyu(alan: 1000, oran: .36, enAz: 340, enCok: 600, kalan: 600), 360);
+    expect(bolmeBoyu(alan: 900, oran: .36, enAz: 340, enCok: 600, kalan: 600), 340, reason: 'okumaya 600 kalmasa da en az 340');
+    expect(bolmeBoyu(alan: 2400, oran: .36, enAz: 340, enCok: 600, kalan: 600), 600);
+    await Tercihler.listeOraniAyarla(.5);
+    Tercihler.listeOrani.value = null;
     await Tercihler.yukle();
-    expect(Tercihler.listeEni.value, 512);
-    await Tercihler.listeEniAyarla(null);
+    expect(Tercihler.listeOrani.value, .5);
+    await Tercihler.listeOraniAyarla(null);
     await t.pump(const Duration(seconds: 1));
   });
 }

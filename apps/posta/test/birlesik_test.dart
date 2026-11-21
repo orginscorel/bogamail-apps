@@ -212,7 +212,7 @@ void main() {
     expect(find.byKey(const ValueKey('yan-tum-hesaplar')), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
     final ust = t.getTopLeft(find.byKey(const ValueKey('yan-tum-hesaplar'))).dy;
-    expect(ust, lessThan(t.getTopLeft(find.text('POSTA KUTUSU')).dy));
+    expect(ust, lessThan(t.getTopLeft(find.text('Gelen Kutusu')).dy));
     await t.tap(find.text('Tüm hesaplar'));
     expect(secilen, const Konum.birlesik());
     BirlesikDurum.ben.sifirla();

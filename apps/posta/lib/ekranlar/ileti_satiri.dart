@@ -74,35 +74,35 @@ class _IletiSatiriState extends State<IletiSatiri> {
     final ad = m.gidenMi ? (karsi.trim().isEmpty ? '(alıcı yok)' : 'Kime: ${gorunenAd(karsi)}') : gorunenAd(karsi);
     final tohum = adresCoz(adresListesiCoz(karsi).firstOrNull?.eposta ?? karsi).eposta;
     final etiketler = m.etiketler.map(PostaDurum.ben.etiket).whereType<Etiket>().toList();
-    // Okunmamış: hafif vurgu tonlu zemin; seçili/açık durumlar daha belirgin.
+    // Web (message-list.tsx) satır anatomisi: px-3 py-2.5, 36 px avatar; 1. satır gönderen (text-sm) + önemli /
+    // yanıtlandı / iletildi simgeleri + tarih (text-xs, okunmamışsa kalın birincil); 2. satır konu (text-sm) + ataş +
+    // yıldız (yalnız yıldızlıysa ya da fare üstündeyken); 3. satır önizleme (text-xs soluk); etiket çipleri.
+    // Okunmamış: soldaki 3 px birincil şerit ve kalın yazı (zemin tonu yok). Açık: primary/8, seçili: primary/10.
     final arka = widget.secili
-        ? r.vurguYumusak
+        ? r.birincil.withValues(alpha: .10)
         : widget.acik
-        ? r.ic
-        : okunmamis
-        ? r.vurguYumusak.withValues(alpha: r.koyu ? .45 : .5)
-        : r.kart;
-    final adRengi = taslak ? Marka.gul : (okunmamis ? r.metin : r.soluk);
+        ? r.birincil.withValues(alpha: .08)
+        : (_uzerinde ? r.ic.withValues(alpha: .6) : r.kart);
+    // web-tasarim.md: okunmamış gönderen + konu w600 ön plan; okunmuş w400 muted-foreground.
+    final adRengi = taslak ? Marka.gul : (okunmamis ? r.metin : r.silik);
+    final konuRengi = okunmamis ? r.metin : r.silik;
 
-    Widget simge(IconData i, String etiket, {Color? renk, double boyut = 15}) => Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Icon(i, size: boyut, color: renk ?? r.silik, semanticLabel: etiket),
+    Widget simge(IconData i, String etiket, {Color? renk}) => Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Icon(i, size: 14, color: renk ?? r.silik, semanticLabel: etiket),
     );
-
-    // Masaüstü: daha ferah (≈ 78 px, 11 px dikey dolgu, 36 px avatar, satır yüksekliği 1.35) ama yazı boyutları aynı.
-    final g = context.genis;
-    final avatar = g ? 36.0 : 32.0;
-    final sh = g ? 1.35 : 1.25;
+    final yildizGorunur = m.yildizli || _uzerinde;
 
     final icerik = Material(
       color: arka,
       child: InkWell(
         onTap: widget.dokun,
         onLongPress: widget.sec,
+        hoverColor: Colors.transparent,
         child: Stack(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(g ? 16 : 14, g ? 11 : 7, g ? 14 : 12, g ? 11 : 7),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -111,91 +111,108 @@ class _IletiSatiriState extends State<IletiSatiri> {
                     label: widget.secili ? 'Seçimi kaldır' : 'Seç',
                     child: GestureDetector(
                       onTap: widget.sec,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 150),
-                        child: widget.secili || widget.secimModu
-                            ? Container(
+                      // Web: fare üstündeyken (ya da seçiliyken) avatarın yerine onay kutusu.
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: widget.secili || widget.secimModu || (_uzerinde && context.genis)
+                            ? Center(
                                 key: const ValueKey('s'),
-                                width: avatar,
-                                height: avatar,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: widget.secili ? r.vurgu : r.kart,
-                                  border: widget.secili ? null : Border.all(color: r.kenar, width: 2),
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: widget.secili ? r.birincil : r.kart,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: widget.secili ? r.birincil : r.silik, width: 1.2),
+                                  ),
+                                  child: widget.secili ? const Icon(Simge.onay, color: Colors.white, size: 12) : null,
                                 ),
-                                child: widget.secili ? const Icon(Simge.onay, color: Colors.white, size: 18) : null,
                               )
-                            : Opacity(
-                                opacity: okunmamis ? 1 : .85,
-                                child: Avatar(gorunenAd(karsi), boyut: avatar, tohum: tohum.isEmpty ? karsi : tohum),
-                              ),
+                            : Avatar(gorunenAd(karsi), boyut: 36, tohum: tohum.isEmpty ? karsi : tohum),
                       ),
                     ),
                   ),
-                  SizedBox(width: g ? 14 : 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            if (okunmamis)
-                              Container(
-                                key: const ValueKey('okunmamis-nokta'),
-                                width: 7,
-                                height: 7,
-                                margin: const EdgeInsets.only(right: 7),
-                                decoration: BoxDecoration(color: r.vurgu, shape: BoxShape.circle),
-                              ),
+                            // Ad + simgeler sola, tarih sağ kenara (Spacer + Flexible boşluğu paylaşmasın).
                             Expanded(
-                              child: Text(
-                                taslak ? 'Taslak' : ad,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 14, height: sh, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400, color: adRengi),
+                              child: Row(
+                                children: [
+                                  if (okunmamis)
+                                    Container(
+                                      key: const ValueKey('okunmamis-nokta'),
+                                      width: 8,
+                                      height: 8,
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: BoxDecoration(color: r.birincil, shape: BoxShape.circle),
+                                    ),
+                                  Flexible(
+                                    child: Text(
+                                      taslak ? 'Taslak' : ad,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        height: 20 / 14,
+                                        fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400,
+                                        color: adRengi,
+                                      ),
+                                    ),
+                                  ),
+                                  if (widget.hesapRengi != null)
+                                    Container(
+                                      key: const ValueKey('hesap-etiketi'),
+                                      constraints: const BoxConstraints(maxWidth: 130),
+                                      margin: const EdgeInsets.only(left: 6),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                      decoration: BoxDecoration(color: widget.hesapRengi!.withValues(alpha: .12), borderRadius: BorderRadius.circular(20)),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: BoxDecoration(color: widget.hesapRengi, shape: BoxShape.circle),
+                                          ),
+                                          if ((widget.hesapEtiketi ?? '').isNotEmpty) ...[
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                widget.hesapEtiketi!,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: widget.hesapRengi),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  if (m.onemli) simge(Simge.uyari, 'Önemli', renk: const Color(0xFFF97316)),
+                                  if (m.yanitlandi) simge(Simge.yanitla, 'Yanıtlandı'),
+                                  if (m.iletildi) simge(Simge.ilet, 'İletildi'),
+                                ],
                               ),
                             ),
-                            if (widget.hesapRengi != null)
-                              Container(
-                                key: const ValueKey('hesap-etiketi'),
-                                constraints: const BoxConstraints(maxWidth: 130),
-                                margin: const EdgeInsets.only(left: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-                                decoration: BoxDecoration(color: widget.hesapRengi!.withValues(alpha: .13), borderRadius: BorderRadius.circular(20)),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 7,
-                                      height: 7,
-                                      decoration: BoxDecoration(color: widget.hesapRengi, shape: BoxShape.circle),
-                                    ),
-                                    if ((widget.hesapEtiketi ?? '').isNotEmpty) ...[
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          widget.hesapEtiketi!,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: widget.hesapRengi),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            if (m.onemli) simge(Simge.onemliDolu, 'Önemli', renk: Marka.kehribar, boyut: 16),
-                            if (m.ekVar) simge(Simge.ek, 'Ekli'),
-                            if (m.yanitlandi) simge(Simge.yanitla, 'Yanıtlandı'),
-                            if (m.iletildi) simge(Simge.ilet, 'İletildi'),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
                               kisaZaman(m.tarih),
-                              style: TextStyle(fontSize: 12, color: okunmamis ? r.vurgu : r.silik, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400),
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 16 / 12,
+                                color: okunmamis ? r.birincil : r.silik,
+                                fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 1),
                         Row(
                           children: [
                             Expanded(
@@ -203,26 +220,35 @@ class _IletiSatiriState extends State<IletiSatiri> {
                                 m.konu.trim().isEmpty ? '(konu yok)' : m.konu,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  height: sh,
-                                  fontWeight: okunmamis ? FontWeight.w500 : FontWeight.w400,
-                                  color: okunmamis ? r.metin : r.soluk,
-                                ),
+                                style: TextStyle(fontSize: 14, height: 20 / 14, fontWeight: okunmamis ? FontWeight.w600 : FontWeight.w400, color: konuRengi),
                               ),
                             ),
+                            if (m.ekVar) simge(Simge.ek, 'Ekli'),
+                            // Web: fare üstündeyken Okundu / Okunmadı yap.
+                            if (_uzerinde && !widget.secimModu)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: InkResponse(
+                                  key: const ValueKey('satir-okundu'),
+                                  onTap: widget.okundu,
+                                  radius: 14,
+                                  child: Tooltip(
+                                    message: m.okundu ? 'Okunmadı yap' : 'Okundu yap',
+                                    child: Icon(m.okundu ? Simge.posta : Simge.okunduYap, size: 16, color: r.silik),
+                                  ),
+                                ),
+                              ),
                             Semantics(
                               button: true,
                               label: m.yildizli ? 'Yıldızı kaldır' : 'Yıldızla',
                               child: InkResponse(
                                 onTap: widget.yildiz,
-                                radius: 18,
+                                radius: 14,
                                 child: Padding(
                                   padding: const EdgeInsets.only(left: 6),
-                                  child: Icon(
-                                    m.yildizli ? Simge.yildizDolu : Simge.yildiz,
-                                    size: 18,
-                                    color: m.yildizli ? yildizRengi : r.silik.withValues(alpha: .6),
+                                  child: Opacity(
+                                    opacity: yildizGorunur ? 1 : 0,
+                                    child: Icon(m.yildizli ? Simge.yildizDolu : Simge.yildiz, size: 16, color: m.yildizli ? yildizRengi : r.silik),
                                   ),
                                 ),
                               ),
@@ -230,25 +256,22 @@ class _IletiSatiriState extends State<IletiSatiri> {
                           ],
                         ),
                         if (m.onizleme.trim().isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 1),
-                            child: Text(
-                              m.onizleme.trim(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13, color: r.soluk, height: sh),
-                            ),
+                          Text(
+                            m.onizleme.trim(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, height: 16 / 12, color: r.silik),
                           ),
                         if (etiketler.isNotEmpty || m.ertelemeBitis != null || m.takip)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.only(top: 4),
                             child: Wrap(
-                              spacing: 6,
+                              spacing: 4,
                               runSpacing: 4,
                               children: [
-                                if (m.takip) const Rozet('Takip', renk: Marka.mavi, ikon: Simge.hatirlatma),
-                                if (m.ertelemeBitis != null) Rozet(kisaZaman(m.ertelemeBitis), renk: Marka.kehribar, ikon: Simge.ertele),
-                                for (final e in etiketler) Rozet(e.ad, renk: etiketRengi(e.renk), ikon: Simge.etiket),
+                                if (m.takip) const _Cip('Takip', renk: Color(0xFFF43F5E), ikon: Simge.hatirlatma),
+                                if (m.ertelemeBitis != null) _Cip(kisaZaman(m.ertelemeBitis), renk: const Color(0xFFF59E0B), ikon: Simge.ertele),
+                                for (final e in etiketler) _Cip(e.ad, renk: etiketRengi(e.renk)),
                               ],
                             ),
                           ),
@@ -258,10 +281,11 @@ class _IletiSatiriState extends State<IletiSatiri> {
                 ],
               ),
             ),
-            // Fare üzerindeyken eylemler satırın sağ üstünde yüzer; yerleşim (ad, tarih, yükseklik) hiç kaymaz.
+            // Fare üzerindeyken arşivle/sil satırın sağ altında (önizleme satırı) yüzer: tarih, okundu düğmesi ve
+            // yıldız web'deki yerlerinde görünür kalır; yerleşim hiç kaymaz.
             if (!widget.secimModu)
               Positioned(
-                top: g ? 9 : 5,
+                bottom: 6,
                 right: 8,
                 child: IgnorePointer(
                   ignoring: !_uzerinde,
@@ -283,13 +307,13 @@ class _IletiSatiriState extends State<IletiSatiri> {
                   ),
                 ),
               ),
-            // Sol kenardaki ince vurgu çizgisi: okunmamış (veya okuyucuda açık) iletiler.
-            if (okunmamis || widget.acik)
+            // Web: okunmamış iletinin solunda 3 px birincil şerit.
+            if (okunmamis)
               Positioned(
                 left: 0,
                 top: 0,
                 bottom: 0,
-                child: Container(key: okunmamis ? const ValueKey('okunmamis-serit') : null, width: 3, color: r.vurgu),
+                child: Container(key: const ValueKey('okunmamis-serit'), width: 2, color: r.birincil),
               ),
           ],
         ),
@@ -305,7 +329,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
         child: DecoratedBox(
           position: DecorationPosition.foreground,
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: r.kenar.withValues(alpha: .7))),
+            border: Border(bottom: BorderSide(color: r.kenar)),
           ),
           child: icerik,
         ),
@@ -373,12 +397,7 @@ class _IletiSatiriState extends State<IletiSatiri> {
         icon: Icon(i, color: r.soluk),
       ),
     );
-    final m = widget.ileti;
-    return [
-      d(m.okundu ? Simge.okunmadiYap : Simge.okunduYap, m.okundu ? 'Okunmadı yap' : 'Okundu yap', widget.okundu),
-      if (!widget.arsivde) d(Simge.arsiv, 'Arşivle', widget.arsivle),
-      d(Simge.sil, widget.copte ? 'Kalıcı sil' : 'Sil', widget.sil),
-    ];
+    return [if (!widget.arsivde) d(Simge.arsiv, 'Arşivle', widget.arsivle), d(Simge.sil, widget.copte ? 'Kalıcı sil' : 'Sil', widget.sil)];
   }
 }
 
@@ -411,6 +430,29 @@ class _SuruklemeGorseli extends StatelessWidget {
           ),
         ],
       ),
+    ),
+  );
+}
+
+/// Web'deki küçük yuvarlak çip (text-[11px], renk/12 zemin).
+class _Cip extends StatelessWidget {
+  const _Cip(this.metin, {required this.renk, this.ikon});
+  final String metin;
+  final Color renk;
+  final IconData? ikon;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(color: renk.withValues(alpha: .12), borderRadius: BorderRadius.circular(20)),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (ikon != null) ...[Icon(ikon, size: 12, color: renk), const SizedBox(width: 4)],
+        Text(
+          metin,
+          style: TextStyle(fontSize: 11, height: 1.2, fontWeight: FontWeight.w500, color: renk),
+        ),
+      ],
     ),
   );
 }

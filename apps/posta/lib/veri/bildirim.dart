@@ -258,7 +258,11 @@ Future<void> _yeniIletileriDenetle() async {
   if (yeni.isEmpty) return;
   await Bildirim.hazirla();
   for (final m in yeni.take(5)) {
-    await Bildirim.goster(iletiId: m.id, baslik: gorunenAd(m.kimden), metin: [m.konu.trim().isEmpty ? '(konu yok)' : m.konu.trim(), if (m.onizleme.trim().isNotEmpty) m.onizleme.trim()].join('\n'));
+    await Bildirim.goster(
+      iletiId: m.id,
+      baslik: gorunenAd(m.kimden),
+      metin: [m.konu.trim().isEmpty ? '(konu yok)' : m.konu.trim(), if (m.onizleme.trim().isNotEmpty) m.onizleme.trim()].join('\n'),
+    );
   }
   if (yeni.length > 5) {
     await Bildirim.goster(iletiId: '', baslik: 'BogaMail', metin: '${yeni.length - 5} yeni e-posta daha');

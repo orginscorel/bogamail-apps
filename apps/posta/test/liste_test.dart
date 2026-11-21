@@ -79,21 +79,44 @@ void main() {
       expect(find.byKey(const ValueKey('okunmamis-serit')), findsOneWidget);
       final ad = t.widget<Text>(find.text('Ayşe'));
       expect(ad.style!.fontWeight, FontWeight.w600);
-      expect(t.widget<Text>(find.text('Merhaba')).style!.fontWeight, FontWeight.w500);
+      expect(t.widget<Text>(find.text('Merhaba')).style!.fontWeight, FontWeight.w600);
       expect(find.byIcon(Simge.ek), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp('^Okunmamış')), findsOneWidget);
     });
 
-    testWidgets('okunmuş: nokta ve çizgi yok, normal ağırlık, soluk renk', (t) async {
+    testWidgets('okunmuş: şerit yok, normal ağırlık, web soluklukları', (t) async {
       await t.pumpWidget(_uygulama(_satir(IletiOzet(id: 'b', kimden: 'Ali <ali@ornek.com>', konu: 'Rapor', okundu: true, yildizli: true))));
       expect(find.byKey(const ValueKey('okunmamis-nokta')), findsNothing);
       expect(find.byKey(const ValueKey('okunmamis-serit')), findsNothing);
       final r = Renkler.acik;
       final ad = t.widget<Text>(find.text('Ali'));
       expect(ad.style!.fontWeight, FontWeight.w400);
-      expect(ad.style!.color, r.soluk);
-      expect(t.widget<Text>(find.text('Rapor')).style!.color, r.soluk);
+      // Web: gönderen foreground/90, konu foreground/80.
+      expect(ad.style!.color, r.silik);
+      expect(t.widget<Text>(find.text('Rapor')).style!.color, r.silik);
       expect(find.byIcon(Simge.yildizDolu), findsOneWidget);
+    });
+
+    testWidgets('web message-list yerleşimi: tarih 1. satırın sağında, ataç ve yıldız konu satırının SONUNDA', (t) async {
+      t.view.physicalSize = const Size(520, 400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        _uygulama(
+          _satir(IletiOzet(id: 'c', kimden: 'Ali <ali@ornek.com>', konu: 'Rapor', okundu: true, yildizli: true, ekVar: true, tarih: DateTime(2026, 11, 1))),
+        ),
+      );
+      final satir = t.getRect(find.byType(IletiSatiri));
+      final tarih = t.getRect(find.text(kisaZaman(DateTime(2026, 11, 1))));
+      final konu = t.getRect(find.text('Rapor'));
+      final yildiz = t.getRect(find.byIcon(Simge.yildizDolu));
+      final atac = t.getRect(find.byIcon(Simge.ek));
+      expect(satir.right - tarih.right, lessThan(16), reason: 'tarih sağ kenarda');
+      expect(satir.right - yildiz.right, lessThan(16), reason: 'yıldız konu satırının sonunda');
+      expect(yildiz.center.dy, closeTo(konu.center.dy, 3));
+      expect(atac.center.dy, closeTo(konu.center.dy, 3));
+      expect(atac.right, lessThanOrEqualTo(yildiz.left));
+      expect(tarih.center.dy, lessThan(konu.top));
     });
   });
 
@@ -104,7 +127,7 @@ void main() {
       for (final ad in ['Tümü', 'Okunmamış', 'Yıldızlı', 'Ekli']) {
         expect(find.text(ad), findsOneWidget);
       }
-      expect(find.text('7'), findsOneWidget);
+      expect(find.text('7'), findsNothing, reason: 'web gibi sekmede sayı yok');
       expect(find.byIcon(Simge.onay), findsNothing, reason: 'etkin bölüm dolu zeminle belirgin; onay simgesi yer kaplamaz (etiketler kesilmez)');
       await t.tap(find.byKey(const ValueKey('filtre-yildizli')));
       expect(secilen, ListeFiltresi.yildizli);

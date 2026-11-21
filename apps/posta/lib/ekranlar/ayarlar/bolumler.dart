@@ -12,6 +12,7 @@ import 'genel.dart';
 import 'gorunum.dart';
 import 'klasorler.dart';
 import 'kurulum.dart';
+import 'okuma_alani_ayari.dart';
 import 'otomatik.dart';
 import 'tasima.dart';
 
@@ -33,6 +34,14 @@ final ekAyarBolumleri = <AyarBolumu>[
     olustur: (_) => const GenelAyari(),
   ),
   AyarBolumu(id: 'gorunum', ikon: Simge.palet, baslik: 'Görünüm', aciklama: 'Tema, uzak görseller', sira: 30, olustur: (_) => const GorunumAyari()),
+  AyarBolumu(
+    id: 'okuma-alani',
+    ikon: Simge.katmanlar,
+    baslik: 'Okuma alanı',
+    aciklama: 'Sağda / Altta / Kapalı (web ile ortak)',
+    sira: 31,
+    olustur: (_) => const OkumaAlaniAyari(),
+  ),
   AyarBolumu(
     id: 'bildirimler',
     ikon: Simge.bildirim,

@@ -1,8 +1,10 @@
-// Geniş ekran sol dar ray: bölümler (Posta/Sohbet/Takvim/Görevler) üstte; altta sırayla Ayarlar, eşitleme noktası,
-// sürüm ve etkin hesap avatarı. Ray genişliği sabittir (80 px) — alt bölüm hiçbir zaman genişletmez; pencere kısa
-// kalırsa önce sürüm gizlenir, bölümler kaydırılır.
+// Geniş ekran sol dar ray — web'deki "Uygulamalar" rayı gibi (w-[68px], bg-muted/30, sağ çizgi; öğeler w-14
+// rounded-xl py-2, 20 px simge + 11 px etiket; etkin: primary/10 zemin + birincil renk). Bölümler üstte; altta
+// sırayla Ayarlar, eşitleme noktası, sürüm ve etkin hesap avatarı. Genişlik sabittir; pencere kısa kalırsa önce
+// sürüm gizlenir, bölümler kaydırılır.
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/gestures.dart';
@@ -12,7 +14,10 @@ import '../ortak/esitleme.dart';
 import '../veri/canli.dart';
 import 'hesap_menusu.dart';
 
-const double rayGenisligi = 80;
+const double rayGenisligi = 68;
+
+/// Klasör kenar çubuğu genişliği (web: w-64).
+const double kenarGenisligi = 224;
 
 class SolRay extends StatelessWidget {
   const SolRay({
@@ -25,6 +30,7 @@ class SolRay extends StatelessWidget {
     this.ayarlarIkonu,
   });
 
+  /// Yalnız simge / seçili simge / etiket kullanılır.
   final List<NavigationRailDestination> hedefler;
 
   /// Üstteki hedeflerden seçili olan; Ayarlar seçiliyken null.
@@ -39,29 +45,47 @@ class SolRay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    // Kısa pencerede (≈ 640 px altı) sürüm satırı gizlenir; ipucu Ayarlar › Hakkında'da da var.
+    // Kısa pencerede (≈ 640 px altı) sürüm satırı gizlenir.
     final kisa = MediaQuery.sizeOf(context).height < 640;
-    return NavigationRail(
-      backgroundColor: r.zemin,
-      selectedIndex: secili,
-      minWidth: rayGenisligi,
-      labelType: NavigationRailLabelType.all,
-      groupAlignment: -1,
-      scrollable: true,
-      indicatorColor: r.vurguYumusak,
-      onDestinationSelected: sec,
-      // Etiketler 64 px'e sığdırılır (gerekirse küçültülür): uzun bir ad ya da büyük yazı ölçeği rayı genişletmez.
-      destinations: [
-        for (final h in hedefler)
-          NavigationRailDestination(icon: h.icon, selectedIcon: h.selectedIcon, label: _sigdir(h.label), padding: h.padding, disabled: h.disabled),
-      ],
-      trailingAtBottom: true,
-      trailing: SizedBox(
+    return Semantics(
+      container: true,
+      label: 'Uygulamalar',
+      child: Container(
+        key: const ValueKey('sol-ray'),
         width: rayGenisligi,
+        decoration: BoxDecoration(
+          color: r.zemin,
+          border: Border(right: BorderSide(color: r.kenar)),
+        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            _RayAyarlar(secili: ayarlarSecili, ac: ayarlarAc, ikon: ayarlarIkonu),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(
+                  children: [
+                    for (final (i, h) in hedefler.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: RayOgesi(
+                          key: ValueKey('ray-$i'),
+                          ikon: secili == i ? (h.selectedIcon) : h.icon,
+                          etiket: h.label,
+                          secili: secili == i,
+                          dokun: () => sec(i),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            RayOgesi(
+              key: const ValueKey('ray-ayarlar'),
+              ikon: ayarlarIkonu ?? const Icon(Simge.ayarlar),
+              etiket: const Text('Ayarlar'),
+              secili: ayarlarSecili,
+              dokun: ayarlarAc,
+            ),
             const SizedBox(height: 6),
             const RayEsitleme(),
             if (!kisa) ...[const SizedBox(height: 4), const SurumEtiketi(kisa: true)],
@@ -74,49 +98,65 @@ class SolRay extends StatelessWidget {
   }
 }
 
-Widget _sigdir(Widget etiket) => ConstrainedBox(
-  constraints: const BoxConstraints(maxWidth: rayGenisligi - 16),
-  child: FittedBox(fit: BoxFit.scaleDown, child: etiket),
-);
-
-/// Raydaki Ayarlar: üstteki hedeflerle aynı görünüm (56×32 gösterge + 12 px etiket).
-class _RayAyarlar extends StatelessWidget {
-  const _RayAyarlar({required this.secili, required this.ac, this.ikon});
+/// Web ray öğesi: 56 px genişlik, rounded-xl, py-2, 20 px simge, 11 px etiket (sığmazsa küçülür).
+class RayOgesi extends StatefulWidget {
+  const RayOgesi({super.key, required this.ikon, required this.etiket, required this.secili, required this.dokun});
+  final Widget ikon;
+  final Widget etiket;
   final bool secili;
-  final VoidCallback ac;
-  final Widget? ikon;
+  final VoidCallback dokun;
+
+  @override
+  State<RayOgesi> createState() => _RayOgesiState();
+}
+
+class _RayOgesiState extends State<RayOgesi> {
+  bool _uzerinde = false;
 
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final tema = Theme.of(context);
-    final rt = tema.navigationRailTheme;
-    final etiket = (secili ? rt.selectedLabelTextStyle : rt.unselectedLabelTextStyle) ?? tema.textTheme.labelMedium ?? const TextStyle(fontSize: 12);
-    final ikonTema = (secili ? rt.selectedIconTheme : rt.unselectedIconTheme) ?? IconThemeData(color: secili ? r.metin : r.soluk, size: 24);
+    final s = widget.secili;
+    final renk = s ? r.birincil : (_uzerinde ? r.metin : r.silik);
     return Semantics(
       button: true,
-      selected: secili,
-      label: 'Ayarlar',
-      excludeSemantics: true,
-      child: InkWell(
-        key: const ValueKey('ray-ayarlar'),
-        onTap: ac,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: 56,
-                height: 32,
-                decoration: BoxDecoration(color: secili ? r.vurguYumusak : Colors.transparent, borderRadius: BorderRadius.circular(16)),
-                child: IconTheme.merge(data: ikonTema, child: ikon ?? const Icon(Simge.ayarlar)),
-              ),
-              const SizedBox(height: 4),
-              _sigdir(Text('Ayarlar', maxLines: 1, style: etiket)),
-            ],
+      selected: s,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _uzerinde = true),
+        onExit: (_) => setState(() => _uzerinde = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.dokun,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 56,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: s ? r.birincil.withValues(alpha: _uzerinde ? .15 : .10) : (_uzerinde ? r.ic : Colors.transparent),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconTheme.merge(
+                  data: IconThemeData(size: 20, color: renk),
+                  child: widget.ikon,
+                ),
+                const SizedBox(height: 2),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 52),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: DefaultTextStyle.merge(
+                      style: TextStyle(fontSize: 11, height: 1.25, color: renk, fontWeight: s ? FontWeight.w500 : FontWeight.w400),
+                      maxLines: 1,
+                      child: widget.etiket,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -216,15 +256,21 @@ class _RayEsitlemeState extends State<RayEsitleme> {
   }
 }
 
-const double listeEnAz = 340, listeEnCok = 640;
+/// Web useSplit: liste [oran] × alan, [enAz]–[enCok] px arasında ve okumaya en az [kalan] px bırakarak.
+double bolmeBoyu({required double alan, required double oran, required double enAz, required double enCok, required double kalan}) {
+  final ust = math.max(enAz, math.min(enCok, alan - kalan));
+  return math.min(ust, math.max(enAz, oran * alan));
+}
 
-/// Liste ile okuyucu arasındaki sürüklenebilir çizgi: 1 px görünür, 7 px tutma alanı; çift tık varsayılana döner.
+/// Liste ile okuma alanı arasındaki sürüklenebilir ayraç (web: 4 px, fare üstünde primary %30, col/row-resize):
+/// 1 px çizgi + tutma alanı; çift tık varsayılana döner. [yatay]: okuma alanı altta (satır ayracı).
 class BolmeCizgisi extends StatefulWidget {
-  const BolmeCizgisi({super.key, required this.renk, required this.surukle, required this.bitti, required this.sifirla});
+  const BolmeCizgisi({super.key, required this.renk, required this.surukle, required this.bitti, required this.sifirla, this.yatay = false});
   final Color renk;
   final ValueChanged<double> surukle;
   final VoidCallback bitti;
   final VoidCallback sifirla;
+  final bool yatay;
 
   @override
   State<BolmeCizgisi> createState() => _BolmeCizgisiState();
@@ -233,40 +279,42 @@ class BolmeCizgisi extends StatefulWidget {
 class _BolmeCizgisiState extends State<BolmeCizgisi> {
   bool _ustunde = false, _surukleniyor = false;
 
+  void _bitir() {
+    setState(() => _surukleniyor = false);
+    widget.bitti();
+  }
+
   @override
   Widget build(BuildContext context) {
     final etkin = _ustunde || _surukleniyor;
+    final y = widget.yatay;
+    final cizgi = Container(width: y ? null : 1, height: y ? 1 : null, color: widget.renk);
     return Semantics(
-      label: 'Liste genişliği',
+      label: 'Liste boyutunu ayarla (çift tıklayınca sıfırlanır)',
       child: MouseRegion(
-        cursor: SystemMouseCursors.resizeColumn,
+        cursor: y ? SystemMouseCursors.resizeRow : SystemMouseCursors.resizeColumn,
         onEnter: (_) => setState(() => _ustunde = true),
         onExit: (_) => setState(() => _ustunde = false),
         child: GestureDetector(
           key: const ValueKey('liste-bolme'),
-          behavior: HitTestBehavior.translucent,
+          behavior: HitTestBehavior.opaque,
           dragStartBehavior: DragStartBehavior.down,
-          onHorizontalDragStart: (_) => setState(() => _surukleniyor = true),
-          onHorizontalDragUpdate: (d) => widget.surukle(d.delta.dx),
-          onHorizontalDragEnd: (_) {
-            setState(() => _surukleniyor = false);
-            widget.bitti();
-          },
-          onHorizontalDragCancel: () {
-            setState(() => _surukleniyor = false);
-            widget.bitti();
-          },
+          onHorizontalDragStart: y ? null : (_) => setState(() => _surukleniyor = true),
+          onHorizontalDragUpdate: y ? null : (d) => widget.surukle(d.delta.dx),
+          onHorizontalDragEnd: y ? null : (_) => _bitir(),
+          onHorizontalDragCancel: y ? null : _bitir,
+          onVerticalDragStart: y ? (_) => setState(() => _surukleniyor = true) : null,
+          onVerticalDragUpdate: y ? (d) => widget.surukle(d.delta.dy) : null,
+          onVerticalDragEnd: y ? (_) => _bitir() : null,
+          onVerticalDragCancel: y ? _bitir : null,
           onDoubleTap: widget.sifirla,
-          // 7 px tutma alanı (1 px çizgi ortada); yanlardaki boşluk zemin renginde kalır.
-          child: SizedBox(
-            width: 7,
-            child: Center(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                width: etkin ? 3 : 1,
-                color: etkin ? context.r.vurgu.withValues(alpha: .6) : widget.renk,
-              ),
-            ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: y ? double.infinity : 5,
+            height: y ? 5 : double.infinity,
+            color: etkin ? context.r.birincil.withValues(alpha: .3) : Colors.transparent,
+            alignment: Alignment.center,
+            child: cizgi,
           ),
         ),
       ),

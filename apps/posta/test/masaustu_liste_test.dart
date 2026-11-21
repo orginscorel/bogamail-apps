@@ -174,4 +174,67 @@ void main() {
     expect(find.text('Eşleşen klasör yok.'), findsOneWidget);
     await bitir(t);
   });
+
+  testWidgets('daraltılmış klasör sütunu (web 64 px): 40×40 simgeler, ipucu "ad (sayı)", okunmamış noktası, genişlet', (t) async {
+    PostaDurum.ben.klasorler = [Klasor(id: 'g', ad: 'INBOX', rol: 'inbox', okunmamis: 3), ...PostaDurum.ben.klasorler.skip(1)];
+    var degisti = 0;
+    t.view.physicalSize = const Size(1000, 900);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        theme: temaKur(Brightness.light),
+        home: Scaffold(
+          body: Row(
+            children: [
+              SizedBox(
+                width: 64,
+                child: YanMenu(sec: (_) {}, yeniIleti: () {}, dar: true, daraltildi: true, daraltDegistir: () => degisti++),
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await t.pump();
+    expect(t.getSize(find.byKey(const ValueKey('dar-g'))), const Size(40, 40));
+    expect(find.byTooltip('Gelen Kutusu (3)'), findsOneWidget);
+    expect(find.byTooltip('Yeni E-posta'), findsOneWidget);
+    expect(find.text('Gelen Kutusu'), findsNothing, reason: 'yalnız simgeler');
+    await t.tap(find.byKey(const ValueKey('kenar-genislet')));
+    expect(degisti, 1);
+    await bitir(t);
+  });
+
+  testWidgets('geniş klasör sütununda daralt düğmesi yeni ileti düğmesinin yanında', (t) async {
+    var degisti = 0;
+    t.view.physicalSize = const Size(1440, 900);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        theme: temaKur(Brightness.light),
+        home: Scaffold(
+          body: Row(
+            children: [
+              SizedBox(
+                width: 256,
+                child: YanMenu(sec: (_) {}, yeniIleti: () {}, daraltDegistir: () => degisti++),
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ),
+    );
+    await t.pump();
+    final yeni = t.getRect(find.byKey(const ValueKey('yeni-eposta')));
+    final daralt = t.getRect(find.byKey(const ValueKey('kenar-daralt')));
+    expect(daralt.left, greaterThan(yeni.right));
+    expect((daralt.center.dy - yeni.center.dy).abs(), lessThan(2));
+    await t.tap(find.byKey(const ValueKey('kenar-daralt')));
+    expect(degisti, 1);
+    await bitir(t);
+  });
 }

@@ -272,13 +272,16 @@ class Avatar extends StatelessWidget {
       width: boyut,
       height: boyut,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color.lerp(renk, Colors.white, .12)!, renk]),
-      ),
+      // Posta: web gibi düz renk ve küçük baş harfler (size-9 → text-xs); yönetim degradeli.
+      decoration: kimlik == Kimlik.posta
+          ? BoxDecoration(shape: BoxShape.circle, color: renk)
+          : BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color.lerp(renk, Colors.white, .12)!, renk]),
+            ),
       child: Text(
         basHarf(ad),
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: boyut * .38),
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: boyut * (kimlik == Kimlik.posta ? .34 : .38)),
       ),
     );
   }

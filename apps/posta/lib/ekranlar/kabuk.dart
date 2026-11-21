@@ -310,8 +310,13 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   /// Gelen Kutusu dışındaki klasörlerdeki okunmamışlar (kullanıcı klasörleri + Arşiv).
   int get _digerOkunmamis => _durum.klasorler.where((k) => k.rol == null || k.rol == 'archive').fold(0, (t, k) => t + k.okunmamis);
 
-  Widget _rozetli(IconData ikon, int sayi) =>
-      Badge(isLabelVisible: sayi > 0, backgroundColor: context.r.vurgu, textColor: Colors.white, label: Text(sayi > 999 ? '999+' : '$sayi'), child: Icon(ikon));
+  Widget _rozetli(IconData ikon, int sayi) => Badge(
+    isLabelVisible: sayi > 0,
+    backgroundColor: const Color(0xFFE7000B),
+    textColor: Colors.white,
+    label: Text(sayi > 999 ? '999+' : '$sayi'),
+    child: Icon(ikon),
+  );
 
   int _rozet(Modul m) => switch (m) {
     Modul.posta => _durum.rolu('inbox')?.okunmamis ?? 0,
@@ -433,8 +438,11 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
 
   BirlesikOge? _birlesikSecili;
 
-  /// Sürükleme sürerken liste genişliği (bırakınca Tercihler'e yazılır).
-  double? _suruklenenEn;
+  /// Sürükleme sürerken liste boyu (px; bırakınca oran olarak Tercihler'e yazılır).
+  double? _suruklenen;
+
+  /// Daraltılmış klasör sütununun üstüne gelince tam sütun katman olarak açılır (web).
+  bool _kenarAcik = false;
   BirlesikHesap? _birlesikHesap;
 
   Widget _genisPosta() {
@@ -466,66 +474,149 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
               if (_secili != null && s.contains(_secili)) setState(() => _secili = null);
             },
           );
-    return Row(
-      children: [
-        SizedBox(
-          width: en >= 1250 ? 280 : 250,
-          child: YanMenu(sec: _sec, yeniIleti: _yeni),
-        ),
-        VerticalDivider(width: 1, color: r.kenar),
-        // İleti listesi: varsayılan 420 (geniş pencerede 460) px; sağındaki çizgi sürüklenerek 340–640 arası
-        // ayarlanır ve saklanır. Okuyucuya en az 420 px kalır.
-        ValueListenableBuilder<double?>(
-          valueListenable: Tercihler.listeEni,
-          builder: (context, kayitli, _) {
-            final kenar = en >= 1250 ? 280.0 : 250.0;
-            final ust = (en - rayGenisligi - kenar - 420).clamp(listeEnAz, listeEnCok).toDouble();
-            final genislik = (_suruklenenEn ?? kayitli ?? (en >= 1400 ? 460.0 : 420.0)).clamp(listeEnAz, ust).toDouble();
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(width: genislik, child: liste),
-                BolmeCizgisi(
-                  renk: r.kenar,
-                  surukle: (dx) => setState(() => _suruklenenEn = (genislik + dx).clamp(listeEnAz, ust).toDouble()),
-                  bitti: () {
-                    final v = _suruklenenEn;
-                    _suruklenenEn = null;
-                    if (v != null) unawaited(Tercihler.listeEniAyarla(v));
-                  },
-                  sifirla: () => unawaited(Tercihler.listeEniAyarla(null)),
-                ),
-              ],
-            );
-          },
-        ),
-        Expanded(
-          child: birlesik
-              ? (seciliB == null
-                    ? ColoredBox(
-                        color: r.kart,
-                        child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Simge.katmanlar),
-                      )
-                    : BirlesikOkuyucu(oge: seciliB, hesap: _birlesikHesap, kaldirildi: () => setState(() => _birlesikSecili = null)))
-              : _secili == null
+    final ac = birlesik ? seciliB != null : _secili != null;
+    void kapat() => setState(() {
+      _secili = null;
+      _birlesikSecili = null;
+    });
+    final pane = _durum.okumaAlani.value;
+    Widget okuyucu() => birlesik
+        ? (seciliB == null
               ? ColoredBox(
                   color: r.kart,
-                  child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Simge.okunduYap),
+                  child: const Durum.bos('Okumak için soldaki listeden bir ileti seçin', ikon: Simge.katmanlar),
                 )
-              : Okuyucu(
-                  key: _okuyucu,
-                  id: _secili!,
-                  kaldirildi: () => setState(() => _secili = null),
-                  onceki: onceki == null ? null : () => _gez(-1),
-                  sonraki: sonraki == null ? null : () => _gez(1),
+              : BirlesikOkuyucu(oge: seciliB, hesap: _birlesikHesap, kaldirildi: () => setState(() => _birlesikSecili = null)))
+        : _secili == null
+        ? ColoredBox(
+            color: r.kart,
+            child: const Durum.bos('Okumak için bir ileti seçin', ikon: Simge.okunduYap),
+          )
+        : Okuyucu(
+            key: _okuyucu,
+            id: _secili!,
+            kaldirildi: () => setState(() => _secili = null),
+            onceki: onceki == null ? null : () => _gez(-1),
+            sonraki: sonraki == null ? null : () => _gez(1),
+            geri: pane == 'right' ? null : kapat,
+          );
+
+    // Liste | okuma alanı (web mail-view.tsx): Sağda %36 (340–600 px, okumaya ≥ 600), Altta %45 yükseklik (≥ 160,
+    // okumaya ≥ 220), Kapalı: liste tam alan, ileti açılınca tüm alanı kaplar.
+    final bolmeler = LayoutBuilder(
+      builder: (context, k) {
+        // Kapalı: liste yerinde kalır (kaydırma konumu korunur), ileti üstünde tüm alanı kaplar.
+        if (pane == 'off') {
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Offstage(
+                  offstage: ac,
+                  child: TickerMode(enabled: !ac, child: liste),
                 ),
-        ),
-      ],
+              ),
+              if (ac) Positioned.fill(child: okuyucu()),
+            ],
+          );
+        }
+        final yatay = pane == 'bottom';
+        final alan = yatay ? k.maxHeight : k.maxWidth;
+        final oranN = yatay ? Tercihler.listeYOrani : Tercihler.listeOrani;
+        final oran = oranN.value ?? (yatay ? .45 : .36);
+        final enAz = yatay ? 160.0 : 340.0, enCok = yatay ? 2000.0 : 600.0, kalan = yatay ? 220.0 : 600.0;
+        // Tüm hesaplar (web unified-view): sabit liste, 340 px (pencere ≥ 1280 px ise 400).
+        final boy = birlesik && !yatay ? (en >= 1280 ? 400.0 : 340.0) : bolmeBoyu(alan: alan, oran: oran, enAz: enAz, enCok: enCok, kalan: kalan);
+        final simdiki = _suruklenen ?? boy;
+        final ayrac = BolmeCizgisi(
+          yatay: yatay,
+          renk: r.kenar,
+          surukle: (d) => setState(() => _suruklenen = bolmeBoyu(alan: alan, oran: (simdiki + d) / alan, enAz: enAz, enCok: enCok, kalan: kalan)),
+          bitti: () {
+            final v = _suruklenen;
+            _suruklenen = null;
+            if (v != null) unawaited(yatay ? Tercihler.listeYOraniAyarla(v / alan) : Tercihler.listeOraniAyarla(v / alan));
+            setState(() {});
+          },
+          sifirla: () {
+            unawaited(yatay ? Tercihler.listeYOraniAyarla(null) : Tercihler.listeOraniAyarla(null));
+            setState(() {});
+          },
+        );
+        return Flex(
+          direction: yatay ? Axis.vertical : Axis.horizontal,
+          children: [
+            SizedBox(width: yatay ? null : simdiki, height: yatay ? simdiki : null, child: liste),
+            if (birlesik && !yatay) VerticalDivider(width: 1, color: r.kenar) else ayrac,
+            Expanded(child: okuyucu()),
+          ],
+        );
+      },
+    );
+
+    // Klasör sütunu: 224 px (web w-56); daraltılmışken 64 px simgeler, üstüne gelince tam sütun gölgeli katman (web).
+    return ValueListenableBuilder<String>(
+      valueListenable: Tercihler.kenarCubugu,
+      builder: (context, tercih, _) {
+        final dar = tercih == 'collapsed' || (tercih == 'auto' && en < 1400);
+        void degistir() {
+          _kenarAcik = false;
+          unawaited(Tercihler.kenarCubuguAyarla(dar ? 'expanded' : 'collapsed'));
+        }
+
+        final tam = YanMenu(sec: _sec, yeniIleti: _yeni, daraltildi: dar, daraltDegistir: degistir);
+        return Stack(
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: dar ? 64 : kenarGenisligi,
+                  child: dar
+                      ? MouseRegion(
+                          onEnter: (_) => setState(() => _kenarAcik = true),
+                          child: YanMenu(sec: _sec, yeniIleti: _yeni, dar: true, daraltildi: true, daraltDegistir: degistir),
+                        )
+                      : tam,
+                ),
+                VerticalDivider(width: 1, color: r.kenar),
+                Expanded(child: bolmeler),
+              ],
+            ),
+            if (dar && _kenarAcik)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: kenarGenisligi,
+                child: MouseRegion(
+                  key: const ValueKey('kenar-katman'),
+                  onExit: (_) => setState(() => _kenarAcik = false),
+                  child: Material(
+                    elevation: 12,
+                    shadowColor: Colors.black38,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border(right: BorderSide(color: r.kenar)),
+                      ),
+                      child: YanMenu(
+                        sec: (k) {
+                          setState(() => _kenarAcik = false);
+                          _sec(k);
+                        },
+                        yeniIleti: _yeni,
+                        daraltildi: true,
+                        daraltDegistir: degistir,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
   Widget _genis() {
-    final r = context.r;
     final moduller = _moduller;
     if (!moduller.contains(_modul)) _modul = Modul.posta;
     final ust = [
@@ -556,7 +647,6 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
                     ayarlarAc: () => setState(() => _modulSec(Modul.ayarlar)),
                     ayarlarIkonu: _rozetli(_modul == Modul.ayarlar ? Modul.ayarlar.seciliIkon : Modul.ayarlar.ikon, _rozet(Modul.ayarlar)),
                   ),
-                  VerticalDivider(width: 1, color: r.kenar),
                   Expanded(
                     child: IndexedStack(index: moduller.indexOf(_modul), children: [for (final m in moduller) _modulEkrani(m, genis: true)]),
                   ),
@@ -603,6 +693,15 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       const SingleActivator(LogicalKeyboardKey.keyE): _kisayol(() => _okuyucu.currentState?.arsivle()),
       const SingleActivator(LogicalKeyboardKey.keyJ): _kisayol(() => _gez(1)),
       const SingleActivator(LogicalKeyboardKey.keyK): _kisayol(() => _gez(-1)),
+      // Okuma alanı Altta / Kapalı: Esc açık iletiyi kapatıp listeye döner (web).
+      const SingleActivator(LogicalKeyboardKey.escape): _kisayol(() {
+        if (_durum.okumaAlani.value != 'right' && (_secili != null || _birlesikSecili != null)) {
+          setState(() {
+            _secili = null;
+            _birlesikSecili = null;
+          });
+        }
+      }),
       const SingleActivator(LogicalKeyboardKey.delete): _kisayol(() => _okuyucu.currentState?.sil()),
       const SingleActivator(LogicalKeyboardKey.backspace, meta: true): _kisayol(() => _okuyucu.currentState?.sil()),
       // Masaüstü: Ctrl/Cmd+1…9 kayıtlı hesaplar arasında geçiş.

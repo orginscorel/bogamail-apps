@@ -267,13 +267,44 @@ const alintiCss =
     'padding:0 8px;border-radius:6px;background:#eceef1;color:#57606a;font:bold 12px/18px system-ui;letter-spacing:1px}'
     'details.bm-quote>summary::-webkit-details-marker{display:none}details.bm-quote[open]>summary{margin-bottom:8px}';
 
+/// İletinin doğal (sabit) genişliği, px: tablo/hücre/kutu öğelerinde width="650", style="width:650px" ya da
+/// min-width ile verilen en büyük değer (0: sabit genişlik yok, içerik akışkan). Görüntüleyicide JavaScript kapalı
+/// olduğundan web'in scrollWidth ölçümü yerine bildirilen genişlikler okunur; görseller zaten max-width:100%.
+double dogalGenislik(String html) {
+  final belge = ayristir.parse(html);
+  var en = 0.0;
+  final stil = RegExp(r'(?:^|;)\s*(?:min-)?width\s*:\s*([0-9.]+)px', caseSensitive: false);
+  for (final e in belge.querySelectorAll('table,td,th,tr,tbody,div,center,section,article,body,p,span')) {
+    final w = double.tryParse((e.attributes['width'] ?? '').trim().replaceFirst(RegExp(r'px$', caseSensitive: false), ''));
+    if (w != null && w > en) en = w;
+    for (final m in stil.allMatches(e.attributes['style'] ?? '')) {
+      final v = double.tryParse(m.group(1)!) ?? 0;
+      if (v > en) en = v;
+    }
+  }
+  return en;
+}
+
+/// Görüntüleyici genişliğine sığdırma oranı (web: zoom = clientWidth / scrollWidth, en az 0.5). [yanDolgu]: gövde
+/// dolgusu (sol + sağ).
+double sigdirmaOrani(double dogal, double genislik, {double yanDolgu = 32}) {
+  if (dogal <= 0 || genislik <= 0) return 1;
+  final gereken = dogal + yanDolgu;
+  if (gereken <= genislik + 2) return 1;
+  return (genislik / gereken).clamp(.5, 1.0);
+}
+
+/// Belgeye sığdırma oranını ekler (CSS zoom; Chromium/WebView2 ve WebKit destekler).
+String sigdirilmisBelge(String belge, double oran) =>
+    oran >= 1 ? belge : belge.replaceFirst('</head>', '<style>body{zoom:${oran.toStringAsFixed(3)}}</style></head>');
+
 /// Görüntüleyiciye verilecek tam belge: CSP yalnızca satır içi stil ve data: görsellere izin verir.
 String gorunumBelgesi(String govde, {bool sikisik = false}) =>
     '<!doctype html><html><head><meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width, initial-scale=1">'
     '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; font-src data:">'
-    '<style>html,body{margin:0;font:15px/1.6 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;color:#1f2328;background:#fff;'
-    'word-wrap:break-word;overflow-wrap:anywhere;color-scheme:light}body{padding:${sikisik ? '2px 16px 8px' : '10px 16px 24px'};display:flow-root;max-width:760px;margin:0 auto}'
+    '<style>html,body{margin:0;font:14px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1f2328;background:#fff;'
+    'word-wrap:break-word;overflow-wrap:anywhere;color-scheme:light}body{padding:${sikisik ? '2px 16px 8px' : '10px 16px 24px'};display:flow-root}'
     'img{max-width:100%;height:auto}table{max-width:100%}pre{white-space:pre-wrap}a{color:#4f46e5}'
     'blockquote{margin:0 0 0 .8ex;border-left:2px solid #d0d7de;padding-left:1ex;color:#57606a}$alintiCss</style>'
     '</head><body>$govde</body></html>';

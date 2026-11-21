@@ -3,8 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-const _font = 'packages/boga_ortak/Poppins';
-const _gosterimFont = 'packages/boga_ortak/Jakarta';
+// Posta web postasıyla aynı yazı tipini (Geist) kullanır; yönetim Poppins + Plus Jakarta'da kalır.
+String get _font => kimlik == Kimlik.posta ? 'packages/boga_ortak/Geist' : 'packages/boga_ortak/Poppins';
+String get _gosterimFont => kimlik == Kimlik.posta ? 'packages/boga_ortak/Geist' : 'packages/boga_ortak/Jakarta';
+
+/// Uygulamanın gövde yazı tipi ailesi (ör. HTML gövde ya da özel TextStyle'lar için).
+String get govdeYaziTipi => _font;
 
 /// Hangi uygulama: renk kimliği buna göre ayrılır (posta → Bogahost indigosu, yönetim → grafit + yeşil).
 enum Kimlik { posta, yonetim }
@@ -37,7 +41,7 @@ class Marka {
   static const lacivert2 = morKoyu;
 
   /// Uygulamanın ana vurgu rengi.
-  static Color get aksan => kimlik == Kimlik.posta ? mor : yesil;
+  static Color get aksan => kimlik == Kimlik.posta ? const Color(0xFF384ECF) : yesil;
 
   /// Uygulamanın imza degradesi (simge, açılış, başlık şeritleri).
   static LinearGradient get grad => kimlik == Kimlik.posta
@@ -69,18 +73,21 @@ class Renkler {
   final Color zemin, kart, kenar, ic, metin, soluk, silik, birincil, birincilYumusak, vurgu, vurguYumusak;
   final bool koyu;
 
+  // Posta: web postasının (apps/web globals.css) belirteçleri — nötr griler, birincil oklch(0.49 0.2 270).
+  // zemin = bg-muted/30 (sol ray, kenar çubuğu), kart = background, ic = muted, kenar = border,
+  // soluk = foreground/80 civarı, silik = muted-foreground, *Yumusak = primary/10.
   static const _postaAcik = Renkler(
-    zemin: Color(0xFFF6F7FB),
+    zemin: Color(0xFFFCFCFC),
     kart: Colors.white,
-    kenar: Color(0xFFE5E7F0),
-    ic: Color(0xFFF0F1F7),
-    metin: Color(0xFF111427),
-    soluk: Color(0xFF4A5068),
-    silik: Color(0xFF6B7189),
-    birincil: Marka.mor,
-    birincilYumusak: Marka.lavanta0,
-    vurgu: Marka.mor,
-    vurguYumusak: Marka.lavanta0,
+    kenar: Color(0xFFE5E5E5),
+    ic: Color(0xFFF5F5F5),
+    metin: Color(0xFF0A0A0A),
+    soluk: Color(0xFF3B3B3B),
+    silik: Color(0xFF737373),
+    birincil: Color(0xFF384ECF),
+    birincilYumusak: Color(0xFFEBEDFA),
+    vurgu: Color(0xFF384ECF),
+    vurguYumusak: Color(0xFFEBEDFA),
     koyu: false,
   );
   static const _yonetimAcik = Renkler(
@@ -97,18 +104,19 @@ class Renkler {
     vurguYumusak: Color(0xFFDDF7EA),
     koyu: false,
   );
+  // Web .dark belirteçleri.
   static const _postaKoyu = Renkler(
-    zemin: Color(0xFF0E0F1A),
-    kart: Color(0xFF171827),
-    kenar: Color(0xFF272A3D),
-    ic: Color(0xFF1F2133),
-    metin: Color(0xFFF1F3F9),
-    soluk: Color(0xFFB5BACB),
-    silik: Color(0xFF8C92A8),
-    birincil: Color(0xFFA59CF7),
-    birincilYumusak: Color(0x405443D2),
-    vurgu: Color(0xFFA59CF7),
-    vurguYumusak: Color(0x405443D2),
+    zemin: Color(0xFF111214),
+    kart: Color(0xFF0A0B0D),
+    kenar: Color(0xFF242527),
+    ic: Color(0xFF262626),
+    metin: Color(0xFFFAFAFA),
+    soluk: Color(0xFFD4D4D4),
+    silik: Color(0xFFA1A1A1),
+    birincil: Color(0xFF7896FF),
+    birincilYumusak: Color(0x1F7896FF),
+    vurgu: Color(0xFF7896FF),
+    vurguYumusak: Color(0x1F7896FF),
     koyu: true,
   );
   static const _yonetimKoyu = Renkler(
@@ -168,7 +176,8 @@ bool get _masaustuPlatform => const {TargetPlatform.macOS, TargetPlatform.window
 ThemeData temaKur(Brightness parlaklik) {
   final r = parlaklik == Brightness.dark ? Renkler.karanlik : Renkler.acik;
   final masaustu = _masaustuPlatform;
-  final govde = masaustu ? 13.5 : 14.0;
+  // Posta: web gibi her yerde 14 px (text-sm); yönetim masaüstünde 13.5.
+  final govde = masaustu && kimlik != Kimlik.posta ? 13.5 : 14.0;
   final temel = ThemeData(
     useMaterial3: true,
     visualDensity: masaustu ? VisualDensity.compact : VisualDensity.standard,

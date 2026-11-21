@@ -853,32 +853,31 @@ class IletiListesiState extends State<IletiListesi> {
               ),
             ),
       titleSpacing: Navigator.of(context).canPop() || widget.klasorler != null ? 0 : 16,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      // Web: h-12 başlık — klasör adı (font-semibold) ve yanında toplam ileti sayısı (text-xs soluk).
+      toolbarHeight: 48,
+      shape: Border(bottom: BorderSide(color: r.kenar)),
+      backgroundColor: r.kart,
+      title: Row(
         children: [
-          Row(
-            children: [
-              if (!widget.aramaSabit) ...[
-                Icon(durum.gorsel(widget.konum).$1, size: 20, color: durum.gorsel(widget.konum).$2 ?? r.soluk),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: Text(
-                  durum.baslik(widget.konum),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: r.metin),
-                ),
-              ),
-            ],
-          ),
-          if (!_yukleniyor)
-            Text(
-              key: okunmamis > 0 ? const ValueKey('baslik-okunmamis') : null,
-              okunmamis > 0 ? '${sayiYaz(okunmamis)} okunmamış · ${sayiYaz(_toplam)} ileti' : '${sayiYaz(_toplam)} ileti',
-              style: TextStyle(fontSize: 12, color: r.soluk, fontWeight: FontWeight.w400),
+          Flexible(
+            child: Text(
+              durum.baslik(widget.konum),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: r.metin),
             ),
+          ),
+          if (!_yukleniyor) ...[
+            const SizedBox(width: 8),
+            Tooltip(
+              message: okunmamis > 0 ? '${sayiYaz(okunmamis)} okunmamış' : '',
+              child: Text(
+                key: okunmamis > 0 ? const ValueKey('baslik-okunmamis') : null,
+                sayiYaz(_toplam),
+                style: TextStyle(fontSize: 12, color: r.silik, fontWeight: FontWeight.w400, fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+            ),
+          ],
         ],
       ),
       actions: [
@@ -1011,8 +1010,10 @@ class IletiListesiState extends State<IletiListesi> {
       children: [
         if (_aramaAcik) _aramaSecenekleri(),
         if (_masaustu && _ogeler.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 12, 4),
+          Container(
+            height: 44,
+            padding: const EdgeInsets.fromLTRB(2, 0, 8, 0),
+            color: r.kart,
             child: Row(
               children: [
                 Checkbox(
@@ -1039,8 +1040,11 @@ class IletiListesiState extends State<IletiListesi> {
             ),
           )
         else if (!_filtreGizli && !_secimModu)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+          Container(
+            height: 44,
+            color: r.kart,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
             child: FiltreCubugu(
               secili: _filtre,
               degisti: _filtreSec,
@@ -1108,6 +1112,7 @@ class IletiListesiState extends State<IletiListesi> {
           }
         },
         child: Scaffold(
+          backgroundColor: context.r.kart,
           floatingActionButton: _secimModu ? null : widget.fab,
           appBar: _ustCubuk(),
           bottomNavigationBar: _secimModu ? _secimEylemleri() : null,
@@ -1252,14 +1257,18 @@ class IletiListesiState extends State<IletiListesi> {
             }
             final g = girdiler[i];
             if (g is String) {
+              // Web: tarih grubu başlığı (text-xs font-semibold soluk, px-4 py-1.5, alt çizgi).
               return Container(
-                color: c.r.zemin,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                decoration: BoxDecoration(
+                  color: c.r.kart,
+                  border: Border(bottom: BorderSide(color: c.r.kenar)),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
                 child: Semantics(
                   header: true,
                   child: Text(
-                    g.toUpperCase(),
-                    style: TextStyle(color: c.r.silik, fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: .8),
+                    g,
+                    style: TextStyle(color: c.r.silik, fontSize: 12, height: 16 / 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               );

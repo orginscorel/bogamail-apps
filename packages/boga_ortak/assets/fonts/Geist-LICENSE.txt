@@ -1,0 +1,3 @@
+Geist (Regular/Medium/SemiBold/Bold, Latin + Latin Extended)
+Copyright (c) 2023 Vercel, in collaboration with basement.studio.
+SIL Open Font License 1.1 (metni: OFL.txt). Değişken yazı tipinden sabit ağırlıklar üretildi.

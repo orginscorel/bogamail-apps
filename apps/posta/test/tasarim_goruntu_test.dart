@@ -89,6 +89,7 @@ void main() {
     const f = '../../packages/boga_ortak/assets/fonts';
     await _font('packages/boga_ortak/Poppins', ['$f/Poppins-Regular.ttf', '$f/Poppins-Medium.ttf', '$f/Poppins-SemiBold.ttf', '$f/Poppins-Bold.ttf']);
     await _font('packages/boga_ortak/Jakarta', ['$f/PlusJakartaSans.ttf']);
+    await _font('packages/boga_ortak/Geist', ['$f/Geist-Regular.ttf', '$f/Geist-Medium.ttf', '$f/Geist-SemiBold.ttf', '$f/Geist-Bold.ttf']);
     await _font('MaterialIcons', ['${Platform.environment['FLUTTER_ROOT'] ?? '/opt/flutter'}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
     await _font('packages/boga_ortak/PhosphorLight', ['$f/PhosphorLight.ttf']);
     await _font('packages/boga_ortak/PhosphorFill', ['$f/PhosphorFill.ttf']);
@@ -178,34 +179,60 @@ void main() {
     await t.pump(const Duration(seconds: 10));
   }
 
-  // Kabuk'un geniş düzeni: sabit 80 px sol ray (bölümler üstte; Ayarlar, eşitleme, sürüm, hesap altta), klasör
-  // çubuğu, liste (1280'de 420, 1400+'da 460 px) ve okuyucu.
-  Widget genis(Widget liste, {Widget? okuyucu, double kenar = 280, double listeEni = 420}) => Scaffold(
-    body: Row(
-      children: [
-        SolRay(
-          hedefler: const [
-            NavigationRailDestination(icon: Icon(Simge.posta), label: Text('Posta')),
-            NavigationRailDestination(icon: Icon(Simge.sohbet), label: Text('Sohbet')),
-            NavigationRailDestination(icon: Icon(Simge.takvimAy), label: Text('Takvim')),
-            NavigationRailDestination(icon: Icon(Simge.gorev), label: Text('Görevler')),
+  // Kabuk'un geniş düzeni (web mail-view.tsx): 68 px sol ray, klasör sütunu (1400 px altında 64 px daraltılmış,
+  // üstünde 224 px), liste alanın %36'sı (340–600 px, okumaya ≥ 600; tüm hesaplarda 340/400 px) ya da okuma alanı altta (%45 yükseklik) /
+  // kapalı (ileti tüm alanı kaplar).
+  Widget genis(Widget liste, {Widget? okuyucu, String alan = 'right', bool birlesik = false}) => LayoutBuilder(
+    builder: (context, k) {
+      final dar = k.maxWidth < 1400;
+      final kalanEn = k.maxWidth - rayGenisligi - (dar ? 64 : kenarGenisligi) - 1;
+      final Widget bolme;
+      if (alan == 'off') {
+        bolme = okuyucu ?? liste;
+      } else if (alan == 'bottom') {
+        final y = bolmeBoyu(alan: k.maxHeight, oran: .45, enAz: 160, enCok: 2000, kalan: 220);
+        bolme = Column(
+          children: [
+            SizedBox(height: y, child: liste),
+            BolmeCizgisi(yatay: true, renk: const Color(0xFFE5E5E5), surukle: (_) {}, bitti: () {}, sifirla: () {}),
+            Expanded(child: okuyucu ?? const SizedBox()),
           ],
-          secili: 0,
-          sec: (_) {},
-          ayarlarSecili: false,
-          ayarlarAc: () {},
+        );
+      } else {
+        final x = birlesik ? (k.maxWidth >= 1280 ? 400.0 : 340.0) : bolmeBoyu(alan: kalanEn, oran: .36, enAz: 340, enCok: 600, kalan: 600);
+        bolme = Row(
+          children: [
+            SizedBox(width: x, child: liste),
+            BolmeCizgisi(renk: const Color(0xFFE5E5E5), surukle: (_) {}, bitti: () {}, sifirla: () {}),
+            Expanded(child: okuyucu ?? const SizedBox()),
+          ],
+        );
+      }
+      return Scaffold(
+        body: Row(
+          children: [
+            SolRay(
+              hedefler: const [
+                NavigationRailDestination(icon: Icon(Simge.posta), label: Text('Posta')),
+                NavigationRailDestination(icon: Icon(Simge.sohbet), label: Text('Sohbet')),
+                NavigationRailDestination(icon: Icon(Simge.takvimAy), label: Text('Takvim')),
+                NavigationRailDestination(icon: Icon(Simge.gorev), label: Text('Görevler')),
+              ],
+              secili: 0,
+              sec: (_) {},
+              ayarlarSecili: false,
+              ayarlarAc: () {},
+            ),
+            SizedBox(
+              width: dar ? 64 : kenarGenisligi,
+              child: YanMenu(sec: (_) {}, yeniIleti: () {}, dar: dar, daraltildi: dar, daraltDegistir: () {}),
+            ),
+            const VerticalDivider(width: 1, color: Color(0xFFE5E5E5)),
+            Expanded(child: bolme),
+          ],
         ),
-        const VerticalDivider(width: 1),
-        SizedBox(
-          width: kenar,
-          child: YanMenu(sec: (_) {}, yeniIleti: () {}),
-        ),
-        const VerticalDivider(width: 1),
-        SizedBox(width: listeEni, child: liste),
-        BolmeCizgisi(renk: const Color(0xFFE5E7EB), surukle: (_) {}, bitti: () {}, sifirla: () {}),
-        Expanded(child: okuyucu ?? const SizedBox()),
-      ],
-    ),
+      );
+    },
   );
 
   const telefon = Size(390, 844);
@@ -213,13 +240,13 @@ void main() {
 
   testWidgets('tüm hesaplar', (t) async {
     await ciz(t, 'birlesik-telefon', telefon, () => BirlesikListe(ac: (_, _) {}, klasorler: () {}, klasorRozeti: 584));
-    await ciz(t, 'birlesik-genis', masaustu, () => genis(BirlesikListe(ac: (_, _) {})));
+    await ciz(t, 'birlesik-genis', masaustu, () => genis(BirlesikListe(ac: (_, _) {}), birlesik: true));
   });
 
   testWidgets('gelen kutusu', (t) async {
     await ciz(t, 'gelen-telefon', telefon, () => IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, klasorler: () {}));
     await ciz(t, 'gelen-genis', masaustu, () => genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {})));
-    await ciz(t, 'gelen-genis-1440', const Size(1440, 900), () => genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}), listeEni: 460));
+    await ciz(t, 'gelen-genis-1440', const Size(1440, 900), () => genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {})));
   });
 
   testWidgets('sol ray (kısa ve orta pencere)', (t) async {
@@ -271,6 +298,35 @@ void main() {
         okuyucu: const Okuyucu(id: 'a'),
       ),
     );
+    await ciz(
+      t,
+      'okuyucu-genis-1440',
+      const Size(1440, 900),
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, seciliId: 'a'),
+        okuyucu: const Okuyucu(id: 'a'),
+      ),
+    );
+    await ciz(
+      t,
+      'okuyucu-altta',
+      const Size(1440, 900),
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, seciliId: 'a'),
+        okuyucu: Okuyucu(id: 'a', geri: () {}),
+        alan: 'bottom',
+      ),
+    );
+    await ciz(
+      t,
+      'okuyucu-kapali',
+      masaustu,
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}),
+        okuyucu: Okuyucu(id: 'a', geri: () {}),
+        alan: 'off',
+      ),
+    );
   });
 
   testWidgets('kenar menüsü (telefon)', (t) async {
@@ -298,24 +354,27 @@ void main() {
     await ciz(
       t,
       'konusma-genis',
-      masaustu,
-      () => Scaffold(
-        body: Row(
-          children: [
-            SizedBox(
-              width: 240,
-              child: YanMenu(sec: (_) {}, yeniIleti: () {}),
-            ),
-            const VerticalDivider(width: 1),
-            SizedBox(
-              width: 360,
-              child: IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}),
-            ),
-            const VerticalDivider(width: 1),
-            const Expanded(child: Okuyucu(id: 'k8')),
-          ],
-        ),
+      const Size(1440, 900),
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}),
+        okuyucu: const Okuyucu(id: 'k8'),
       ),
+    );
+    await ciz(
+      t,
+      'konusma-genis-onceki',
+      const Size(1440, 900),
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}),
+        okuyucu: const Okuyucu(id: 'k8'),
+      ),
+      hazirla: () async {
+        await t.tap(find.byKey(const ValueKey('konusma-daha')));
+        await t.pump();
+        final sc = find.descendant(of: find.byKey(const ValueKey('konusma')), matching: find.byType(Scrollable)).first;
+        t.state<ScrollableState>(sc).position.jumpTo(0);
+        await t.pump();
+      },
     );
   });
 

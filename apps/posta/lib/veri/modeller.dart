@@ -275,7 +275,11 @@ class PostaAyarlari {
     this.bildirimMasaustu = true,
     this.bildirimSes = true,
     this.bicimliYazma = true,
+    this.okumaAlani = 'right',
   });
+
+  /// reading_pane: okuma alanının yeri — right (Sağda, varsayılan) | bottom (Altta) | off (Kapalı). Web ile ortak.
+  final String okumaAlani;
 
   /// compose_html: yeni iletiler biçimli (HTML) düzenleyicide mi başlar (web ile ortak ayar).
   final bool bicimliYazma;
@@ -348,6 +352,7 @@ class PostaAyarlari {
       bildirimMasaustu: s['notify_desktop'] == null || _b(s['notify_desktop']),
       bildirimSes: s['notify_sound'] == null || _b(s['notify_sound']),
       bicimliYazma: s['compose_html'] == null || _b(s['compose_html']),
+      okumaAlani: const {'right', 'bottom', 'off'}.contains(s['reading_pane']) ? s['reading_pane'] as String : 'right',
     );
   }
 

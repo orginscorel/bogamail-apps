@@ -80,6 +80,8 @@ abstract final class Simge {
   static const geri = IconData(0xe058, fontFamily: _ince, fontPackage: _paket); // arrowLeft
   static const geriAl = IconData(0xe038, fontFamily: _ince, fontPackage: _paket); // arrowCounterClockwise
   static const geriOk = IconData(0xe138, fontFamily: _ince, fontPackage: _paket); // caretLeft
+  static const kenarCubugu = IconData(0xec24, fontFamily: _ince, fontPackage: _paket); // sidebarSimple
+  static const okunduCift = IconData(0xe53a, fontFamily: _ince, fontPackage: _paket); // checks
   static const geriYukle = IconData(0xe1a0, fontFamily: _ince, fontPackage: _paket); // clockCounterClockwise
   static const gidenOk = IconData(0xe092, fontFamily: _ince, fontPackage: _paket); // arrowUpRight
   static const girintiArtir = IconData(0xea1e, fontFamily: _ince, fontPackage: _paket); // textIndent

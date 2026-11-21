@@ -35,11 +35,11 @@ Future<void> webGorunumunuIsit() async {
 }
 
 /// İzolatta çalışan hazırlık (büyük bültenler arayüzü dondurmasın).
-({String belge, int engellenen}) _hazirla(
+({String belge, int engellenen, double dogal}) _hazirla(
   ({String html, Map<String, String> baglantilar, Map<String, String> uzak, Map<String, String> cid, String kok, bool katla, bool sikisik}) a,
 ) {
   final t = htmlTemizle(a.html, baglantilar: a.baglantilar, uzak: a.uzak, cid: a.cid, kok: a.kok);
-  return (belge: gorunumBelgesi(a.katla ? alintilariKatla(t.html) : t.html, sikisik: a.sikisik), engellenen: t.engellenen);
+  return (belge: gorunumBelgesi(a.katla ? alintilariKatla(t.html) : t.html, sikisik: a.sikisik), engellenen: t.engellenen, dogal: dogalGenislik(t.html));
 }
 
 /// Widget testlerinde web görünümü eklentisi yoktur: içerik düz metin olarak çizilir.
@@ -96,6 +96,33 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   Map<String, String> _uzak = const {};
   double? _yukseklik;
   bool _olculemedi = false;
+
+  /// İletinin sabit genişliği ve görüntüleyiciye sığdırma oranı (yatay kaydırma yok; web reader.tsx fit()).
+  double _dogal = 0;
+  double _oran = 1;
+  double _en = 0;
+
+  String? get _gosterilen => _belge == null ? null : sigdirilmisBelge(_belge!, _oran);
+
+  /// Genişlik değişince oran yeniden hesaplanır; değiştiyse belge yeniden yüklenir.
+  void _genislikDegisti(double en) {
+    if ((en - _en).abs() < 1) return;
+    _en = en;
+    final o = sigdirmaOrani(_dogal, en);
+    if ((o - _oran).abs() < .01) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _oran = o);
+      unawaited(_yukle());
+    });
+  }
+
+  Future<void> _yukle() async {
+    final g = _gosterilen;
+    if (_k == null || g == null || _yuklenen == g) return;
+    _yuklenen = g;
+    await _k!.loadData(data: g, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank'));
+  }
 
   @override
   void initState() {
@@ -172,12 +199,11 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     if (!mounted || id != widget.iletiId) return;
     setState(() {
       _belge = r.belge;
+      _dogal = r.dogal;
+      if (_en > 0) _oran = sigdirmaOrani(_dogal, _en);
       if (!_gorseller || _uzak.isEmpty) _engellenen = r.engellenen;
     });
-    if (_k != null && _yuklenen != r.belge) {
-      _yuklenen = r.belge;
-      await _k!.loadData(data: r.belge, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank'));
-    }
+    await _yukle();
   }
 
   Future<void> _cidYukle() async {
@@ -275,7 +301,7 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   @override
   Widget build(BuildContext context) {
     final r = context.r;
-    final belge = _belge;
+    final belge = _gosterilen;
     final oto = widget.otomatikYukseklik;
     // Ölçülemezse (ör. JavaScript'siz masaüstü) sınırlı yükseklik; içerik kendi içinde kayar.
     final sinir = (MediaQuery.sizeOf(context).height * .7).clamp(240.0, 640.0);
@@ -310,62 +336,67 @@ class _HtmlGovdeState extends State<HtmlGovde> {
           ),
         if (_gorselYukleniyor) const LinearProgressIndicator(minHeight: 2),
         kutu(
-          Container(
-            // İleti HTML'i beyaz zemin varsayar; ek çerçeve/dolgu yok, bölmenin tam genişliği (yan dolgu 16 px ve
-            // çok geniş bölmede 760 px ortalı sütun belgenin kendi stilinde).
-            color: Colors.white,
-            child: belge == null
-                ? const Center(child: CircularProgressIndicator.adaptive())
-                : Semantics(
-                    label: 'İleti içeriği',
-                    child: InAppWebView(
-                      initialData: InAppWebViewInitialData(data: belge, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank')),
-                      initialSettings: InAppWebViewSettings(
-                        javaScriptEnabled: false,
-                        javaScriptCanOpenWindowsAutomatically: false,
-                        useShouldOverrideUrlLoading: true,
-                        blockNetworkLoads: true,
-                        blockNetworkImage: true,
-                        allowFileAccess: false,
-                        allowContentAccess: false,
-                        allowFileAccessFromFileURLs: false,
-                        allowUniversalAccessFromFileURLs: false,
-                        supportZoom: true,
-                        builtInZoomControls: true,
-                        displayZoomControls: false,
-                        allowsLinkPreview: false,
-                        isFraudulentWebsiteWarningEnabled: false,
-                        mediaPlaybackRequiresUserGesture: true,
-                        isInspectable: false,
-                        transparentBackground: false,
-                        cacheEnabled: false,
-                        thirdPartyCookiesEnabled: false,
-                        disableVerticalScroll: oto && !_olculemedi,
-                        verticalScrollBarEnabled: !oto || _olculemedi,
-                      ),
-                      onWebViewCreated: (c) {
-                        _k = c;
-                        _yuklenen = belge;
-                      },
-                      onLoadStop: oto ? (c, _) => _olc(c) : null,
-                      onContentSizeChanged: oto
-                          ? (c, _, yeni) {
-                              if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
-                                setState(() => _yukseklik = yeni.height + 8);
-                              }
+          LayoutBuilder(
+            builder: (context, k) {
+              _genislikDegisti(k.maxWidth);
+              return Container(
+                // İleti HTML'i beyaz zemin varsayar; ek çerçeve/dolgu yok, bölmenin tam genişliği (yan dolgu 16 px ve
+                // web gibi).
+                color: Colors.white,
+                child: belge == null
+                    ? const Center(child: CircularProgressIndicator.adaptive())
+                    : Semantics(
+                        label: 'İleti içeriği',
+                        child: InAppWebView(
+                          initialData: InAppWebViewInitialData(data: belge, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank')),
+                          initialSettings: InAppWebViewSettings(
+                            javaScriptEnabled: false,
+                            javaScriptCanOpenWindowsAutomatically: false,
+                            useShouldOverrideUrlLoading: true,
+                            blockNetworkLoads: true,
+                            blockNetworkImage: true,
+                            allowFileAccess: false,
+                            allowContentAccess: false,
+                            allowFileAccessFromFileURLs: false,
+                            allowUniversalAccessFromFileURLs: false,
+                            supportZoom: true,
+                            builtInZoomControls: true,
+                            displayZoomControls: false,
+                            allowsLinkPreview: false,
+                            isFraudulentWebsiteWarningEnabled: false,
+                            mediaPlaybackRequiresUserGesture: true,
+                            isInspectable: false,
+                            transparentBackground: false,
+                            cacheEnabled: false,
+                            thirdPartyCookiesEnabled: false,
+                            disableVerticalScroll: oto && !_olculemedi,
+                            verticalScrollBarEnabled: !oto || _olculemedi,
+                          ),
+                          onWebViewCreated: (c) {
+                            _k = c;
+                            _yuklenen = belge;
+                          },
+                          onLoadStop: oto ? (c, _) => _olc(c) : null,
+                          onContentSizeChanged: oto
+                              ? (c, _, yeni) {
+                                  if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
+                                    setState(() => _yukseklik = yeni.height + 8);
+                                  }
+                                }
+                              : null,
+                          shouldOverrideUrlLoading: _gezinme,
+                          onCreateWindow: (c, a) async {
+                            final u = a.request.url;
+                            if (u != null && (u.scheme == 'http' || u.scheme == 'https')) {
+                              unawaited(launchUrl(Uri.parse(u.toString()), mode: LaunchMode.externalApplication));
                             }
-                          : null,
-                      shouldOverrideUrlLoading: _gezinme,
-                      onCreateWindow: (c, a) async {
-                        final u = a.request.url;
-                        if (u != null && (u.scheme == 'http' || u.scheme == 'https')) {
-                          unawaited(launchUrl(Uri.parse(u.toString()), mode: LaunchMode.externalApplication));
-                        }
-                        return false;
-                      },
-                      onScrollChanged: widget.kaydirma == null ? null : (c, x, y) => widget.kaydirma!(y.toDouble()),
-                    ),
-                  ),
+                            return false;
+                          },
+                          onScrollChanged: widget.kaydirma == null ? null : (c, x, y) => widget.kaydirma!(y.toDouble()),
+                        ),
+                      ),
+              );
+            },
           ),
         ),
       ],
