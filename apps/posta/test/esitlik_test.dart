@@ -333,12 +333,12 @@ void main() {
     });
   });
 
-  test('7. liste varsayılanı %42 (380–760 px), okuma alanına en az 520 px', () {
-    double b(double alan) => bolmeBoyu(alan: alan, oran: listeVarsayilanOrani, enAz: 380, enCok: 760, kalan: 520);
-    expect(b(1200), closeTo(504, .01));
-    expect(b(900), 380, reason: 'okumaya 520 kalmasa da en az 380');
-    expect(b(1000), 420);
-    expect(b(2400), 760);
+  test('7. liste varsayılanı %36 (340–600 px), okuma alanına en az 600 px (web mail-view.tsx)', () {
+    double b(double alan) => bolmeBoyu(alan: alan, oran: listeVarsayilanOrani, enAz: 340, enCok: 600, kalan: 600);
+    expect(b(1200), closeTo(432, .01));
+    expect(b(900), 340, reason: 'okumaya 600 kalmasa da en az 340');
+    expect(b(1000), 360);
+    expect(b(2400), 600);
   });
 
   group('8. takvim', () {

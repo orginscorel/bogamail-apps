@@ -22,6 +22,7 @@ import '../oturum.dart';
 import 'hesap_servisi.dart';
 import 'onbellek.dart';
 import 'posta_servisi.dart';
+import 'yardimci.dart';
 
 /// Sunucuya gönderilmeyi bekleyen bir değişiklik.
 @immutable
@@ -317,6 +318,11 @@ class GidenKutusu {
       if (c == null) {
         await sil(o.id);
         continue;
+      }
+      // Eski (anahtarsız) öğeler: ilk denemeden önce kalıcı anahtar verilir; sonraki denemeler aynı anahtarla.
+      if (c.$1['_idem'] is! String) {
+        c.$1['_idem'] = gonderimAnahtari();
+        await Onbellek.ben.yaz(_icerik(o.id), {'istek': c.$1, if (c.$2.isNotEmpty) 'ek': c.$2});
       }
       _guncelle(o.id, (x) => x.kopya(durum: GidenDurum.gonderiliyor, hataSil: true));
       try {

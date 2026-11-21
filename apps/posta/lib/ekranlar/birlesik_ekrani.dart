@@ -390,12 +390,7 @@ class BirlesikListeState extends State<BirlesikListe> {
     }
 
     final ogeler = [
-      hap(
-        key: const ValueKey('birlesik-hesap-hepsi'),
-        secili: _hesapSuzgeci == null,
-        f: () => setState(() => _hesapSuzgeci = null),
-        metin: 'Hepsi',
-      ),
+      hap(key: const ValueKey('birlesik-hesap-hepsi'), secili: _hesapSuzgeci == null, f: () => setState(() => _hesapSuzgeci = null), metin: 'Hepsi'),
       for (final h in _hesaplar)
         hap(
           key: ValueKey('birlesik-hesap-${h.id}'),
@@ -410,10 +405,8 @@ class BirlesikListeState extends State<BirlesikListe> {
       height: _hap,
       child: ShaderMask(
         // Sağ kenarda yumuşak solma: taşan hesaplar kesik görünmez.
-        shaderCallback: (rect) => LinearGradient(
-          colors: const [Colors.white, Colors.white, Colors.transparent],
-          stops: [0, (rect.width - 24) / rect.width, 1],
-        ).createShader(rect),
+        shaderCallback: (rect) =>
+            LinearGradient(colors: const [Colors.white, Colors.white, Colors.transparent], stops: [0, (rect.width - 24) / rect.width, 1]).createShader(rect),
         blendMode: BlendMode.dstIn,
         child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.only(right: 20), children: ogeler),
       ),
@@ -631,12 +624,7 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
         icon: Icon(o.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz, color: o.ozet.yildizli ? const Color(0xFFEAB308) : null),
         onPressed: () => _eylem(o.ozet.yildizli ? 'unflag' : 'flag', o.ozet.yildizli ? 'Yıldız kaldırıldı' : 'Yıldızlandı'),
       ),
-      IconButton(
-        key: const ValueKey('birlesik-arsiv'),
-        tooltip: 'Arşivle',
-        icon: const Icon(Simge.arsiv),
-        onPressed: () => _eylem('archive', 'Arşivlendi'),
-      ),
+      IconButton(key: const ValueKey('birlesik-arsiv'), tooltip: 'Arşivle', icon: const Icon(Simge.arsiv), onPressed: () => _eylem('archive', 'Arşivlendi')),
       IconButton(
         key: const ValueKey('birlesik-cop'),
         tooltip: 'Çöp Kutusu\'na taşı',
@@ -716,10 +704,7 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
                     children: [
                       Text(kimden?.gorunen ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
                       Text(
-                        [
-                          if (kimden != null) kimden.eposta,
-                          if (v.kime.isNotEmpty) 'Kime: ${v.kime.map((a) => a.gorunen).join(', ')}',
-                        ].join(' · '),
+                        [if (kimden != null) kimden.eposta, if (v.kime.isNotEmpty) 'Kime: ${v.kime.map((a) => a.gorunen).join(', ')}'].join(' · '),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: r.silik, fontSize: 12.5),
@@ -755,11 +740,7 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
                 icon: const Icon(Simge.yanitla),
                 label: const Text('Yanıtla'),
               ),
-              OutlinedButton.icon(
-                onPressed: () => birlesikYaz(context, o, 'tumu'),
-                icon: const Icon(Simge.tumuneYanitla),
-                label: const Text('Tümünü yanıtla'),
-              ),
+              OutlinedButton.icon(onPressed: () => birlesikYaz(context, o, 'tumu'), icon: const Icon(Simge.tumuneYanitla), label: const Text('Tümünü yanıtla')),
               OutlinedButton.icon(
                 key: const ValueKey('birlesik-ilet'),
                 onPressed: () => birlesikYaz(context, o, 'ilet'),

@@ -533,9 +533,9 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
         final yatay = pane == 'bottom';
         final alan = yatay ? k.maxHeight : k.maxWidth;
         final oranN = yatay ? Tercihler.listeYOrani : Tercihler.listeOrani;
-        // Liste varsayılanı %42 (380–760 px); okuma alanı en az 520 px kalır (web ile aynı).
+        // Liste varsayılanı %36 (340–600 px); okuma alanı en az 600 px kalır (web mail-view.tsx ile aynı).
         final oran = oranN.value ?? (yatay ? .45 : listeVarsayilanOrani);
-        final enAz = yatay ? 160.0 : 380.0, enCok = yatay ? 2000.0 : 760.0, kalan = yatay ? 220.0 : 520.0;
+        final enAz = yatay ? 160.0 : 340.0, enCok = yatay ? 2000.0 : 600.0, kalan = yatay ? 220.0 : 600.0;
         // Tüm hesaplar (web unified-view): sabit liste, 340 px (pencere ≥ 1280 px ise 400).
         final boy = birlesik && !yatay ? (en >= 1280 ? 400.0 : 340.0) : bolmeBoyu(alan: alan, oran: oran, enAz: enAz, enCok: enCok, kalan: kalan);
         final simdiki = _suruklenen ?? boy;

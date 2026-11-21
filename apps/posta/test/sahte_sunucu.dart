@@ -7,11 +7,12 @@ import 'package:dio/dio.dart';
 import 'package:posta/oturum.dart';
 
 class Istek {
-  Istek(this.yontem, this.yol, this.sorgu, this.govde);
+  Istek(this.yontem, this.yol, this.sorgu, this.govde, [this.basliklar = const {}]);
   final String yontem;
   final String yol;
   final Map<String, dynamic> sorgu;
   final Object? govde;
+  final Map<String, dynamic> basliklar;
   Map<String, dynamic> get json => govde is Map ? Map<String, dynamic>.from(govde as Map) : <String, dynamic>{};
   @override
   String toString() => '$yontem $yol';
@@ -42,7 +43,7 @@ class YolSunucusu implements HttpClientAdapter {
         g = jsonDecode(g);
       } catch (_) {}
     }
-    final ist = Istek(o.method, o.uri.path, o.queryParameters, g);
+    final ist = Istek(o.method, o.uri.path, o.queryParameters, g, Map<String, dynamic>.of(o.headers));
     istekler.add(ist);
     if (cevrimdisi) throw DioException(requestOptions: o, type: DioExceptionType.connectionError, message: 'çevrimdışı');
     final h = yollar['${o.method} ${o.uri.path}'];

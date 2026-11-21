@@ -372,6 +372,8 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
         r = await _istek();
         if (dlpOnay) r['dlp_confirm'] = true;
         if (zaman != null) r['send_at'] = zaman.toUtc().toIso8601String();
+        // Aynı ileti hep aynı anahtarla gider (bağlantı kopup Giden Kutusu'ndan yeniden denenirse çift gönderim olmaz).
+        r['_idem'] ??= gonderimAnahtari();
         // Çevrimdışı: beklemeden Giden Kutusu'na (bağlantı gelince sırayla gönderilir).
         if (Baglanti.ben.cevrimdisi.value) return await _gidenKutusuna(r);
         final s = await Posta.gonder(

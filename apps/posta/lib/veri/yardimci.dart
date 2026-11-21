@@ -1,3 +1,4 @@
+import 'dart:math' as mat;
 // Saf yardımcılar (arayüzden bağımsız, birim testli): adres ayrıştırma, tarih grupları, alıntılama, konu önekleri.
 
 import 'package:intl/intl.dart';
@@ -260,4 +261,15 @@ String guvenliDosyaAdi(String ad) {
   var s = ad.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_').trim();
   if (s.isEmpty || s == '.' || s == '..') s = 'ek';
   return s.length > 120 ? s.substring(s.length - 120) : s;
+}
+
+/// Gönderim için tekrar-güvenli anahtar (Idempotency-Key, UUID v4). Aynı ileti (Giden Kutusu yeniden denemesi,
+/// yanıtı kaybolan istek) aynı anahtarla gönderilir; sunucu 24 saat içinde ikinci kez göndermez.
+String gonderimAnahtari() {
+  final r = mat.Random.secure();
+  final b = List<int>.generate(16, (_) => r.nextInt(256));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  final h = b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+  return '${h.substring(0, 8)}-${h.substring(8, 12)}-${h.substring(12, 16)}-${h.substring(16, 20)}-${h.substring(20)}';
 }

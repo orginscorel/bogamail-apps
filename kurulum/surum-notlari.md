@@ -1,3 +1,16 @@
+## 1.6.0
+
+**BogaMail (posta)**
+- Önce yerel çalışma: görülen her şey (klasörler, listeler, iletiler, sohbet, kişiler, takvim) anında açılır; arka planda eşitlenir; internet yokken de okunur.
+- Outlook gibi Giden Kutusu: çevrimdışı gönderilen iletiler ekleriyle bekler (Bekliyor / Gönderiliyor / Hata + Tekrar dene), açılıp düzenlenebilir ya da silinebilir; bağlantı gelince sırayla gider. Sunucudaki planlı ve gönderilemeyen iletiler de burada. Aynı ileti hiçbir durumda iki kez gönderilmez.
+- Çevrimdışı değişiklikler (okundu, yıldız, arşiv, sil, taşı) sıraya alınır, bağlantı gelince işlenir; eşitleme göstergesinde "Çevrimdışı — son eşitleme" ve bekleyenler listesi.
+- 1.5'te kaybolanlar geri geldi: Ekli iletiler, Tüm postalar, okunmamış sayıları, telefonda yanıt çubuğu. Ekler (PDF dahil) her iletide gövdenin üstünde kart; PDF/görsel/metin önizleme.
+- Konuşmada önceki iletiler kararlı; açılan ileti kapanmaz, kaydırma zıplamaz.
+- Masaüstü: posta gövdesi tam boyunda, tek kaydırma; geniş postalar alana sığar; gövde başlıkla hizalı.
+- Spam denetimi satırı, SPF/DKIM/DMARC doğrulama çipleri, ayrıntı kutusu.
+- Hesap değiştirince sağ üstte bildirim kartı.
+- Taslak otomatik kaydı, planlı iletiyi düzenleme, Yazdır, takvimde Gün görünümü ve doğru takvim renkleri, kişileri vCard/CSV içe/dışa aktarma, sohbet durumunda "şu süre sonra temizle".
+
 ## 1.5.2
 
 - Tüm hesaplar: satırdaki kutucukla seçim çalışır; seçince üstte toplu işlem çubuğu (Tümünü seç, Okundu/Okunmadı, Yıldız, Arşivle, Sil).

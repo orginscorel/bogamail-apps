@@ -28,6 +28,8 @@ class GonderimHatasi implements Exception {
 }
 
 const _gonderimHataMetni = {
+  'send_unknown': 'Bu iletinin önceki gönderim denemesinin sonucu belirsiz; iki kez gitmemesi için yeniden gönderilmedi. Gönderilenler klasörünü kontrol edin.',
+  'already_sent': 'Bu ileti alıcı sunucusuna ulaşmış; iki kez gitmemesi için yeniden gönderilmedi.',
   'outbound_disabled': 'Bu sunucuda dış alan adlarına gönderim şu an kapalı. Yalnızca platformdaki posta kutularına gönderebilirsiniz.',
   'unknown_recipient': 'Alıcı posta kutusu bulunamadı. Adresi kontrol edin.',
   'send_limit': 'Saatlik gönderim sınırınıza ulaştınız. Bir süre sonra tekrar deneyin.',
@@ -411,8 +413,14 @@ class Posta {
 
   // ---- gönderim ----
 
-  static Future<GonderimSonucu> gonder(Map<String, dynamic> istek, {void Function(int, int)? ilerleme}) async =>
-      GonderimSonucu.json(await _yaz('/api/v1/mail/send', istek, ilerleme: ilerleme));
+  /// İstekteki '_idem' alanı Idempotency-Key başlığı olarak gider (gövdeye girmez).
+  static Future<GonderimSonucu> gonder(Map<String, dynamic> istek, {void Function(int, int)? ilerleme}) async {
+    final govde = Map<String, dynamic>.of(istek);
+    final anahtar = govde.remove('_idem');
+    return GonderimSonucu.json(
+      await _yaz('/api/v1/mail/send', govde, ilerleme: ilerleme, basliklar: anahtar is String && anahtar.isNotEmpty ? {'Idempotency-Key': anahtar} : null),
+    );
+  }
 
   /// Taslağı kaydeder; yeni taslak kimliğini döndürür (eski taslak sunucuda değiştirilir).
   static Future<String> taslakKaydet(Map<String, dynamic> istek) async {
@@ -427,14 +435,14 @@ class Posta {
   }
 
   /// DLP ayrıntıları BogaApi'nin hata nesnesinde taşınmadığından gönderim ham Dio isteğiyle yapılır.
-  static Future<dynamic> _yaz(String yol, Map<String, dynamic> govde, {void Function(int, int)? ilerleme}) async {
+  static Future<dynamic> _yaz(String yol, Map<String, dynamic> govde, {void Function(int, int)? ilerleme, Map<String, String>? basliklar}) async {
     final Response<dynamic> c;
     try {
       c = await _api.dio.post<dynamic>(
         yol,
         data: govde,
         onSendProgress: ilerleme,
-        options: Options(sendTimeout: const Duration(minutes: 5), receiveTimeout: const Duration(minutes: 2)),
+        options: Options(sendTimeout: const Duration(minutes: 5), receiveTimeout: const Duration(minutes: 2), headers: basliklar),
       );
     } on DioException catch (e) {
       final zaman = e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.sendTimeout || e.type == DioExceptionType.receiveTimeout;

@@ -288,6 +288,41 @@ void main() {
     expect(Onbellek.ben.anahtarlar('kalici:giden:'), isEmpty, reason: 'gönderilen içerik yerelden silinir');
   });
 
+  test('Giden Kutusu: her ileti kalıcı Idempotency-Key ile gider; bağlantı kopup yeniden denenince aynı anahtar', () async {
+    await Esitleyici.ben.hesapAc('m1');
+    await GidenKutusu.ben.ekle(istek('Tek sefer'));
+    s
+      ..istekler.clear()
+      ..cevrimdisi = true;
+    await GidenKutusu.ben.gonder();
+    expect(GidenKutusu.ben.ogeler.value.single.durum, GidenDurum.bekliyor);
+    s
+      ..cevrimdisi = false
+      ..yollar['POST /api/v1/mail/send'] = (200, {'queued': true});
+    await GidenKutusu.ben.gonder();
+    final g = s.bul('POST', '/api/v1/mail/send').toList();
+    final anahtarlar = g.map((i) => '${i.basliklar['Idempotency-Key'] ?? i.basliklar['idempotency-key']}').toSet();
+    expect(anahtarlar, hasLength(1));
+    expect(anahtarlar.single, matches(RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')));
+    expect(g.last.json.containsKey('_idem'), isFalse, reason: 'anahtar gövdeye girmez');
+    expect(GidenKutusu.ben.ogeler.value, isEmpty);
+  });
+
+  test('Giden Kutusu: sonucu belirsiz önceki deneme (409 send_unknown) tekrar gönderilmez, açıklamalı Hata olur', () async {
+    await Esitleyici.ben.hesapAc('m1');
+    s.yollar['POST /api/v1/mail/send'] = (
+      409,
+      {
+        'error': {'code': 'send_unknown', 'message': 'outcome unknown'},
+      },
+    );
+    await GidenKutusu.ben.ekle(istek('Belirsiz'));
+    await GidenKutusu.ben.gonder();
+    final o = GidenKutusu.ben.ogeler.value.single;
+    expect(o.durum, GidenDurum.hata);
+    expect(o.hata, contains('Gönderilenler'));
+  });
+
   test('Giden Kutusu: sunucu reddederse "Hata: neden", Tekrar dene ile yeniden gönderilir', () async {
     await Esitleyici.ben.hesapAc('m1');
     s.yollar['POST /api/v1/mail/send'] = (
