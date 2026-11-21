@@ -33,16 +33,6 @@ const _kanal = AndroidNotificationDetails(
   category: AndroidNotificationCategory.email,
   color: Color(0xFF5443D2),
 );
-const _sessizKanal = AndroidNotificationDetails(
-  'yeni_posta',
-  'Yeni e-postalar',
-  channelDescription: 'Gelen Kutusu\'na yeni e-posta geldiğinde',
-  importance: Importance.high,
-  priority: Priority.high,
-  category: AndroidNotificationCategory.email,
-  color: Color(0xFF5443D2),
-  silent: true,
-);
 
 class Bildirim {
   Bildirim._();
@@ -123,6 +113,19 @@ class Bildirim {
     } catch (_) {}
   }
 
+  /// Kanal ayarı + açılınca tam metin (konu ve içerik önizlemesi birden fazla satır).
+  static AndroidNotificationDetails _androidAyrinti(bool ses, String metin) => AndroidNotificationDetails(
+    _kanal.channelId,
+    _kanal.channelName,
+    channelDescription: _kanal.channelDescription,
+    importance: _kanal.importance,
+    priority: _kanal.priority,
+    category: _kanal.category,
+    color: _kanal.color,
+    silent: !ses,
+    styleInformation: BigTextStyleInformation(metin),
+  );
+
   static Future<void> goster({required String iletiId, required String baslik, required String metin}) async {
     await hazirla();
     if (!_hazir) return;
@@ -138,7 +141,7 @@ class Bildirim {
         title: baslik,
         body: metin,
         notificationDetails: NotificationDetails(
-          android: ses ? _kanal : _sessizKanal,
+          android: _androidAyrinti(ses, metin),
           windows: WindowsNotificationDetails(audio: ses ? null : WindowsNotificationAudio.silent()),
         ),
         payload: iletiId,
@@ -255,7 +258,7 @@ Future<void> _yeniIletileriDenetle() async {
   if (yeni.isEmpty) return;
   await Bildirim.hazirla();
   for (final m in yeni.take(5)) {
-    await Bildirim.goster(iletiId: m.id, baslik: gorunenAd(m.kimden), metin: m.konu.trim().isEmpty ? '(konu yok)' : m.konu.trim());
+    await Bildirim.goster(iletiId: m.id, baslik: gorunenAd(m.kimden), metin: [m.konu.trim().isEmpty ? '(konu yok)' : m.konu.trim(), if (m.onizleme.trim().isNotEmpty) m.onizleme.trim()].join('\n'));
   }
   if (yeni.length > 5) {
     await Bildirim.goster(iletiId: '', baslik: 'BogaMail', metin: '${yeni.length - 5} yeni e-posta daha');

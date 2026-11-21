@@ -56,19 +56,26 @@ String hesapYuku(String adres, String ileti) => '$hesapOneki${adres.toLowerCase(
     return k.isEmpty ? '(konu yok)' : k;
   }
 
+  // Konu + içeriğin ilk satırı (sunucu "preview" gönderir; eski sunucuda yalnız konu).
+  String konuVeOnizleme() {
+    final p = '${v['preview'] ?? ''}'.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).join(' ');
+    if (p.isEmpty) return konu();
+    return '${konu()}\n${p.length > 160 ? '${p.substring(0, 159)}…' : p}';
+  }
+
   switch (tur) {
     case 'new_mail':
       // Uygulama öndeyken liste zaten canlı güncellenir.
       if (onPlanda || v['folder_role'] != 'inbox' || v['snoozed'] == true) return null;
       final id = '${v['message_id'] ?? ''}';
       if (id.isEmpty) return null;
-      return (baslik: gorunenAd('${v['from'] ?? ''}'), metin: konu(), yuk: id);
+      return (baslik: gorunenAd('${v['from'] ?? ''}'), metin: konuVeOnizleme(), yuk: id);
     case 'unified_new':
       // Başka hesabın yeni postası: öndeyken de gösterilir (o hesap açık değil).
       final id = '${v['message_id'] ?? ''}';
       final hesap = '${v['account'] ?? ''}';
       if (id.isEmpty || hesap.isEmpty) return null;
-      return (baslik: gorunenAd('${v['from'] ?? ''}'), metin: '${konu()} · $hesap', yuk: hesapYuku(hesap, id));
+      return (baslik: gorunenAd('${v['from'] ?? ''}'), metin: '$hesap · ${konuVeOnizleme()}', yuk: hesapYuku(hesap, id));
     case 'chat_message':
       final oda = '${v['room_id'] ?? ''}';
       if (oda.isEmpty || (benId != null && '${v['sender_id'] ?? ''}' == benId)) return null;

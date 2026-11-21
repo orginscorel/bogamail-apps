@@ -1,3 +1,7 @@
+## 1.4.3
+
+- Yeni posta bildirimleri: gönderen, konu ve içeriğin ilk satırları (önizleme) birlikte gösterilir; Android'de bildirim açılınca tam metin.
+
 ## 1.4.2
 
 **BogaMail (posta) — masaüstü**
