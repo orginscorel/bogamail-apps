@@ -116,6 +116,9 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     for (final c in [_konu, _metin]) {
       c.addListener(_degisti);
     }
+    for (final d in [_kime, _bilgi, _gizli]) {
+      d.addListener(_degisti);
+    }
     if (_ayar == null) {
       PostaDurum.ben.ayarlariYukle().whenComplete(() {
         if (!mounted) return;
@@ -134,6 +137,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
 
   @override
   void dispose() {
+    _otoZaman?.cancel();
     if (b.gidenId != null) GidenKutusu.ben.duzenlemeBitti(b.gidenId!);
     for (final d in [_kime, _bilgi, _gizli]) {
       d.dispose();
@@ -165,6 +169,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
     _zengin = ZenginDenetleyici(ilkHtml: _ilkHtml())
       ..degisti = () {
         if (!_kirli && mounted) setState(() => _kirli = true);
+        _otoKur();
       }
       ..addListener(() {
         if (mounted) setState(() {});
@@ -198,6 +203,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
         _zengin = ZenginDenetleyici(ilkHtml: govde.html)
           ..degisti = () {
             if (!_kirli && mounted) setState(() => _kirli = true);
+            _otoKur();
           }
           ..addListener(() {
             if (mounted) setState(() {});
@@ -210,6 +216,73 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
 
   void _degisti() {
     if (!_kirli && mounted) setState(() => _kirli = true);
+    _otoKur();
+  }
+
+  // ---- taslak otomatik kaydı (web ile aynı: son değişiklikten 5 sn sonra) ----
+
+  static Duration otomatikKayitSuresi = const Duration(seconds: 5);
+  Timer? _otoZaman;
+  Future<void>? _kayitZinciri;
+
+  /// null | kaydediliyor | kaydedildi | hata
+  String? _kayitDurumu;
+  DateTime? _kayitAni;
+
+  void _otoKur() {
+    if (_bitti) return;
+    _otoZaman?.cancel();
+    _otoZaman = Timer(otomatikKayitSuresi, _otoKaydet);
+  }
+
+  void _otoKaydet() {
+    if (_bitti || _mesgul || !mounted || !_kirli || !_icerikVar) return;
+    // Kayıtlar sıralıdır: gönderim ya da başka kayıt sürmekte olanı bekler.
+    _kayitZinciri = (_kayitZinciri ?? Future<void>.value()).then((_) => _sessizKaydet()).catchError((_) {});
+  }
+
+  Future<void> _sessizKaydet() async {
+    if (_bitti || !mounted) return;
+    setState(() => _kayitDurumu = 'kaydediliyor');
+    try {
+      final r = await _istek();
+      final id = await Posta.taslakKaydet(r);
+      if (_bitti) return;
+      if (id.isNotEmpty) {
+        _taslakId = id;
+        if (_yerel.isNotEmpty || _dahil.isNotEmpty) {
+          try {
+            final d = await Posta.ileti(id);
+            _dahil = d.gorunum.dosyaEkleri.map((a) => DahilEk(iletiId: id, sira: a.sira, ad: a.ad, tur: a.tur, boyut: a.boyut)).toList();
+            _yerel.clear();
+          } catch (_) {}
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _kayitDurumu = 'kaydedildi';
+          _kayitAni = DateTime.now();
+          _kirli = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _kayitDurumu = 'hata');
+    }
+  }
+
+  Widget? _kayitGostergesi(BuildContext context) {
+    final r = context.r;
+    final st = TextStyle(fontSize: 11.5, color: _kayitDurumu == 'hata' ? Marka.gul : r.silik, fontWeight: FontWeight.w400);
+    return switch (_kayitDurumu) {
+      'kaydediliyor' => Text('Kaydediliyor…', key: const ValueKey('taslak-durumu'), style: st),
+      'kaydedildi' => Text('Taslak kaydedildi ${DateFormat('HH:mm', 'tr_TR').format(_kayitAni!)}', key: const ValueKey('taslak-durumu'), style: st),
+      'hata' => Text(
+        Baglanti.ben.cevrimdisi.value ? 'Taslak kaydedilemedi (çevrimdışı)' : 'Taslak kaydedilemedi',
+        key: const ValueKey('taslak-durumu'),
+        style: st,
+      ),
+      _ => null,
+    };
   }
 
   bool get _icerikVar =>
@@ -275,6 +348,12 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
 
   Future<void> _gonder({DateTime? zaman}) async {
     if (_mesgul) return;
+    // Düzenlenen planlı ileti: "Planla" aynı saatle (web reschedule_at).
+    zaman ??= b.planZamani;
+    _otoZaman?.cancel();
+    final kayit = _kayitZinciri;
+    if (kayit != null) await kayit; // sürmekte olan otomatik kayıt bitsin (taslak kimliği güncel olsun)
+    if (!mounted) return;
     final h = _dogrula();
     if (h != null) {
       setState(() => _hata = h);
@@ -303,6 +382,8 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
         );
         _bitti = true;
         if (b.gidenId != null) unawaited(GidenKutusu.ben.sil(b.gidenId!));
+        // Geri alma süresi / planlı gönderim Giden Kutusu'nda (sunucu kuyruğu) görünür.
+        unawaited(GidenKutusu.ben.sunucuTazele());
         PostaDurum.ben.sayilariYenile();
         if (mounted) Navigator.of(context).pop();
         _sonucBildir(s, zaman);
@@ -780,6 +861,7 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
       _kirli = true;
       _hata = hatalar.isEmpty ? null : hatalar.join(' ');
     });
+    _otoKur();
   }
 
   // ---- arayüz ----
@@ -806,7 +888,14 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
           appBar: AppBar(
             backgroundColor: r.kart,
             leading: IconButton(icon: const Icon(Simge.kapat), tooltip: 'Kapat', onPressed: _kapat),
-            title: Text(b.baslik),
+            title: Builder(
+              builder: (context) {
+                final g = _kayitGostergesi(context);
+                return g == null
+                    ? Text(b.baslik)
+                    : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text(b.baslik), g]);
+              },
+            ),
             actions: [
               PopupMenuButton<String>(
                 tooltip: 'Diğer seçenekler',
@@ -904,8 +993,8 @@ class _YazmaEkraniState extends State<YazmaEkrani> {
                         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(left: Radius.circular(20))),
                       ),
                       onPressed: _mesgul ? null : _gonder,
-                      icon: const Icon(Simge.gonder, size: 18),
-                      label: const Text('Gönder'),
+                      icon: Icon(b.planZamani != null ? Simge.planliGonder : Simge.gonder, size: 18),
+                      label: Text(b.planZamani != null ? 'Planla · ${DateFormat('d MMM HH:mm', 'tr_TR').format(b.planZamani!)}' : 'Gönder'),
                     ),
                     const SizedBox(width: 2),
                     Tooltip(

@@ -85,9 +85,69 @@ class GuvenlikBandi extends StatelessWidget {
   }
 }
 
-/// İstemci tarafı sezgiler: yürütülebilir/makrolu ekler ve görünen adında başka adres taşıyan gönderen.
+/// SPF / DKIM / DMARC çipleri (web AuthChips): geçti yeşil, başarısız kırmızı, softfail amber, diğerleri gri.
+class DogrulamaCipleri extends StatelessWidget {
+  const DogrulamaCipleri({super.key, required this.sonuclar});
+  final List<Dogrulama> sonuclar;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    return Wrap(
+      key: const ValueKey('dogrulama-cipleri'),
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        for (final x in sonuclar)
+          Builder(
+            builder: (context) {
+              final renk = switch (x.sonuc) {
+                'pass' => Marka.zumrut,
+                'fail' => Marka.gul,
+                'softfail' => Marka.kehribar,
+                _ => r.soluk,
+              };
+              return Tooltip(
+                message: x.alan.isEmpty ? '${x.ad}: ${x.sonuc}' : '${x.ad}: ${x.sonuc} (${x.alan})',
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(color: renk.withValues(alpha: .12), borderRadius: BorderRadius.circular(999)),
+                  child: Text.rich(
+                    TextSpan(
+                      text: x.metin,
+                      children: [
+                        if (x.alan.isNotEmpty)
+                          TextSpan(
+                            text: ' · ${x.alan}',
+                            style: const TextStyle(fontWeight: FontWeight.w400),
+                          ),
+                      ],
+                    ),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: renk),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+/// İstemci tarafı sezgiler: yürütülebilir/makrolu ekler ve görünen adında başka adres taşıyan gönderen; DMARC
+/// başarısızsa (ve sunucu tehdit bildirmediyse) web'deki gibi amber uyarı.
 List<GuvenlikBandi> sezgiselUyarilar(IletiDetay d) {
   final out = <GuvenlikBandi>[];
+  if (d.dmarcBasarisiz && d.tehditler.isEmpty) {
+    out.add(
+      GuvenlikBandi(
+        tur: BantTuru.uyari,
+        baslik: 'Gönderen doğrulanamadı',
+        metin: 'Gönderen alan adı doğrulanamadı (DMARC başarısız). İleti sahte olabilir; bağlantı ve eklere dikkat edin.',
+        ikon: Simge.gizlilik,
+      ),
+    );
+  }
   final riskli = d.gorunum.dosyaEkleri.where((e) => ekRiskli(e.ad)).map((e) => e.ad).toList();
   if (riskli.isNotEmpty) {
     out.add(

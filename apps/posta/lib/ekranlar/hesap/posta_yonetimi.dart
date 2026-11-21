@@ -1,12 +1,18 @@
+import 'dart:convert';
+
 import 'package:boga_ortak/boga_ortak.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../giden_kutusu.dart';
 import '../../ortak/simgeler.dart';
 import '../../veri/durum.dart';
 import '../../veri/hesap_servisi.dart';
 import '../../veri/modeller.dart';
 import '../../veri/posta_servisi.dart';
+import '../../veri/rehber_aktar.dart';
 import '../../veri/yardimci.dart';
 import 'ortak.dart';
 
@@ -90,12 +96,20 @@ class PlanlananlarEkrani extends StatelessWidget {
                         onSelected: (v) async {
                           if (v == 'zaman') {
                             await _ertele(context, p, yenile);
+                          } else if (v == 'duzenle') {
+                            // Taslağa çevrilir, yazma penceresinde aynı saatle "Planla".
+                            await planliDuzenle(context, p);
+                            await yenile();
                           } else if (await onayla(context, 'Gönderim iptal edilsin mi?', mesaj: 'İleti gönderilmeyecek.', evet: 'İptal et', tehlikeli: true)) {
                             await islem(() => Hesap.planIptal(p.id), tamam: 'Gönderim iptal edildi');
                             await yenile();
                           }
                         },
                         itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'duzenle',
+                            child: ListTile(leading: Icon(Simge.duzenle), title: Text('Düzenle')),
+                          ),
                           PopupMenuItem(
                             value: 'zaman',
                             child: ListTile(leading: Icon(Simge.takvimDuzenle), title: Text('Zamanı değiştir')),
@@ -120,12 +134,34 @@ class PlanlananlarEkrani extends StatelessWidget {
 // ---------------------------------------------------------------- kişiler
 
 class KisilerEkrani extends StatefulWidget {
+  /// Dosya seçme / kaydetme (testlerde değiştirilir).
+  static RehberDosyasiSecici dosyaSec = _rehberSec;
+  static RehberKaydedici dosyaKaydet = _rehberKaydet;
+
   const KisilerEkrani({super.key});
   @override
   State<KisilerEkrani> createState() => _KisilerEkraniState();
 }
 
+/// Rehber dosyası seçimi (testlerde değiştirilir): (ad, içerik) ya da vazgeçildiyse null.
+typedef RehberDosyasiSecici = Future<(String, Uint8List)?> Function();
+
+/// Dosya kaydetme (testlerde değiştirilir): kaydedildiyse true.
+typedef RehberKaydedici = Future<bool> Function(String ad, Uint8List veri);
+
+Future<(String, Uint8List)?> _rehberSec() async {
+  final l = await FilePicker.pickFiles(dialogTitle: 'Rehber dosyası seç', type: FileType.custom, allowedExtensions: const ['vcf', 'vcard', 'csv']);
+  if (l.isEmpty) return null;
+  return (l.first.name, await l.first.readAsBytes());
+}
+
+Future<bool> _rehberKaydet(String ad, Uint8List b) async =>
+    await FilePicker.saveFile(fileName: ad, bytes: b, mimeType: 'text/vcard', dialogTitle: 'Rehberi kaydet') != null;
+
 class _KisilerEkraniState extends State<KisilerEkrani> {
+  RehberDosyasiSecici get dosyaSec => KisilerEkrani.dosyaSec;
+  RehberKaydedici get dosyaKaydet => KisilerEkrani.dosyaKaydet;
+
   final _ara = TextEditingController();
   String? _tur; // null | saved | favorite | auto
   List<Kisi>? _l;
@@ -255,12 +291,154 @@ class _KisilerEkraniState extends State<KisilerEkrani> {
     await _yukle();
   }
 
+  Future<void> _disaAktar() async {
+    try {
+      final l = await Hesap.tumKisiler();
+      if (l.isEmpty) {
+        bildir('Rehberinizde dışa aktarılacak kişi yok');
+        return;
+      }
+      final tarih = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      if (await dosyaKaydet('rehber-$tarih.vcf', Uint8List.fromList(utf8.encode(vcardYaz(l))))) {
+        bildir('${l.length} kişi dışa aktarıldı', tur: MesajTur.basari);
+      }
+    } catch (e) {
+      bildir('Dışa aktarılamadı', mesaj: hataMetni(e), tur: MesajTur.hata);
+    }
+  }
+
+  /// Web ImportDialog: dosya seç → ön izleme → sırayla kaydet (ilerleme, durdur; rehber dolunca durur).
+  Future<void> _iceAktar() async {
+    final (String, Uint8List)? secilen;
+    try {
+      secilen = await dosyaSec();
+    } catch (e) {
+      bildir('Dosya açılamadı', mesaj: hataMetni(e), tur: MesajTur.hata);
+      return;
+    }
+    if (secilen == null || !mounted) return;
+    final f = secilen;
+    if (f.$2.length > 10 * 1024 * 1024) {
+      bildir('Dosya çok büyük (en fazla 10 MB)', tur: MesajTur.uyari);
+      return;
+    }
+    final o = rehberDosyasiOku(f.$1, utf8.decode(f.$2, allowMalformed: true));
+    if (o.kisiler.isEmpty) {
+      bildir(
+        o.vcard
+            ? 'Dosyada e-posta adresi olan kişi bulunamadı.'
+            : 'Dosyada e-posta adresi olan satır bulunamadı. İlk satırda sütun başlıkları (ad, e-posta, telefon, şirket) olmalı.',
+        tur: MesajTur.uyari,
+      );
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Kişileri içe aktar', style: gosterim(19, agirlik: FontWeight.w600)),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${f.$1}: ${o.kisiler.length} kişi bulundu.', key: const ValueKey('ice-aktar-ozet')),
+              if (o.atlanan > 0) Text('${o.atlanan} satır atlandı (e-posta yok, geçersiz ya da yinelenen).', style: TextStyle(color: c.r.soluk)),
+              if (o.kesilen > 0) Text('İlk $iceAktarmaSiniri kişi alınacak; ${o.kesilen} kişi dışarıda kaldı.', style: TextStyle(color: c.r.soluk)),
+              const SizedBox(height: 10),
+              for (final k in o.kisiler.take(5)) Text(k.ad.isEmpty ? k.eposta : '${k.ad} · ${k.eposta}', maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (o.kisiler.length > 5) Text('…', style: TextStyle(color: c.r.silik)),
+              const SizedBox(height: 10),
+              Text('Rehberde zaten olan adresler güncellenmez.', style: TextStyle(color: c.r.silik, fontSize: 12)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text('${o.kisiler.length} kişiyi içe aktar')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final ilerleme = ValueNotifier(0);
+    var dur = false;
+    var eklenen = 0;
+    final hatalar = <String>[];
+    final pencere = showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        title: const Text('İçe aktarılıyor…'),
+        content: ValueListenableBuilder<int>(
+          valueListenable: ilerleme,
+          builder: (_, n, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinearProgressIndicator(value: n / o.kisiler.length),
+              const SizedBox(height: 8),
+              Text('$n / ${o.kisiler.length}', key: const ValueKey('ice-aktar-ilerleme')),
+            ],
+          ),
+        ),
+        actions: [TextButton(onPressed: () => dur = true, child: const Text('Durdur'))],
+      ),
+    );
+    var durdu = false;
+    for (final k in o.kisiler) {
+      if (dur) {
+        durdu = true;
+        break;
+      }
+      try {
+        await Hesap.kisiKaydet(k);
+        eklenen++;
+      } catch (e) {
+        hatalar.add(k.eposta);
+        // Rehber doldu: devam etmenin anlamı yok.
+        if (hataMetni(e).toLowerCase().contains('en fazla')) {
+          durdu = true;
+          ilerleme.value++;
+          break;
+        }
+      }
+      ilerleme.value++;
+    }
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    await pencere;
+    ilerleme.dispose();
+    bildir(
+      '$eklenen kişi içe aktarıldı',
+      mesaj: [if (hatalar.isNotEmpty) '${hatalar.length} kişi eklenemedi (ör. ${hatalar.first})', if (durdu) 'İçe aktarma durduruldu'].join(' · '),
+      tur: hatalar.isEmpty ? MesajTur.basari : MesajTur.uyari,
+    );
+    await _yukle();
+  }
+
   @override
   Widget build(BuildContext context) {
     final r = context.r;
     final l = _l;
     return Scaffold(
-      appBar: AppBar(title: const Text('Kişiler')),
+      appBar: AppBar(
+        title: const Text('Kişiler'),
+        actions: [
+          PopupMenuButton<String>(
+            key: const ValueKey('kisiler-menu'),
+            tooltip: 'İçe / dışa aktar',
+            onSelected: (v) => v == 'ice' ? _iceAktar() : _disaAktar(),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'ice',
+                child: ListTile(leading: Icon(Simge.yukle), title: Text('İçe aktar (vCard/CSV)')),
+              ),
+              PopupMenuItem(
+                value: 'disa',
+                child: ListTile(leading: Icon(Simge.indir), title: Text('Dışa aktar (vCard)')),
+              ),
+            ],
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(onPressed: () => _duzenle(), icon: const Icon(Simge.kisiEkle), label: const Text('Kişi ekle')),
       body: Align(
         alignment: Alignment.topCenter,

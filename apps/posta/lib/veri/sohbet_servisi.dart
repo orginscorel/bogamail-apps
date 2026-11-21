@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:boga_ortak/boga_ortak.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 
 import '../oturum.dart';
 import 'canli.dart';
@@ -29,6 +30,7 @@ class SohbetKisi {
     this.cevrimici = '',
     this.durum = '',
     this.durumMetni = '',
+    this.durumBitis,
     this.unvan = '',
     this.departman = '',
   });
@@ -41,6 +43,9 @@ class SohbetKisi {
   String cevrimici;
   final String durum; // "" available busy meeting out
   final String durumMetni;
+
+  /// Durumun kendiliğinden temizleneceği zaman (status_until).
+  final DateTime? durumBitis;
   final String unvan;
   final String departman;
 
@@ -54,12 +59,20 @@ class SohbetKisi {
       cevrimici: _s(m['presence']),
       durum: _s(m['status']),
       durumMetni: _s(m['status_text']),
+      durumBitis: _t(m['status_until']),
       unvan: _s(m['title']),
       departman: _s(m['department']),
     );
   }
 
   String get gorunen => ad.trim().isNotEmpty ? ad.trim() : adres;
+
+  /// "Toplantıda · bitiş 15:30" (durum yoksa boş).
+  String get durumYazisi => [
+    if (durum.isNotEmpty) sohbetDurumAdlari[durum] ?? '',
+    if (durumMetni.isNotEmpty) durumMetni,
+    if ((durum.isNotEmpty || durumMetni.isNotEmpty) && durumBitis != null) durumBitisMetni(durumBitis!, DateTime.now()),
+  ].where((s) => s.isNotEmpty).join(' · ');
   String get altBilgi => [unvan, departman].where((s) => s.trim().isNotEmpty).join(' · ');
 }
 
@@ -286,6 +299,29 @@ class SohbetProfili {
     );
   }
 }
+
+/// Durumun kendiliğinden temizlenme süreleri (web UNTIL_OPTIONS).
+const durumSureleri = {'none': 'Süresiz', '30m': '30 dakika', '1h': '1 saat', '4h': '4 saat', 'today': 'Bugün sonuna kadar'};
+
+/// "bitiş 15:30" (bugün), "bitiş yarın 09:00", "bitiş 3 Ara 09:00".
+String durumBitisMetni(DateTime bitis, DateTime simdi) {
+  final b = bitis.toLocal();
+  final hm = DateFormat('HH:mm').format(b);
+  final bugun = DateTime(simdi.year, simdi.month, simdi.day);
+  final gun = DateTime(b.year, b.month, b.day).difference(bugun).inDays;
+  if (gun == 0) return 'bitiş $hm';
+  if (gun == 1) return 'bitiş yarın $hm';
+  return 'bitiş ${DateFormat('d MMM', 'tr_TR').format(b)} $hm';
+}
+
+/// [sure] seçeneğinin bitiş zamanı (Süresiz: null).
+DateTime? durumBitisi(String sure, DateTime simdi) => switch (sure) {
+  '30m' => simdi.add(const Duration(minutes: 30)),
+  '1h' => simdi.add(const Duration(hours: 1)),
+  '4h' => simdi.add(const Duration(hours: 4)),
+  'today' => DateTime(simdi.year, simdi.month, simdi.day, 23, 59),
+  _ => null,
+};
 
 const sohbetDurumAdlari = {'': 'Durum yok', 'available': 'Müsait', 'busy': 'Meşgul', 'meeting': 'Toplantıda', 'out': 'Dışarıda'};
 

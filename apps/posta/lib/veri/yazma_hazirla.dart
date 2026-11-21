@@ -45,7 +45,11 @@ class YazmaBaslangic {
     this.takipGun = 0,
     this.gidenId,
     this.yerelEkler = const [],
+    this.planZamani,
   });
+
+  /// Planlı iletiyi düzenleme: "Gönder" yerine aynı saatle "Planla" (web reschedule_at).
+  final DateTime? planZamani;
 
   /// Giden Kutusu'ndaki bir iletinin düzenlenmesi: gönderilince / yeniden kuyruğa alınınca bu öğenin yerine geçer.
   final String? gidenId;
@@ -149,7 +153,7 @@ YazmaBaslangic iletHazirla(IletiDetay d) {
 }
 
 /// Taslaklar klasöründeki iletiyi düzenlemeye açar (imza ve alıntı zaten taslağın içinde).
-YazmaBaslangic taslakHazirla(IletiDetay d, {String? taslakId, Map<String, dynamic>? geriAlinan}) {
+YazmaBaslangic taslakHazirla(IletiDetay d, {String? taslakId, Map<String, dynamic>? geriAlinan, DateTime? planZamani}) {
   final v = d.gorunum;
   final c = geriAlinan ?? const <String, dynamic>{};
   String? s(String k) => '${c[k] ?? ''}'.isEmpty ? null : '${c[k]}';
@@ -172,6 +176,7 @@ YazmaBaslangic taslakHazirla(IletiDetay d, {String? taslakId, Map<String, dynami
     oncelik: oncelik == 'high' || oncelik == 'low' ? oncelik : null,
     okunduBilgisi: c['read_receipt'] == true,
     takipGun: c['followup_days'] is num ? (c['followup_days'] as num).toInt() : 0,
+    planZamani: planZamani,
   );
 }
 

@@ -19,6 +19,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/foundation.dart';
 
 import '../oturum.dart';
+import 'hesap_servisi.dart';
 import 'onbellek.dart';
 import 'posta_servisi.dart';
 
@@ -194,6 +195,31 @@ class GidenKutusu {
   /// Bekleyen (hata olmayan) iletiler.
   int get bekleyen => ogeler.value.where((o) => o.durum != GidenDurum.hata).length;
 
+  /// Sunucu kuyruğu (GET /mail/scheduled): geri alma süresindeki, planlanmış ve gönderilemeyen iletiler.
+  final sunucu = ValueNotifier<List<Planli>>(const []);
+
+  /// Kenar menüsündeki sayı: yerel + sunucu.
+  int get toplam => ogeler.value.length + sunucu.value.length;
+
+  /// Hata durumunda öğe var (kenar menüsünde kırmızı).
+  bool get hataVar => ogeler.value.any((o) => o.durum == GidenDurum.hata) || sunucu.value.any((p) => p.durum == 'failed');
+
+  /// Sunucu kuyruğunu tazeler (önce yerel kopya; çevrimdışında son bilinen liste kalır).
+  Future<void> sunucuTazele() async {
+    final hesap = _hesap;
+    try {
+      final l = await yerelOnce(
+        'giden:sunucu',
+        () async => {'items': (await Hesap.planlananlar()).where((p) => p.giden).map((p) => p.json).toList()},
+        (v) => ((v is Map ? v['items'] : null) as List? ?? const []).map(Planli.json).where((p) => p.giden).toList(),
+        yerel: (l) {
+          if (hesap == _hesap && sunucu.value.isEmpty) sunucu.value = l;
+        },
+      );
+      if (hesap == _hesap) sunucu.value = l;
+    } catch (_) {}
+  }
+
   /// Düzenlenmek üzere açık öğeler gönderilmez.
   final _duzenleniyor = <String>{};
   Future<void>? _gonderim;
@@ -207,6 +233,9 @@ class GidenKutusu {
     final v = await Onbellek.ben.oku(_anahtar);
     if (_hesap != (Onbellek.ben.hesap ?? '')) return;
     ogeler.value = v is List ? v.map(GidenOge.json_).whereType<GidenOge>().toList() : const [];
+    final sv = await Onbellek.ben.oku('giden:sunucu');
+    if (_hesap != (Onbellek.ben.hesap ?? '')) return;
+    sunucu.value = ((sv is Map ? sv['items'] : null) as List? ?? const []).map(Planli.json).where((p) => p.giden).toList();
   }
 
   Future<void> _kaydet() => Onbellek.ben.yaz(_anahtar, ogeler.value.map((e) => e.json).toList());
@@ -318,5 +347,6 @@ class GidenKutusu {
     _hesap = '';
     _duzenleniyor.clear();
     ogeler.value = const [];
+    sunucu.value = const [];
   }
 }

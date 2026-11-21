@@ -1,5 +1,7 @@
 // Sunucunun JSON yanıtları için tipli modeller. Hepsi hoşgörülü: eksik/yanlış tipli alanlar çökmeye yol açmaz.
 
+import 'package:flutter/foundation.dart';
+
 import 'yardimci.dart';
 
 String _s(Object? v) => v == null ? '' : '$v';
@@ -236,7 +238,14 @@ class IletiDetay {
     this.baglantilar = const {},
     this.spamPuani,
     this.spamKurallari = const [],
+    this.dogrulama = const [],
   });
+
+  /// Gönderen doğrulaması (auth: spf / dkim / dmarc; web reader AuthChips). Sıra: SPF, DKIM, DMARC.
+  final List<Dogrulama> dogrulama;
+
+  /// DMARC başarısız (web: tehdit yoksa amber uyarı).
+  bool get dmarcBasarisiz => dogrulama.any((x) => x.ad == 'DMARC' && x.sonuc == 'fail');
 
   /// Gelen spam denetimi (spam.score / spam.rules; web reader "Spam denetimi: puan …"). Puan yoksa null.
   final double? spamPuani;
@@ -260,8 +269,30 @@ class IletiDetay {
       baglantilar: b.map((k, v) => MapEntry(k, _s(v))),
       spamPuani: _m(m['spam'])['score'] is num ? (_m(m['spam'])['score'] as num).toDouble() : null,
       spamKurallari: _l(_m(m['spam'])['rules']).map(_s).where((s) => s.isNotEmpty).toList(),
+      dogrulama: [
+        for (final (k, ad) in const [('spf', 'SPF'), ('dkim', 'DKIM'), ('dmarc', 'DMARC')])
+          if (_m(m['auth'])[k] is Map && _s(_m(_m(m['auth'])[k])['result']).isNotEmpty)
+            Dogrulama(ad, _s(_m(_m(m['auth'])[k])['result']), _s(_m(_m(m['auth'])[k])['domain'])),
+      ],
     );
   }
+}
+
+/// Tek doğrulama sonucu (pass | fail | softfail | neutral | none | temperror | permerror | policy).
+@immutable
+class Dogrulama {
+  const Dogrulama(this.ad, this.sonuc, this.alan);
+  final String ad;
+  final String sonuc;
+  final String alan;
+
+  /// "SPF geçti", "DKIM başarısız", "DMARC softfail".
+  String get metin =>
+      '$ad ${sonuc == 'pass'
+          ? 'geçti'
+          : sonuc == 'fail'
+          ? 'başarısız'
+          : sonuc}';
 }
 
 /// GET /api/v1/mail/settings

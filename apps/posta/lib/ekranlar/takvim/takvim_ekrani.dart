@@ -4,6 +4,7 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../ortak/simgeler.dart';
 import '../../veri/canli.dart';
 import '../../veri/modeller.dart';
 import '../../veri/takvim_servisi.dart';
@@ -12,6 +13,7 @@ import 'etkinlik_duzenleyici.dart';
 enum TakvimGorunumu {
   ay('Ay', Simge.ay),
   hafta('Hafta', Simge.hafta),
+  gun('Gün', Simge.saat),
   ajanda('Ajanda', Simge.ajanda);
 
   const TakvimGorunumu(this.ad, this.ikon);
@@ -19,9 +21,12 @@ enum TakvimGorunumu {
   final IconData ikon;
 }
 
-Color takvimRengi(String hex, Color yedek) {
-  final h = hex.replaceFirst('#', '');
-  final v = int.tryParse(h.length == 6 ? 'ff$h' : h, radix: 16);
+/// Takvim / etkinlik rengi. Sunucu etiket renk adlarını (blue, green, purple, orange, red, yellow, teal, gray) kullanır
+/// (web ile aynı); eski istemcilerin yazdığı #rrggbb de okunur.
+Color takvimRengi(String renk, Color yedek) {
+  if (etiketRenkleri.containsKey(renk)) return etiketRenkleri[renk]!;
+  final h = renk.replaceFirst('#', '');
+  final v = h.length == 6 ? int.tryParse('ff$h', radix: 16) : null;
   return v == null ? yedek : Color(v);
 }
 
@@ -60,6 +65,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
   @override
   void dispose() {
     _abone?.cancel();
+    _gunKaydirma.dispose();
     super.dispose();
   }
 
@@ -72,6 +78,8 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
       case TakvimGorunumu.hafta:
         final bas = _odak.subtract(Duration(days: _odak.weekday - 1));
         return (bas, bas.add(const Duration(days: 7)));
+      case TakvimGorunumu.gun:
+        return (_odak, DateTime(_odak.year, _odak.month, _odak.day + 1));
       case TakvimGorunumu.ajanda:
         return (_odak, _odak.add(const Duration(days: 60)));
     }
@@ -141,6 +149,9 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
         case TakvimGorunumu.hafta:
           _odak = _odak.add(Duration(days: 7 * yon));
           _secili = _odak;
+        case TakvimGorunumu.gun:
+          _odak = DateTime(_odak.year, _odak.month, _odak.day + yon);
+          _secili = _odak;
         case TakvimGorunumu.ajanda:
           _odak = _odak.add(Duration(days: 30 * yon));
           _secili = _odak;
@@ -167,6 +178,8 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
         return bas.month == s.month
             ? '${bas.day}–${DateFormat('d MMMM y', 'tr_TR').format(s)}'
             : '${DateFormat('d MMM', 'tr_TR').format(bas)} – ${DateFormat('d MMM y', 'tr_TR').format(s)}';
+      case TakvimGorunumu.gun:
+        return DateFormat('d MMMM y, EEEE', 'tr_TR').format(_odak);
       case TakvimGorunumu.ajanda:
         return 'Yaklaşanlar';
     }
@@ -212,6 +225,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
       govde = switch (_gorunum) {
         TakvimGorunumu.ay => _ayGorunumu(),
         TakvimGorunumu.hafta => _haftaGorunumu(),
+        TakvimGorunumu.gun => _gunGorunumu(),
         TakvimGorunumu.ajanda => _ajanda(),
       };
     }
@@ -225,7 +239,11 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
             icon: Icon(_gorunum.ikon),
             initialValue: _gorunum,
             onSelected: (v) {
-              setState(() => _gorunum = v);
+              setState(() {
+                // Gün görünümü seçili günle açılır (web: güne tıklayınca Gün).
+                if (v == TakvimGorunumu.gun) _odak = _gun(_secili);
+                _gorunum = v;
+              });
               _yukle();
             },
             itemBuilder: (_) => [
@@ -479,6 +497,165 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
     );
   }
 
+  /// Gün görünümü (web Gün): tüm gün etkinlikleri üstte, saatli olanlar 24 saatlik çizelgede (çakışanlar yan yana).
+  static const _saatBoyu = 56.0;
+  final _gunKaydirma = ScrollController(initialScrollOffset: 7.5 * _saatBoyu);
+
+  Widget _gunGorunumu() {
+    final r = context.r;
+    final g = _odak;
+    final l = _gunun(g);
+    final gunBas = DateTime(g.year, g.month, g.day);
+    final gunSon = gunBas.add(const Duration(days: 1));
+    final tumGun = l.where((e) => e.tumGun || (!e.baslangic.isAfter(gunBas) && !e.bitis.isBefore(gunSon))).toList();
+    final saatli = l.where((e) => !tumGun.contains(e)).toList()..sort((a, b) => a.baslangic.compareTo(b.baslangic));
+    // Çakışanlar için şerit ataması (açgözlü).
+    final serit = <Etkinlik, int>{};
+    final seritSonu = <DateTime>[];
+    for (final e in saatli) {
+      var i = seritSonu.indexWhere((t) => !t.isAfter(e.baslangic));
+      if (i < 0) {
+        seritSonu.add(e.bitis);
+        i = seritSonu.length - 1;
+      } else {
+        seritSonu[i] = e.bitis;
+      }
+      serit[e] = i;
+    }
+    final seritSayisi = seritSonu.isEmpty ? 1 : seritSonu.length;
+    double dk(DateTime t) => t.isBefore(gunBas) ? 0 : (t.isAfter(gunSon) ? 24 * 60 : t.difference(gunBas).inMinutes.toDouble());
+    final simdi = DateTime.now();
+    return Column(
+      key: const ValueKey('takvim-gun'),
+      children: [
+        if (tumGun.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: Column(
+              children: [for (final e in tumGun) EtkinlikKarti(etkinlik: e, gun: g, ac: () => _ac(e))],
+            ),
+          ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _yukle,
+            child: SingleChildScrollView(
+              controller: _gunKaydirma,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 96),
+              child: SizedBox(
+                height: 24 * _saatBoyu,
+                child: LayoutBuilder(
+                  builder: (context, k) {
+                    const sol = 56.0;
+                    final genislik = (k.maxWidth - sol - 12) / seritSayisi;
+                    return Stack(
+                      children: [
+                        for (var h = 0; h < 24; h++)
+                          Positioned(
+                            top: h * _saatBoyu,
+                            left: 0,
+                            right: 0,
+                            height: _saatBoyu,
+                            child: InkWell(
+                              onTap: () => _yeniSaat(DateTime(g.year, g.month, g.day, h)),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: sol,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Text(
+                                        '${h.toString().padLeft(2, '0')}:00',
+                                        textAlign: TextAlign.right,
+                                        style: TextStyle(fontSize: 11, color: r.silik),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border(top: BorderSide(color: r.kenar.withValues(alpha: .7))),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (_ayniGun(simdi, g))
+                          Positioned(
+                            top: dk(simdi) * _saatBoyu / 60,
+                            left: sol - 4,
+                            right: 0,
+                            child: Container(height: 2, color: Marka.gul),
+                          ),
+                        for (final e in saatli)
+                          Builder(
+                            builder: (_) {
+                              final ust = dk(e.baslangic) * _saatBoyu / 60;
+                              final boy = ((dk(e.bitis) - dk(e.baslangic)) * _saatBoyu / 60).clamp(24.0, 24 * _saatBoyu);
+                              final renk = takvimRengi(e.renk, r.vurgu);
+                              return Positioned(
+                                key: ValueKey('gun-etkinlik-${e.id}'),
+                                top: ust,
+                                height: boy,
+                                left: sol + serit[e]! * genislik,
+                                width: genislik - 2,
+                                child: Material(
+                                  color: renk.withValues(alpha: .16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                    side: BorderSide(color: renk.withValues(alpha: .5)),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
+                                    onTap: () => _ac(e),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(6, 3, 6, 3),
+                                      child: Text.rich(
+                                        TextSpan(
+                                          text: e.baslik.isEmpty ? '(başlıksız)' : e.baslik,
+                                          style: TextStyle(fontWeight: FontWeight.w600, color: r.metin),
+                                          children: [
+                                            TextSpan(
+                                              text: '  ${DateFormat('HH:mm').format(e.baslangic)}–${DateFormat('HH:mm').format(e.bitis)}',
+                                              style: TextStyle(fontWeight: FontWeight.w400, color: r.soluk),
+                                            ),
+                                            if (e.yer.isNotEmpty)
+                                              TextSpan(
+                                                text: ' · ${e.yer}',
+                                                style: TextStyle(fontWeight: FontWeight.w400, color: r.soluk),
+                                              ),
+                                          ],
+                                        ),
+                                        style: const TextStyle(fontSize: 12),
+                                        maxLines: boy > 40 ? 3 : 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _yeniSaat(DateTime bas) async {
+    final ok = await EtkinlikDuzenleyici.ac(context, takvimler: _takvimler, baslangic: bas);
+    if (ok == true) _yukle(sessiz: true);
+  }
+
   Widget _ajanda() {
     final r = context.r;
     final l = [..._gorunen]..sort((a, b) => a.baslangic.compareTo(b.baslangic));
@@ -628,7 +805,8 @@ class TakvimlerEkrani extends StatefulWidget {
 class _TakvimlerEkraniState extends State<TakvimlerEkrani> {
   List<Takvim>? _l;
   String? _hata;
-  static const _renkler = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#0891b2', '#db2777', '#64748b'];
+  // Sunucu yalnız etiket renk adlarını kabul eder (geçersiz renk "blue" olur); web ile aynı sıra ve varsayılan yeşil.
+  static const _renkler = ['green', 'blue', 'purple', 'orange', 'red', 'yellow', 'teal', 'gray'];
 
   @override
   void initState() {

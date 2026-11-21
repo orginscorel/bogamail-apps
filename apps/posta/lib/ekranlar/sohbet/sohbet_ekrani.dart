@@ -233,6 +233,8 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
     if (!mounted) return;
     var durum = p.durum;
     var goster = p.cevrimiciGoster;
+    final eskiBitis = p.durumBitis;
+    var sure = eskiBitis != null ? 'keep' : 'none';
     final metin = TextEditingController(text: p.durumMetni);
     final ok = await showModalBottomSheet<bool>(
       context: context,
@@ -263,9 +265,21 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: metin,
-                  maxLength: 100,
-                  decoration: const InputDecoration(labelText: 'Durum notu', hintText: 'Örn. 15:00\'e kadar toplantıdayım'),
+                  maxLength: 80,
+                  decoration: const InputDecoration(labelText: 'Durum notu', hintText: 'Örn. Müşteri ziyaretindeyim'),
                 ),
+                DropdownButtonFormField<String>(
+                  key: const ValueKey('durum-sure'),
+                  initialValue: sure,
+                  decoration: const InputDecoration(labelText: 'Şu süre sonra temizle'),
+                  items: [
+                    if (eskiBitis != null)
+                      DropdownMenuItem(value: 'keep', child: Text('Şimdiki süre (${DateFormat('d MMM HH:mm', 'tr_TR').format(eskiBitis.toLocal())})')),
+                    for (final e in durumSureleri.entries) DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  ],
+                  onChanged: (v) => yenile(() => sure = v ?? 'none'),
+                ),
+                const SizedBox(height: 4),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   value: goster,
@@ -284,8 +298,15 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
     final not = metin.text.trim();
     metin.dispose();
     if (ok != true) return;
+    final bitis = sure == 'keep' ? eskiBitis : durumBitisi(sure, DateTime.now());
     await islem(
-      () => Sohbet.benKaydet(cevrimiciGoster: goster, durum: durum, durumMetni: not),
+      () => Sohbet.benKaydet(
+        cevrimiciGoster: goster,
+        durum: durum,
+        durumMetni: not,
+        durumBitis: durum.isNotEmpty || not.isNotEmpty ? bitis : null,
+        bitisGonder: true,
+      ),
       tamam: 'Durumunuz güncellendi',
     );
     await SohbetDurum.ben.yenile();

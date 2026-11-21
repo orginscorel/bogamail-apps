@@ -19,7 +19,20 @@ List<dynamic> _ogeler(Object? v) => _l(_m(v)['items']);
 
 /// GET /scheduled → items[]
 class Planli {
-  Planli({required this.id, this.zaman, this.durum = '', this.hata = '', this.kime = const [], this.konu = '', this.tur = '', this.ozet = ''});
+  Planli({
+    required this.id,
+    this.zaman,
+    this.durum = '',
+    this.hata = '',
+    this.kime = const [],
+    this.konu = '',
+    this.tur = '',
+    this.ozet = '',
+    this.kesildi = false,
+  });
+
+  /// Gönderim denemesi yarıda kesildi (sunucu yeniden başladı): kısmen gitmiş olabilir.
+  final bool kesildi;
   final String id;
   final DateTime? zaman;
   final String durum; // pending sending sent failed cancelled
@@ -40,10 +53,26 @@ class Planli {
       konu: _s(m['subject']),
       tur: _s(m['kind']),
       ozet: _s(m['summary']),
+      kesildi: m['interrupted'] == true,
     );
   }
 
   bool get bekliyor => durum == 'pending';
+
+  /// Giden Kutusu'nda görünür: henüz gitmedi ya da gönderilemedi (web serverOutgoing).
+  bool get giden => durum == 'pending' || durum == 'sending' || durum == 'failed';
+
+  Map<String, dynamic> get json => {
+    'id': id,
+    'send_at': zaman?.toUtc().toIso8601String(),
+    'status': durum,
+    'error': hata,
+    'to': kime,
+    'subject': konu,
+    'kind': tur,
+    'summary': ozet,
+    'interrupted': kesildi,
+  };
 }
 
 /// GET /contacts → sayfalı kişi listesi
@@ -509,6 +538,16 @@ class Hesap {
   // ---- planlanan gönderimler ----
   static Future<List<Planli>> planlananlar() async => _ogeler(await _api.get('$_k/scheduled')).map(Planli.json).toList();
   static Future<void> planIptal(String id) => _api.delete('$_k/scheduled/$id');
+
+  /// Gönderilemeyen iletiyi yeniden gönderime alır (yalnız failed; değilse 409).
+  static Future<void> planTekrar(String id) => _api.post('$_k/scheduled/$id/retry');
+
+  /// Bekleyen / gönderilemeyen iletiyi taslağa çevirir: {draft_id, kind, send_at, compose}.
+  static Future<Map<String, dynamic>> planGeriAl(String id) async {
+    final v = await _api.post('$_k/scheduled/$id/restore');
+    return v is Map ? Map<String, dynamic>.from(v) : <String, dynamic>{};
+  }
+
   static Future<void> planErtele(String id, DateTime z) => _api.patch('$_k/scheduled/$id', {'send_at': z.toUtc().toIso8601String()});
 
   // ---- kişiler ----
@@ -523,6 +562,18 @@ class Hesap {
     (v) => (ogeler: _ogeler(v).map(Kisi.json).toList(), toplam: _i(_m(v)['total'])),
     yerel: yerel,
   );
+
+  /// Rehberin tamamı (dışa aktarma; 500'lük sayfalar).
+  static Future<List<Kisi>> tumKisiler() async {
+    final l = <Kisi>[];
+    for (var s = 1; s < 100; s++) {
+      final v = _m(await _api.get('$_k/contacts', q: {'page': s, 'page_size': 500}));
+      final o = _ogeler(v).map(Kisi.json).toList();
+      l.addAll(o);
+      if (o.length < 500 || l.length >= _i(v['total'])) break;
+    }
+    return l;
+  }
 
   static Future<void> kisiKaydet(Kisi k) => k.id.isEmpty ? _api.post('$_k/contacts', k.govde()) : _api.patch('$_k/contacts/${k.id}', k.govde());
   static Future<void> kisiSil(String id) => _api.delete('$_k/contacts/$id');

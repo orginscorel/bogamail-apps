@@ -158,8 +158,7 @@ class _KisiSeciciState extends State<KisiSecici> {
                       final v = varlikMetni(k);
                       final alt = [
                         if (k.altBilgi.isNotEmpty) k.altBilgi,
-                        if (k.durum.isNotEmpty) sohbetDurumAdlari[k.durum] ?? '',
-                        if (k.durumMetni.isNotEmpty) k.durumMetni,
+                        k.durumYazisi,
                         if (v.metin.isNotEmpty) v.metin,
                       ].where((s) => s.isNotEmpty).join(' · ');
                       return ListTile(

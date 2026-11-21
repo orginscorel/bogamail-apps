@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../veri/modeller.dart';
 import '../veri/posta_servisi.dart';
 import '../veri/yardimci.dart';
+import 'ek_onizleme.dart';
 import 'simgeler.dart';
 
 bool get _masaustu => !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
@@ -274,7 +275,26 @@ class _EkKartiState extends State<_EkKarti> {
     }
   }
 
+  /// Dokununca: görsel / PDF / düz metin uygulama içinde önizlenir (web gibi); diğerleri dış uygulamada açılır.
   Future<void> _ac() async {
+    if (_ilerleme != null) return;
+    final tur = ekOnizlemeTuru(widget.ek);
+    if (tur == null) return _disaridaAc();
+    try {
+      final f = await _dosya();
+      final b = await f.readAsBytes();
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => EkOnizleme(ek: widget.ek, tur: tur, veri: b, dosya: f, paylas: _paylas, kaydet: _kaydet, disaridaAc: _disaridaAc),
+        ),
+      );
+    } catch (e) {
+      bildir('Ek indirilemedi', mesaj: hataMetni(e), tur: MesajTur.hata);
+    }
+  }
+
+  Future<void> _disaridaAc() async {
     if (_ilerleme != null) return;
     try {
       final f = await _dosya();

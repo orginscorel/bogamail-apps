@@ -71,7 +71,7 @@ class _YanMenuState extends State<YanMenu> {
   Widget build(BuildContext context) {
     final r = context.r;
     return ListenableBuilder(
-      listenable: Listenable.merge([PostaDurum.ben, GidenKutusu.ben.ogeler]),
+      listenable: Listenable.merge([PostaDurum.ben, GidenKutusu.ben.ogeler, GidenKutusu.ben.sunucu]),
       builder: (context, _) {
         final d = PostaDurum.ben;
         if (widget.dar) return _dar(context, d);
@@ -169,27 +169,26 @@ class _YanMenuState extends State<YanMenu> {
                             ])
                               _oge(context, gorunumSimgesi(id), ad, Konum.gorunum(id), renk: gorunumRengi(id)),
                             for (final k in digerSistem) _klasorOgesi(context, k),
-                            // Outlook gibi: çevrimdışıyken gönderilenler (yalnız doluyken görünür; sayı rozeti).
-                            ValueListenableBuilder<List<GidenOge>>(
-                              valueListenable: GidenKutusu.ben.ogeler,
-                              builder: (context, l, _) => l.isEmpty
-                                  ? const SizedBox.shrink()
-                                  : KeyedSubtree(
-                                      key: const ValueKey('yan-giden-kutusu'),
-                                      child: _ogeGovdesi(
-                                        context,
-                                        Simge.gidenKutusu,
-                                        'Giden Kutusu',
-                                        null,
-                                        sayi: l.length,
-                                        renk: l.any((o) => o.durum == GidenDurum.hata) ? Marka.gul : null,
-                                        dokun: () {
-                                          final nav = Navigator.of(context);
-                                          if (cekmecede) nav.pop();
-                                          uyarlanirAc<void>(nav.context, (_) => const GidenKutusuEkrani());
-                                        },
-                                      ),
-                                    ),
+                            // Outlook / web gibi Giden Kutusu: yerel (çevrimdışı) + sunucu kuyruğu; sayı, hata varsa kırmızı.
+                            ListenableBuilder(
+                              listenable: Listenable.merge([GidenKutusu.ben.ogeler, GidenKutusu.ben.sunucu]),
+                              builder: (context, _) => KeyedSubtree(
+                                key: const ValueKey('yan-giden-kutusu'),
+                                child: _ogeGovdesi(
+                                  context,
+                                  Simge.gidenKutusu,
+                                  'Giden Kutusu',
+                                  null,
+                                  sayi: GidenKutusu.ben.toplam,
+                                  renk: GidenKutusu.ben.hataVar ? Marka.gul : null,
+                                  sayiRengi: GidenKutusu.ben.hataVar ? Marka.gul : null,
+                                  dokun: () {
+                                    final nav = Navigator.of(context);
+                                    if (cekmecede) nav.pop();
+                                    uyarlanirAc<void>(nav.context, (_) => const GidenKutusuEkrani());
+                                  },
+                                ),
+                              ),
                             ),
                             _arac(context, Simge.planliGonder, 'Planlanan', PlanlananlarEkrani.new),
                             _arac(context, Simge.gereksiz, 'Karantina', KarantinaEkrani.new),
@@ -402,15 +401,15 @@ class _YanMenuState extends State<YanMenu> {
                     sayi: const {'sent', 'trash', 'drafts', 'templates', 'snoozed'}.contains(k.rol) ? 0 : k.okunmamis,
                     renk: klasorRengi(k.rol),
                   ),
-                if (GidenKutusu.ben.ogeler.value.isNotEmpty)
-                  simge(
-                    'giden',
-                    Simge.gidenKutusu,
-                    'Giden Kutusu',
-                    null,
-                    sayi: GidenKutusu.ben.ogeler.value.length,
-                    dokun: () => uyarlanirAc<void>(context, (_) => const GidenKutusuEkrani()),
-                  ),
+                simge(
+                  'giden',
+                  Simge.gidenKutusu,
+                  'Giden Kutusu',
+                  null,
+                  sayi: GidenKutusu.ben.toplam,
+                  renk: GidenKutusu.ben.hataVar ? Marka.gul : null,
+                  dokun: () => uyarlanirAc<void>(context, (_) => const GidenKutusuEkrani()),
+                ),
                 simge('planlanan', Simge.planliGonder, 'Planlanan', null, dokun: () => uyarlanirAc<void>(context, (_) => const PlanlananlarEkrani())),
                 simge('karantina', Simge.gereksiz, 'Karantina', null, dokun: () => uyarlanirAc<void>(context, (_) => const KarantinaEkrani())),
                 simge('gonderim', Simge.gonderimDurumu, 'Gönderim durumu', null, dokun: () => uyarlanirAc<void>(context, (_) => const GonderimDurumuEkrani())),
@@ -500,6 +499,7 @@ class _YanMenuState extends State<YanMenu> {
     int sayi = 0,
     bool solukSayi = false,
     Color? renk,
+    Color? sayiRengi,
     Widget? menu,
     bool uzerinde = false,
     bool nokta = false,
@@ -566,7 +566,7 @@ class _YanMenuState extends State<YanMenu> {
                       height: 20,
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(color: solukSayi ? r.ic : r.birincil, borderRadius: BorderRadius.circular(10)),
+                      decoration: BoxDecoration(color: sayiRengi ?? (solukSayi ? r.ic : r.birincil), borderRadius: BorderRadius.circular(10)),
                       child: Text(
                         sayi > 999 ? '999+' : '$sayi',
                         style: TextStyle(

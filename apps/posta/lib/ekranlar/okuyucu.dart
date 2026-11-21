@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../oturum.dart';
+import '../ortak/yazdir.dart';
 import '../ortak/ek_listesi.dart';
 import '../ortak/html_govde.dart';
 import '../ortak/iskelet.dart';
@@ -440,6 +441,8 @@ class OkuyucuState extends State<Okuyucu> {
         yanitla(tumu: true);
       case 'disa':
         _disaAktar();
+      case 'yazdir':
+        iletiYazdir(context, d);
       case 'duzenle':
         yazmaAc(context, taslakHazirla(d, taslakId: _rol == 'drafts' ? d.ozet.id : null));
       case 'bicimli':
@@ -476,6 +479,7 @@ class OkuyucuState extends State<Okuyucu> {
       // Biçimli / düz metin görünümü (eskiden gövdenin üstünde ayrı bir düğme grubuydu).
       if (d.gorunum.html.trim().isNotEmpty && d.gorunum.metin.trim().isNotEmpty)
         _html ? o('duz', Simge.duzMetin, 'Düz metin olarak göster') : o('bicimli', Simge.duzMetin, 'Biçimli göster'),
+      o('yazdir', Simge.yazdir, 'Yazdır'),
       o('disa', Simge.indir, 'İletiyi indir (.eml)'),
     ];
   }
@@ -897,6 +901,20 @@ class OkuyucuState extends State<Okuyucu> {
                             if (v.bilgi.isNotEmpty) _satir('Bilgi', v.bilgi.map(adresYaz).join(', ')),
                             _satir('Tarih', tamZaman(tarih)),
                             if (d.ozet.boyut > 0) _satir('Boyut', boyutYaz(d.ozet.boyut)),
+                            if (d.dogrulama.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 84,
+                                      child: Text('Doğrulama', style: TextStyle(color: r.silik, fontSize: 12)),
+                                    ),
+                                    Expanded(child: DogrulamaCipleri(sonuclar: d.dogrulama)),
+                                  ],
+                                ),
+                              ),
                             if (d.spamPuani != null) _satir('Spam puanı', d.spamPuani!.toStringAsFixed(1)),
                           ],
                         ),

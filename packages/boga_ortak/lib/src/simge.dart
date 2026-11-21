@@ -230,6 +230,7 @@ abstract final class Simge {
   static const yedek = IconData(0xe1ae, fontFamily: _ince, fontPackage: _paket); // cloudArrowUp
   static const yenidenAdlandir = IconData(0xebc6, fontFamily: _ince, fontPackage: _paket); // pencilSimpleLine
   static const yenile = IconData(0xe036, fontFamily: _ince, fontPackage: _paket); // arrowClockwise
+  static const yazdir = IconData(0xe3dc, fontFamily: _ince, fontPackage: _paket); // printer
   static const yerImi = IconData(0xe0ea, fontFamily: _ince, fontPackage: _paket); // bookmarkSimple
   static const yildiz = IconData(0xe46a, fontFamily: _ince, fontPackage: _paket); // star
   static const yildizDolu = IconData(0xe46a, fontFamily: _dolu, fontPackage: _paket); // star

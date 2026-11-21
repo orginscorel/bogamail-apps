@@ -107,6 +107,7 @@ class Esitleyici {
     try {
       await IslemKuyrugu.ben.oynat();
       await GidenKutusu.ben.gonder();
+      unawaited(GidenKutusu.ben.sunucuTazele());
       final d = PostaDurum.ben;
       await d.klasorleriTazele();
       if (Onbellek.ben.hesap != hesap) return;

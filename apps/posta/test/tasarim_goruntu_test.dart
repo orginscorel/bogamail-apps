@@ -19,12 +19,15 @@ import 'package:posta/ekranlar/birlesik_ekrani.dart';
 import 'package:posta/ekranlar/ileti_listesi.dart';
 import 'package:posta/ekranlar/ileti_satiri.dart';
 import 'package:posta/ekranlar/okuyucu.dart';
+import 'package:posta/ekranlar/okuyucu_parcalari.dart';
+import 'package:posta/ekranlar/takvim/takvim_ekrani.dart';
 import 'package:posta/ekranlar/sol_ray.dart';
 import 'package:posta/ekranlar/yan_menu.dart';
 import 'package:posta/oturum.dart';
 import 'package:posta/veri/birlesik.dart';
 import 'package:posta/veri/canli.dart';
 import 'package:posta/veri/durum.dart';
+import 'package:posta/veri/hesap_servisi.dart';
 import 'package:posta/veri/modeller.dart';
 import 'package:posta/veri/onyukleme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -415,6 +418,120 @@ void main() {
     await ciz(t, 'cevrimdisi-telefon', telefon, () => IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, klasorler: () {}));
     await ciz(t, 'cevrimdisi-klasorler-telefon', telefon, () => YanMenu(sec: (_) {}, sayfa: true));
     await ciz(t, 'giden-kutusu-telefon', telefon, () => const GidenKutusuEkrani());
+  });
+
+  testWidgets('eşitlik: Giden Kutusu sunucu kuyruğu, takvim Gün görünümü, DMARC uyarısı ve doğrulama çipleri', (t) async {
+    final saat = DateTime.now().add(const Duration(hours: 3)).toUtc().toIso8601String();
+    final planlilar = [
+      {
+        'id': 'p1',
+        'send_at': saat,
+        'status': 'pending',
+        'kind': 'scheduled',
+        'to': ['ayse@ornek.com'],
+        'subject': 'Haftalık rapor',
+      },
+      {
+        'id': 'p2',
+        'send_at': saat,
+        'status': 'sending',
+        'kind': 'undo',
+        'to': ['ekip@ornek.com'],
+        'subject': 'Toplantı notları',
+      },
+      {
+        'id': 'p3',
+        'send_at': saat,
+        'status': 'failed',
+        'kind': 'scheduled',
+        'error': 'Alıcı sunucusu iletiyi reddetti (550).',
+        'to': ['veli@firma.com'],
+        'subject': 'Teklif',
+      },
+    ];
+    s.yollar['GET /api/v1/mail/scheduled'] = (200, {'items': planlilar});
+    GidenKutusu.ben.sunucu.value = planlilar.map(Planli.json).toList();
+    addTearDown(GidenKutusu.ben.sifirla);
+    await ciz(t, 'giden-sunucu-telefon', telefon, () => const GidenKutusuEkrani());
+
+    final g = DateTime.now();
+    String utc(int sa, [int dk = 0]) => DateTime(g.year, g.month, g.day, sa, dk).toUtc().toIso8601String();
+    s.yollar
+      ..['GET /api/v1/mail/calendars'] = (
+        200,
+        {
+          'items': [
+            {'id': 'k1', 'name': 'İş', 'color': 'blue', 'is_default': true},
+            {'id': 'k2', 'name': 'Kişisel', 'color': 'green'},
+          ],
+        },
+      )
+      ..['GET /api/v1/mail/calendar/events'] = (
+        200,
+        {
+          'items': [
+            {
+              'id': 'e1',
+              'calendar_id': 'k1',
+              'title': 'Sprint planlama',
+              'location': 'Toplantı odası 2',
+              'starts_at': utc(9),
+              'ends_at': utc(10, 30),
+              'color': 'blue',
+            },
+            {'id': 'e2', 'calendar_id': 'k2', 'title': 'Diş hekimi', 'starts_at': utc(10), 'ends_at': utc(11), 'color': 'green'},
+            {'id': 'e3', 'calendar_id': 'k1', 'title': 'Müşteri görüşmesi', 'starts_at': utc(13), 'ends_at': utc(14), 'color': 'blue'},
+            {'id': 'e4', 'calendar_id': 'k2', 'title': 'Annemin doğum günü', 'starts_at': utc(0), 'ends_at': utc(0), 'all_day': true, 'color': 'green'},
+          ],
+        },
+      );
+    await ciz(
+      t,
+      'takvim-gun-telefon',
+      telefon,
+      () => const TakvimEkrani(),
+      hazirla: () async {
+        await t.pump(const Duration(milliseconds: 100));
+        await t.tap(find.byTooltip('Görünüm'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
+        await t.tap(find.text('Gün').last);
+        for (var i = 0; i < 4; i++) {
+          await t.pump(const Duration(milliseconds: 150));
+        }
+      },
+    );
+
+    final d = IletiDetay.json({
+      'message': {'id': 'x', 'subject': 'Hesabınız askıya alındı', 'from': 'Banka <destek@banka-guvenlik.com>', 'seen': true},
+      'view': {'subject': 'Hesabınız askıya alındı', 'from': [], 'to': [], 'cc': [], 'reply_to': [], 'text': '', 'html': '', 'attachments': []},
+      'auth': {
+        'spf': {'result': 'pass', 'domain': 'banka-guvenlik.com'},
+        'dkim': {'result': 'softfail', 'domain': 'banka-guvenlik.com'},
+        'dmarc': {'result': 'fail', 'domain': 'banka-guvenlik.com'},
+      },
+    });
+    await ciz(
+      t,
+      'dogrulama-telefon',
+      telefon,
+      () => Scaffold(
+        appBar: AppBar(title: const Text('Ayrıntılar')),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...sezgiselUyarilar(d),
+              const SizedBox(height: 16),
+              const Text('Doğrulama'),
+              const SizedBox(height: 6),
+              DogrulamaCipleri(sonuclar: d.dogrulama),
+            ],
+          ),
+        ),
+      ),
+    );
   });
 
   testWidgets('kenar menüsü (telefon)', (t) async {

@@ -274,6 +274,9 @@ class _RayEsitlemeState extends State<RayEsitleme> {
 }
 
 /// Web useSplit: liste [oran] × alan, [enAz]–[enCok] px arasında ve okumaya en az [kalan] px bırakarak.
+/// Yan yana okuma alanında listenin varsayılan genişlik oranı.
+const listeVarsayilanOrani = .42;
+
 double bolmeBoyu({required double alan, required double oran, required double enAz, required double enCok, required double kalan}) {
   final ust = math.max(enAz, math.min(enCok, alan - kalan));
   return math.min(ust, math.max(enAz, oran * alan));

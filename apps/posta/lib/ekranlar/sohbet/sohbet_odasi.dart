@@ -516,8 +516,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
                         title: Text(u.id == benId ? '${u.gorunen} (siz)' : u.gorunen),
                         subtitle: Text(
                           [
-                            if (u.durum.isNotEmpty) sohbetDurumAdlari[u.durum] ?? u.durum,
-                            if (u.durumMetni.isNotEmpty) u.durumMetni,
+                            if (u.durumYazisi.isNotEmpty) u.durumYazisi,
                             if (varlikMetni(u).metin.isNotEmpty) varlikMetni(u).metin,
                             if (u.altBilgi.isNotEmpty) u.altBilgi,
                           ].join(' · '),
@@ -545,11 +544,7 @@ class _SohbetOdasiEkraniState extends State<SohbetOdasiEkrani> {
       if (oda.birebir) {
         final k = oda.karsi(benId);
         if (k != null) {
-          alt = [
-            if (k.durum.isNotEmpty) sohbetDurumAdlari[k.durum] ?? '',
-            if (k.durumMetni.isNotEmpty) k.durumMetni,
-            varlikMetni(k).metin,
-          ].where((s) => s.isNotEmpty).join(' · ');
+          alt = [k.durumYazisi, varlikMetni(k).metin].where((s) => s.isNotEmpty).join(' · ');
         }
       } else {
         alt = '${oda.uyeSayisi} üye';

@@ -45,7 +45,7 @@ String suzgecOzeti(Suzgec s) {
         return ad;
       })
       .join(', ');
-  return '${k.isEmpty ? 'Tüm iletiler' : k} → $e';
+  return '${k.isEmpty ? 'Tüm iletiler' : k} → $e${s.dur ? ' · sonraki süzgeçler çalışmaz' : ''}';
 }
 
 /// Süzgeci listede bir yukarı/aşağı taşır: sıra 10, 20, 30… olarak yeniden numaralanır ve yalnızca değişenler
@@ -114,7 +114,7 @@ class SuzgeclerEkrani extends StatelessWidget {
                       await yenile();
                     } else if (v == 'calistir') {
                       final n = await islem(() => Hesap.suzgecCalistir(s.id));
-                      if (n != null) bildir('${n.eslesen} ileti eşleşti', mesaj: '${n.taranan} ileti tarandı', tur: MesajTur.basari);
+                      if (n != null) bildir('${n.eslesen} iletide uygulandı', mesaj: 'Gelen Kutusu\'ndaki ${n.taranan} ileti tarandı.', tur: MesajTur.basari);
                       PostaDurum.ben.sayilariYenile();
                     } else if (v == 'sil') {
                       if (!await onayla(context, 'Süzgeç silinsin mi?', evet: 'Sil', tehlikeli: true)) return;
@@ -135,7 +135,7 @@ class SuzgeclerEkrani extends StatelessWidget {
                     ),
                     const PopupMenuItem(
                       value: 'calistir',
-                      child: ListTile(leading: Icon(Simge.oynat), title: Text('Gelen Kutusu\'na şimdi uygula')),
+                      child: ListTile(leading: Icon(Simge.oynat), title: Text('Şimdi çalıştır'), subtitle: Text('Gelen Kutusu\'ndaki iletilere uygula')),
                     ),
                     const PopupMenuItem(
                       value: 'sil',
@@ -349,10 +349,12 @@ class _SuzgecDuzenleyiciState extends State<SuzgecDuzenleyici> {
                   ),
                 ),
               CheckboxListTile(
+                key: const ValueKey('suzgec-dur'),
                 contentPadding: EdgeInsets.zero,
                 value: _s.dur,
                 onChanged: (v) => setState(() => _s.dur = v ?? false),
-                title: const Text('Bu süzgeç uygulanınca sonraki süzgeçleri işleme'),
+                title: const Text('Sonraki süzgeçleri çalıştırma'),
+                subtitle: const Text('Bu süzgeç uyarsa listede altındaki süzgeçler bu ileti için denenmez.'),
               ),
             ],
           ),
