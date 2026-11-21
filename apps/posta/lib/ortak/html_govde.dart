@@ -34,20 +34,87 @@ Future<void> webGorunumunuIsit() async {
   }
 }
 
-/// İzolatta çalışan hazırlık (büyük bültenler arayüzü dondurmasın).
-({String belge, int engellenen, double dogal}) _hazirla(
-  ({String html, Map<String, String> baglantilar, Map<String, String> uzak, Map<String, String> cid, String kok, bool katla, bool sikisik}) a,
-) {
-  final t = htmlTemizle(a.html, baglantilar: a.baglantilar, uzak: a.uzak, cid: a.cid, kok: a.kok);
+typedef _Girdi = ({
+  String html,
+  Map<String, String> baglantilar,
+  Map<String, String> uzak,
+  Map<String, String> cid,
+  String kok,
+  bool katla,
+  bool sikisik,
+  bool isaretle,
+});
+
+/// Hazırlık (büyük bültenlerde izolatta; arayüz donmasın).
+({String belge, int engellenen, double dogal}) _hazirla(_Girdi a) {
+  final t = htmlTemizle(a.html, baglantilar: a.baglantilar, uzak: a.uzak, cid: a.cid, kok: a.kok, isaretle: a.isaretle);
   return (belge: gorunumBelgesi(a.katla ? alintilariKatla(t.html) : t.html, sikisik: a.sikisik), engellenen: t.engellenen, dogal: dogalGenislik(t.html));
+}
+
+/// Bu boyutun altındaki HTML ana iş parçacığında, aynı karede hazırlanır (ileti değişince bekleme yok).
+const _esZamanliSinir = 60000;
+
+/// Hazırlanmış (görselleri yerleşmiş) son belgeler: aynı iletiye dönünce anında ve aynısı gösterilir.
+class _HazirBelge {
+  _HazirBelge(this.belge, this.engellenen, this.dogal, this.tam);
+  final String belge;
+  final int engellenen;
+  final double dogal;
+
+  /// Tüm görseller (uzak + gömülü) yerleşti mi.
+  final bool tam;
+}
+
+class HazirBelgeler {
+  HazirBelgeler._();
+  static final _l = <String, _HazirBelge>{};
+  static int _boyut = 0;
+
+  /// Toplam üst sınır (karakter; data: görseller dahil).
+  static int sinir = 80 * 1024 * 1024;
+
+  static _HazirBelge? _al(String k) {
+    final v = _l.remove(k);
+    if (v != null) _l[k] = v;
+    return v;
+  }
+
+  static void _koy(String k, _HazirBelge v) {
+    final eski = _l.remove(k);
+    if (eski != null) _boyut -= eski.belge.length;
+    _l[k] = v;
+    _boyut += v.belge.length;
+    while (_boyut > sinir && _l.length > 1) {
+      final ilk = _l.keys.first;
+      _boyut -= _l.remove(ilk)!.belge.length;
+    }
+  }
+
+  @visibleForTesting
+  static int get sayi => _l.length;
+
+  static void temizle() {
+    _l.clear();
+    _boyut = 0;
+  }
 }
 
 /// Widget testlerinde web görünümü eklentisi yoktur: içerik düz metin olarak çizilir.
 bool get _testOrtami => !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
 
-/// Güvenilmeyen ileti HTML'ini JavaScript'siz, ağ erişimsiz bir görüntüleyicide gösterir. Uzak görseller varsayılan
-/// olarak engellenir; "Görselleri göster" ile sunucu vekili üzerinden (data: olarak) yüklenir. Bağlantılar dış
-/// tarayıcıda açılır, mailto: bağlantıları uygulamada yeni ileti açar.
+/// Masaüstü (macOS / Windows / Linux) düzeni: okuma bölmesini dolduran, kendi içinde kayan tek web görünümü.
+/// Testlerde [masaustuZorla] ile seçilir.
+bool? masaustuZorla;
+bool get masaustuDuzeni => masaustuZorla ?? (!kIsWeb && !_testOrtami && (Platform.isMacOS || Platform.isWindows || Platform.isLinux));
+
+/// Güvenilmeyen ileti HTML'ini ağ erişimsiz bir görüntüleyicide gösterir. Uzak görseller varsayılan olarak
+/// engellenir; "Görselleri göster" ile sunucu vekili üzerinden (data: olarak) yüklenir. Bağlantılar dış tarayıcıda
+/// açılır, mailto: bağlantıları uygulamada yeni ileti açar.
+///
+/// İki kip: [otomatikYukseklik] (telefon konuşması: yükseklik yerel ölçülür, dış liste kayar) ve tam boy (varsayılan:
+/// bölmeyi doldurur, kendi içinde kayar; masaüstü okuyucu). Tam boy kipte web görünümü ileti değişince korunur:
+/// yeni belge hemen yüklenir (bellekteki görseller içinde), geç gelen görseller masaüstünde belge yeniden
+/// yüklenmeden yerine konur (kaydırma konumu korunur, beyaz sayfa yok).
 class HtmlGovde extends StatefulWidget {
   const HtmlGovde({
     super.key,
@@ -74,8 +141,7 @@ class HtmlGovde extends StatefulWidget {
   /// Gömülü (cid:) görsel indirme; verilmezse oturumdaki hesabın eki.
   final Future<Uint8List> Function(int sira)? ekIndir;
 
-  /// Konuşma görünümü: yükseklik içerikten ölçülür, web görünümü kendi içinde kaymaz (iç içe kaydırma yok);
-  /// dış liste kayar. Ölçülemeyen platformlarda sınırlı yükseklikte kendi içinde kayar.
+  /// Telefon konuşma görünümü: yükseklik içerikten ölçülür (iOS/Android yerel), web görünümü kendi içinde kaymaz.
   final bool otomatikYukseklik;
 
   /// Alıntılanan geçmişi belge içinde "•••" ile katla (konuşma görünümü bunu kendisi yapar).
@@ -92,48 +158,62 @@ class _HtmlGovdeState extends State<HtmlGovde> {
   int _engellenen = 0;
   bool _gorseller = false;
   bool _gorselYukleniyor = false;
+  bool _hazirlaniyor = false;
   Map<String, String> _cid = const {};
   Map<String, String> _uzak = const {};
   double? _yukseklik;
   bool _olculemedi = false;
+
+  /// Her ileti değişiminde artar; eski işlerin sonucu atılır.
+  int _nesil = 0;
+
+  /// Yüklenen belge bitti mi (masaüstü yamaları yükleme bitince uygulanır).
+  bool _yuklemeBitti = false;
+  final _bekleyenUzak = <String, String>{};
+
+  /// Hazırlanan belgenin içine zaten konmuş görseller (yükleme bitince yeniden yamalanmaz).
+  Set<String> _belgedekiUzak = const {};
+  Set<String> _belgedekiCid = const {};
+  final _bekleyenCid = <String, String>{};
 
   /// İletinin sabit genişliği ve görüntüleyiciye sığdırma oranı (yatay kaydırma yok; web reader.tsx fit()).
   double _dogal = 0;
   double _oran = 1;
   double _en = 0;
 
-  // Masaüstünde sığdırma ölçümle (JS, _olcMasaustu) yapılır; belgeye sabit oran eklenmez.
-  // Masaüstünde sığdırma ölçümle (JS, _olcMasaustu) yapılır; belgeye sabit oran eklenmez. Tam boy kipte kaydırma
-  // çubuğu baştan gizli (ölçülene kadar kısa kutuda kaydırma çubuğu görünmesin).
-  String? get _gosterilen => _belge == null
-      ? null
-      : _masaustu
-      ? (widget.otomatikYukseklik && !_olculemedi ? _belge!.replaceFirst('</head>', '<style>html{overflow:hidden}</style></head>') : _belge)
-      : sigdirilmisBelge(_belge!, _oran);
+  /// Masaüstü tam boy kipte görseller JavaScript ile (belge yeniden yüklenmeden) yerine konur. JavaScript yalnız
+  /// uygulamanın çağrısı içindir: ileti betikleri temizleyicide silinir ve belgenin CSP'si (script-src 'none') sayfa
+  /// betiği çalıştırmaz; evaluateJavascript CSP'ye tabi değildir. Telefonda JavaScript kapalıdır.
+  bool get _yama => masaustuDuzeni && !widget.otomatikYukseklik;
 
-  /// Masaüstü: en son ölçülen belge. Görünen belge henüz ölçülmediyse görüntüleyici beyaz örtüyle gizlenir; ileti
-  /// önce kısa kutuda görünüp sonra uzamaz, ölçülünce doğru boyunda tek seferde görünür.
-  String? _olculen;
+  String? get _gosterilen => _belge == null ? null : sigdirilmisBelge(_belge!, _oran);
 
-  /// Masaüstü: ölçülüp gösterilmiş son ileti. Aynı iletinin belgesi yeniden yüklenince (görseller geldi, genişlik
-  /// değişti) örtü tekrar inmez; içerik görünür kalır, yalnız boy güncellenir.
-  String? _gosterilenIleti;
+  String get _anahtar => '${widget.iletiId}|${widget.html.hashCode}|${widget.html.length}|$_gorseller|${widget.alintiyiKatla}|${widget.otomatikYukseklik}';
+
+  _Girdi _girdi({Map<String, String>? uzak, Map<String, String>? cid, bool? isaretle}) => (
+    html: widget.html,
+    baglantilar: widget.baglantilar,
+    uzak: _gorseller ? (uzak ?? _uzak) : const <String, String>{},
+    cid: cid ?? _cid,
+    kok: Uyg.api.sunucu,
+    katla: widget.alintiyiKatla,
+    sikisik: widget.otomatikYukseklik,
+    isaretle: isaretle ?? _yama,
+  );
 
   /// Genişlik değişince oran yeniden hesaplanır; değiştiyse belge yeniden yüklenir.
   void _genislikDegisti(double en) {
     if ((en - _en).abs() < 1) return;
     _en = en;
-    if (_masaustu) {
-      // Genişlik değişti: metin yeniden akar, yükseklik/sığdırma yeniden ölçülür.
-      final c = _k;
-      if (c != null && widget.otomatikYukseklik) WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_olc(c)));
-      return;
-    }
     final o = sigdirmaOrani(_dogal, en);
     if ((o - _oran).abs() < .01) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() => _oran = o);
+      // Masaüstünde yerleşmiş görseller belgede değil: yeniden yüklemeden önce belge görsellerle kurulur.
+      if (_yama && (_uzak.isNotEmpty || _cid.isNotEmpty)) {
+        _esZamanliKur(isaretle: true);
+      }
       unawaited(_yukle());
     });
   }
@@ -142,95 +222,157 @@ class _HtmlGovdeState extends State<HtmlGovde> {
     final g = _gosterilen;
     if (_k == null || g == null) return;
     if (_yuklenen == g) {
-      // Belge aynı (ör. önbellekten açılan ileti ağdan aynı içerikle tazelendi): yeniden yükleme ve onLoadStop olmaz;
-      // yükseklik yine de ölçülür, yoksa gövde varsayılan küçük kutuda kalır.
-      if (widget.otomatikYukseklik && (_yukseklik == null || _masaustu)) unawaited(_olc(_k!));
+      // Belge aynı: yeniden yükleme ve onLoadStop olmaz; telefonda yükseklik yine ölçülür.
+      if (widget.otomatikYukseklik && _yukseklik == null) unawaited(_olc(_k!));
       return;
     }
     _yuklenen = g;
+    _yuklemeBitti = false;
     await _k!.loadData(data: g, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank'));
   }
-
-  /// macOS/Windows/Linux'ta eklenti içerik yüksekliğini yerel olarak ölçemez (JavaScript ister). Masaüstünde
-  /// görüntüleyicide JavaScript yalnızca uygulamanın ölçümü için açıktır: posta içindeki betikler temizleyicide
-  /// silinir ve belgenin CSP'si (default-src/script-src 'none') hiçbir sayfa betiğinin çalışmasına izin vermez;
-  /// uygulamanın evaluateJavascript çağrısı CSP'ye tabi değildir. iOS/Android yüksekliği yerel ölçer, JS kapalıdır.
-  static bool get _masaustu => !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
 
   @override
   void initState() {
     super.initState();
-    _olculemedi = false;
     _gorseller = widget.otomatikGorsel;
-    unawaited(_baslat());
+    _baslat();
   }
 
-  /// Aynı görüntüleyici başka bir iletiye geçti (geniş ekranda okuma bölmesi): web görünümü korunur, yalnız belge
-  /// değişir (her açılışta yeni web görünümü kurma maliyeti yok).
+  /// Aynı görüntüleyici başka bir iletiye geçti (okuma bölmesi): web görünümü korunur, yalnız belge değişir.
   @override
   void didUpdateWidget(HtmlGovde eski) {
     super.didUpdateWidget(eski);
-    if (eski.iletiId == widget.iletiId && eski.html == widget.html) return;
+    if (eski.iletiId == widget.iletiId && eski.html == widget.html && eski.otomatikGorsel == widget.otomatikGorsel) return;
     _cid = const {};
     _uzak = const {};
     _engellenen = 0;
     _gorseller = widget.otomatikGorsel;
     _gorselYukleniyor = false;
     _olculemedi = false;
-    unawaited(_baslat());
+    _bekleyenUzak.clear();
+    _bekleyenCid.clear();
+    _baslat();
   }
 
-  Future<void> _baslat() async {
-    var eksik = true;
+  /// Başlangıç: hazır belge (LRU) varsa aynı karede; yoksa bellekteki görsellerle (küçük iletide eşzamanlı)
+  /// hazırlanır; eksik görseller (disk, gömülü, uzak) sonra yerleşir.
+  void _baslat() {
+    final n = ++_nesil;
+    final h = HazirBelgeler._al(_anahtar);
+    if (h != null) {
+      _belge = h.belge;
+      _dogal = h.dogal;
+      _engellenen = h.engellenen;
+      if (_en > 0) _oran = sigdirmaOrani(_dogal, _en);
+      _hazirlaniyor = false;
+      _belgedekiUzak = const {};
+      _belgedekiCid = const {};
+      if (mounted) setState(() {});
+      unawaited(_yukle());
+      // Yalnız tamamlanmış belgeler saklanır: görsel / ek indirme yok.
+      return;
+    }
+    List<String> adresler = const [];
+    if (_gorseller && widget.html.length <= _esZamanliSinir) {
+      adresler = uzakGorseller(widget.html);
+      _uzak = {
+        for (final u in adresler)
+          if (Onbellek.ben.hemen('gorsel:$u') case final String v) u: v,
+      };
+    }
+    if (widget.html.length <= _esZamanliSinir) {
+      _esZamanliKur();
+      if (mounted) setState(() {});
+      unawaited(_yukle());
+    } else {
+      // Büyük bülten: izolatta hazırlanır; önceki içerik görünür kalır, üstte ince gösterge.
+      _hazirlaniyor = true;
+      if (mounted) setState(() {});
+      unawaited(_izolattaKur(n));
+    }
+    unawaited(_sonraYukle(n));
+  }
+
+  void _esZamanliKur({bool? isaretle}) {
+    _belgedekiUzak = _uzak.keys.toSet();
+    _belgedekiCid = _cid.keys.toSet();
+    final r = _hazirla(_girdi(isaretle: isaretle));
+    _belge = r.belge;
+    _dogal = r.dogal;
+    if (_en > 0) _oran = sigdirmaOrani(_dogal, _en);
+    if (!_gorseller || _uzak.isEmpty) _engellenen = r.engellenen;
+    _hazirlaniyor = false;
+  }
+
+  Future<void> _izolattaKur(int n) async {
+    final u = _uzak.keys.toSet(), c = _cid.keys.toSet();
+    final r = await compute(_hazirla, _girdi());
+    if (!mounted || n != _nesil) return;
+    _belgedekiUzak = u;
+    _belgedekiCid = c;
+    setState(() {
+      _belge = r.belge;
+      _dogal = r.dogal;
+      if (_en > 0) _oran = sigdirmaOrani(_dogal, _en);
+      if (!_gorseller || _uzak.isEmpty) _engellenen = r.engellenen;
+      _hazirlaniyor = false;
+    });
+    await _yukle();
+  }
+
+  /// Diskteki görseller, gömülü (cid) görseller, uzak görseller.
+  Future<void> _sonraYukle(int n) async {
     if (_gorseller) {
-      // Önbellekteki (önyüklenmiş) görseller ilk belgeye girer: ağ yok, ikinci çizim yok.
-      final s = Stopwatch()..start();
-      final (bulunan, tumu) = await _onbellektekiGorseller();
-      _uzak = bulunan;
-      eksik = !tumu;
-      zamanLogu('görseller (önbellek)', s);
+      final html = widget.html;
+      final adresler = html.length > _esZamanliSinir ? await compute(uzakGorseller, html) : uzakGorseller(html);
+      if (!mounted || n != _nesil) return;
+      final eksik = adresler.where((u) => !_uzak.containsKey(u)).toList();
+      final diskte = <String, String>{};
+      await Future.wait(
+        eksik.map((u) async {
+          final v = Onbellek.ben.hemen('gorsel:$u') ?? await Onbellek.ben.oku('gorsel:$u').catchError((_) => null);
+          if (v is String) diskte[u] = v;
+        }),
+      );
+      if (!mounted || n != _nesil) return;
+      if (diskte.isNotEmpty) await _uzakEkle(n, diskte);
+      unawaited(_cidYukle(n));
+      if (adresler.any((u) => !_uzak.containsKey(u))) await _uzakYukle(n, adresler);
+    } else {
+      await _cidYukle(n);
     }
-    await _yenidenOlustur();
-    unawaited(_cidYukle());
-    if (_gorseller && eksik) unawaited(_uzakYukle());
+    _tamamsaSakla(n);
   }
 
-  /// Uzak görsellerden yerel önbellekte olanlar (bellek, sonra disk). İkinci değer: hepsi bulundu mu.
-  Future<(Map<String, String>, bool)> _onbellektekiGorseller() async {
-    final html = widget.html;
-    final adresler = html.length > 60000 ? await compute(uzakGorseller, html) : uzakGorseller(html);
-    if (adresler.isEmpty) return (const <String, String>{}, true);
-    final out = <String, String>{};
-    final diskte = <String>[];
-    for (final u in adresler) {
-      final v = Onbellek.ben.hemen('gorsel:$u');
-      if (v is String) {
-        out[u] = v;
-      } else {
-        diskte.add(u);
-      }
-    }
-    await Future.wait(
-      diskte.map((u) async {
-        final v = await Onbellek.ben.oku('gorsel:$u');
-        if (v is String) out[u] = v;
+  /// Tüm görseller yerleştiyse son belge (görseller içinde, işaretsiz) LRU'ya konur.
+  void _tamamsaSakla(int n) {
+    if (!mounted || n != _nesil) return;
+    final k = _anahtar;
+    final girdi = _girdi(isaretle: false);
+    unawaited(
+      compute(_hazirla, girdi).then((r) {
+        HazirBelgeler._koy(k, _HazirBelge(r.belge, r.engellenen, r.dogal, true));
       }),
     );
-    return (out, out.length == adresler.length);
   }
 
-  Future<void> _yenidenOlustur() async {
-    final id = widget.iletiId;
-    final r = await compute(_hazirla, (
-      html: widget.html,
-      baglantilar: widget.baglantilar,
-      uzak: _gorseller ? _uzak : const <String, String>{},
-      cid: _cid,
-      kok: Uyg.api.sunucu,
-      katla: widget.alintiyiKatla,
-      sikisik: widget.otomatikYukseklik,
-    ));
-    if (!mounted || id != widget.iletiId) return;
+  Future<void> _uzakEkle(int n, Map<String, String> yeni) async {
+    _uzak = {..._uzak, ...yeni};
+    if (_yama) {
+      _bekleyenUzak.addAll(yeni);
+      await _yamala();
+    } else {
+      await _yenidenKur(n);
+    }
+  }
+
+  /// Telefon: belge yeni görsellerle yeniden kurulup yüklenir.
+  Future<void> _yenidenKur(int n) async {
+    final u = _uzak.keys.toSet(), c = _cid.keys.toSet();
+    final r = await compute(_hazirla, _girdi());
+    if (!mounted || n != _nesil) return;
+    _belgedekiUzak = u;
+    _belgedekiCid = c;
     setState(() {
       _belge = r.belge;
       _dogal = r.dogal;
@@ -238,17 +380,26 @@ class _HtmlGovdeState extends State<HtmlGovde> {
       if (!_gorseller || _uzak.isEmpty) _engellenen = r.engellenen;
     });
     await _yukle();
-    // Güvenlik ağı: yükleme olayı kaçarsa (masaüstü) ölçüm yine de yapılır.
-    if (_masaustu && widget.otomatikYukseklik) {
-      Future<void>.delayed(const Duration(milliseconds: 1200), () {
-        final c = _k;
-        if (mounted && c != null && id == widget.iletiId) unawaited(_olc(c));
-      });
-    }
   }
 
-  Future<void> _cidYukle() async {
-    final kimlik = widget.iletiId;
+  static const _yamaBetigi = """(function(u,c){var n=0;
+document.querySelectorAll('[data-bm-g]').forEach(function(e){var d=u[e.getAttribute('data-bm-g')];if(d){if(e.tagName==='IMG'){e.src=d;}else{e.setAttribute('background',d);}e.removeAttribute('data-bm-g');n++;}});
+document.querySelectorAll('[data-bm-c]').forEach(function(e){var d=c[e.getAttribute('data-bm-c')];if(d){if(e.tagName==='IMG'){e.src=d;}else{e.setAttribute('background',d);}e.removeAttribute('data-bm-c');n++;}});
+return n;})""";
+
+  /// Masaüstü: bekleyen görseller belge yeniden yüklenmeden yerine konur (kaydırma konumu korunur).
+  Future<void> _yamala() async {
+    final c = _k;
+    if (c == null || !_yuklemeBitti || (_bekleyenUzak.isEmpty && _bekleyenCid.isEmpty)) return;
+    final u = Map.of(_bekleyenUzak), ci = Map.of(_bekleyenCid);
+    _bekleyenUzak.clear();
+    _bekleyenCid.clear();
+    try {
+      await c.evaluateJavascript(source: '$_yamaBetigi(${jsonEncode(u)},${jsonEncode(ci)})');
+    } catch (_) {}
+  }
+
+  Future<void> _cidYukle(int n) async {
     final h = widget.html.toLowerCase();
     final istenen = widget.ekler
         .where((a) => a.icerikId.isNotEmpty && _cidTurleri.hasMatch(a.tur) && a.boyut <= _cidSiniri && h.contains('cid:${a.icerikId.toLowerCase()}'))
@@ -263,64 +414,68 @@ class _HtmlGovdeState extends State<HtmlGovde> {
         } catch (_) {}
       }),
     );
-    if (!mounted || out.isEmpty || kimlik != widget.iletiId) return;
-    _cid = out;
-    await _yenidenOlustur();
+    if (!mounted || out.isEmpty || n != _nesil) return;
+    _cid = {..._cid, ...out};
+    if (_yama) {
+      _bekleyenCid.addAll(out);
+      await _yamala();
+    } else {
+      await _yenidenKur(n);
+    }
   }
 
-  Future<void> _uzakYukle() async {
-    final kimlik = widget.iletiId;
-    final adresler = await compute(uzakGorseller, widget.html);
+  Future<void> _uzakYukle(int n, List<String> adresler) async {
     if (adresler.isEmpty || !mounted) return;
     setState(() => _gorselYukleniyor = true);
-    final kuyruk = [...adresler];
-    final bulunan = <String, String>{..._uzak};
-    // Görseller geldikçe gösterilir (hepsini beklemeden): en fazla ~350 ms'de bir yeniden çizim.
+    final kuyruk = adresler.where((u) => !_uzak.containsKey(u)).toList();
+    final gelen = <String, String>{};
+    // Görseller geldikçe gösterilir: masaüstünde hemen (yama), telefonda en fazla ~350 ms'de bir yeniden çizim.
     var sonCizim = DateTime.fromMillisecondsSinceEpoch(0);
     var cizimBekliyor = false;
     Future<void> ara() async {
       if (cizimBekliyor) return;
       cizimBekliyor = true;
       final gecen = DateTime.now().difference(sonCizim).inMilliseconds;
-      if (gecen < 350) await Future<void>.delayed(Duration(milliseconds: 350 - gecen));
+      final bekle = _yama ? 60 : 350;
+      if (gecen < bekle) await Future<void>.delayed(Duration(milliseconds: bekle - gecen));
       cizimBekliyor = false;
-      if (!mounted || kimlik != widget.iletiId || kuyruk.isEmpty) return;
+      if (!mounted || n != _nesil || gelen.isEmpty) return;
       sonCizim = DateTime.now();
-      _uzak = Map.of(bulunan);
-      await _yenidenOlustur();
+      final parti = Map.of(gelen);
+      gelen.clear();
+      await _uzakEkle(n, parti);
     }
 
     Future<void> isci() async {
-      while (kuyruk.isNotEmpty && mounted && kimlik == widget.iletiId) {
+      while (kuyruk.isNotEmpty && mounted && n == _nesil) {
         final u = kuyruk.removeAt(0);
         final d = await Posta.uzakGorselVeri(u);
         if (d != null) {
-          bulunan[u] = d;
+          gelen[u] = d;
           unawaited(ara());
         }
       }
     }
 
-    await Future.wait(List.generate(adresler.length < 8 ? adresler.length : 8, (_) => isci()));
-    if (!mounted || kimlik != widget.iletiId) return;
-    if (bulunan.length == _uzak.length && bulunan.keys.every(_uzak.containsKey)) {
-      setState(() => _gorselYukleniyor = false);
-      return;
-    }
-    _uzak = bulunan;
+    await Future.wait(List.generate(kuyruk.length < 8 ? kuyruk.length : 8, (_) => isci()));
+    if (!mounted || n != _nesil) return;
+    if (gelen.isNotEmpty) await _uzakEkle(n, Map.of(gelen));
     setState(() => _gorselYukleniyor = false);
-    await _yenidenOlustur();
   }
 
   void _gorselleriGoster() {
     setState(() => _gorseller = true);
-    unawaited(_uzakYukle());
+    final n = _nesil;
+    unawaited(() async {
+      final adresler = await compute(uzakGorseller, widget.html);
+      await _uzakYukle(n, adresler);
+      _tamamsaSakla(n);
+    }());
   }
 
-  /// İçerik yüksekliğini ölçer (yükleme bitince ve görseller yerleşince birkaç kez).
+  /// İçerik yüksekliğini ölçer (telefon; yükleme bitince ve görseller yerleşince birkaç kez).
   Future<void> _olc(InAppWebViewController c) async {
     if (!widget.otomatikYukseklik) return;
-    if (_masaustu) return _olcMasaustu(c);
     for (final bekle in const [0, 250, 900]) {
       if (bekle > 0) await Future<void>.delayed(Duration(milliseconds: bekle));
       if (!mounted || _k != c) return;
@@ -338,39 +493,6 @@ class _HtmlGovdeState extends State<HtmlGovde> {
         setState(() {
           _yukseklik = y;
           _olculemedi = false;
-        });
-      }
-    }
-  }
-
-  /// Masaüstü: doğal genişlik ölçülür, taşıyorsa web gibi alana sığdırılır (transform: ölçüm her motorda aynı),
-  /// sonra görünen yükseklik okunur. Görseller yerleştikçe birkaç kez tekrarlanır.
-  static const _olcBetigi = """(function(){var d=document.documentElement,b=document.body;if(!b)return '0';d.style.overflow='hidden';
-b.style.transform='';b.style.width='';var cw=d.clientWidth,sw=Math.max(d.scrollWidth,b.scrollWidth);
-var z=(sw>cw+2&&cw>0)?Math.max(0.5,cw/sw):1;if(z<1){b.style.transformOrigin='0 0';b.style.transform='scale('+z+')';b.style.width=(100/z)+'%';}
-return String(Math.ceil(b.getBoundingClientRect().height));})()""";
-
-  Future<void> _olcMasaustu(InAppWebViewController c) async {
-    for (final bekle in const [0, 200, 700, 1800]) {
-      if (bekle > 0) await Future<void>.delayed(Duration(milliseconds: bekle));
-      if (!mounted || _k != c) return;
-      double? h;
-      try {
-        h = double.tryParse('${await c.evaluateJavascript(source: _olcBetigi)}');
-      } catch (_) {}
-      if (!mounted) return;
-      if (h == null || h <= 0) {
-        if (_yukseklik == null) setState(() => _olculemedi = true);
-        continue;
-      }
-      final y = h + 8;
-      final yeni = _olculen != _yuklenen;
-      if (yeni || _yukseklik == null || _olculemedi || (y - _yukseklik!).abs() > 2) {
-        setState(() {
-          _yukseklik = y;
-          _olculemedi = false;
-          _olculen = _yuklenen;
-          _gosterilenIleti = widget.iletiId;
         });
       }
     }
@@ -396,22 +518,9 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
     final r = context.r;
     final belge = _gosterilen;
     final oto = widget.otomatikYukseklik;
-    // Ölçülemezse (ör. JavaScript'siz masaüstü) sınırlı yükseklik; içerik kendi içinde kayar.
-    final sinir = (MediaQuery.sizeOf(context).height - 160).clamp(360.0, 4000.0);
-    final yukseklik = _olculemedi ? sinir : (_yukseklik ?? 120);
-    Widget kutu(Widget c) => oto ? SizedBox(height: yukseklik, child: c) : Expanded(child: c);
-    if (_testOrtami) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16, oto ? 2 : 14, 16, oto ? 8 : 14),
-        child: Text(htmlMetne(widget.html).trim(), style: TextStyle(fontSize: 14, height: 1.5, color: r.metin)),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: oto ? MainAxisSize.min : MainAxisSize.max,
-      children: [
-        if (_engellenen > 0 && !_gorseller)
-          Material(
+    final bant = _engellenen > 0 && !_gorseller
+        ? Material(
+            key: const ValueKey('gorsel-bandi'),
             color: r.birincilYumusak,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
@@ -426,18 +535,46 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
                 ],
               ),
             ),
+          )
+        : null;
+    if (_testOrtami) {
+      final metin = Padding(
+        padding: EdgeInsets.fromLTRB(16, oto ? 2 : 14, 16, oto ? 8 : 14),
+        child: Text(htmlMetne(widget.html).trim(), style: TextStyle(fontSize: 14, height: 1.5, color: r.metin)),
+      );
+      if (oto) return metin;
+      return Column(
+        key: const ValueKey('html-tam-boy'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ?bant,
+          Expanded(
+            child: ColoredBox(
+              color: Colors.white,
+              child: SingleChildScrollView(child: metin),
+            ),
           ),
-        if (_gorselYukleniyor) const LinearProgressIndicator(minHeight: 2),
+        ],
+      );
+    }
+    // Ölçülemezse sınırlı yükseklik; içerik kendi içinde kayar.
+    final sinir = (MediaQuery.sizeOf(context).height - 160).clamp(360.0, 4000.0);
+    final yukseklik = _olculemedi ? sinir : (_yukseklik ?? 120);
+    Widget kutu(Widget c) => oto ? SizedBox(height: yukseklik, child: c) : Expanded(child: c);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: oto ? MainAxisSize.min : MainAxisSize.max,
+      children: [
+        ?bant,
         kutu(
           LayoutBuilder(
             builder: (context, k) {
               _genislikDegisti(k.maxWidth);
               return Container(
-                // İleti HTML'i beyaz zemin varsayar; ek çerçeve/dolgu yok, bölmenin tam genişliği (yan dolgu 16 px ve
-                // web gibi).
+                // İleti HTML'i beyaz zemin varsayar; bölmenin tam genişliği (yan dolgu 16 px belgede).
                 color: Colors.white,
                 child: belge == null
-                    ? const Center(child: CircularProgressIndicator.adaptive())
+                    ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator.adaptive(strokeWidth: 2)))
                     : Stack(
                         children: [
                           Positioned.fill(
@@ -446,7 +583,7 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
                               child: InAppWebView(
                                 initialData: InAppWebViewInitialData(data: belge, mimeType: 'text/html', encoding: 'utf-8', baseUrl: WebUri('about:blank')),
                                 initialSettings: InAppWebViewSettings(
-                                  javaScriptEnabled: _masaustu && oto,
+                                  javaScriptEnabled: _yama,
                                   javaScriptCanOpenWindowsAutomatically: false,
                                   useShouldOverrideUrlLoading: true,
                                   blockNetworkLoads: true,
@@ -471,9 +608,25 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
                                 onWebViewCreated: (c) {
                                   _k = c;
                                   _yuklenen = belge;
+                                  _yuklemeBitti = false;
                                 },
-                                onLoadStop: oto ? (c, _) => _olc(c) : null,
-                                onContentSizeChanged: oto && !_masaustu
+                                onLoadStop: (c, _) {
+                                  _yuklemeBitti = true;
+                                  if (oto) unawaited(_olc(c));
+                                  if (_yama) {
+                                    // Yükleme sırasında gelen görseller (belge işaretli; yerleşenler belgenin içinde).
+                                    _bekleyenUzak.addAll({
+                                      for (final e in _uzak.entries)
+                                        if (!_belgedekiUzak.contains(e.key)) e.key: e.value,
+                                    });
+                                    _bekleyenCid.addAll({
+                                      for (final e in _cid.entries)
+                                        if (!_belgedekiCid.contains(e.key)) e.key: e.value,
+                                    });
+                                    unawaited(_yamala());
+                                  }
+                                },
+                                onContentSizeChanged: oto
                                     ? (c, _, yeni) {
                                         if (yeni.height > 0 && mounted && (_yukseklik == null || (yeni.height + 8 - _yukseklik!).abs() > 2)) {
                                           setState(() => _yukseklik = yeni.height + 8);
@@ -492,10 +645,8 @@ return String(Math.ceil(b.getBoundingClientRect().height));})()""";
                               ),
                             ),
                           ),
-                          if (_masaustu && oto && !_olculemedi && _olculen != _yuklenen && _gosterilenIleti != widget.iletiId)
-                            const Positioned.fill(
-                              child: IgnorePointer(child: ColoredBox(color: Colors.white)),
-                            ),
+                          // Görsel yükleniyor / büyük belge hazırlanıyor: içeriği itmeyen ince çizgi (üstte).
+                          if (_gorselYukleniyor || _hazirlaniyor) const Positioned(top: 0, left: 0, right: 0, child: LinearProgressIndicator(minHeight: 2)),
                         ],
                       ),
               );

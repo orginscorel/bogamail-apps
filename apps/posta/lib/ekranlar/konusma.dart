@@ -236,7 +236,7 @@ class KonusmaGorunumuState extends State<KonusmaGorunumu> {
                 children: [
                   for (final o in _sira())
                     if (o is int)
-                      _OncekiDenetimi(
+                      OncekiDenetimi(
                         key: const ValueKey('konusma-daha'),
                         sayi: o,
                         acik: _oncekilerAcik,
@@ -432,8 +432,8 @@ class _EtiketHapi extends StatelessWidget {
 }
 
 /// Web: tek "▸ N önceki ileti" denetimi (12 px w500 soluk; açılınca ok 90° döner, "N önceki iletiyi gizle").
-class _OncekiDenetimi extends StatelessWidget {
-  const _OncekiDenetimi({super.key, required this.sayi, required this.acik, required this.degistir});
+class OncekiDenetimi extends StatelessWidget {
+  const OncekiDenetimi({super.key, required this.sayi, required this.acik, required this.degistir});
   final int sayi;
   final bool acik;
   final VoidCallback degistir;
@@ -577,6 +577,86 @@ class _KapaliIleti extends StatelessWidget {
               const SizedBox(width: 10),
               Text(kisaZaman(ozet.tarih), style: TextStyle(fontSize: 12, color: r.silik)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Masaüstü konuşma satırı (Outlook gibi): avatar, okunmadı noktası, gönderen, tek satır önizleme, ek, zaman;
+/// etkin ileti vurgulu (birincil zemin + sol çizgi). Satır yüksekliği sabit (seçim / okundu değişince kaymaz).
+class KonusmaSatiri extends StatelessWidget {
+  const KonusmaSatiri({super.key, required this.ozet, required this.detay, required this.secili, required this.ac});
+  final IletiOzet ozet;
+  final IletiDetay? detay;
+  final bool secili;
+  final VoidCallback ac;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.r;
+    final g = adresCoz(ozet.kimden);
+    final ekSayisi = detay?.gorunum.dosyaEkleri.length ?? 0;
+    return Semantics(
+      selected: secili,
+      button: true,
+      child: Material(
+        color: secili ? r.birincil.withValues(alpha: .08) : r.kart,
+        child: InkWell(
+          onTap: ac,
+          hoverColor: r.ic.withValues(alpha: .5),
+          child: Container(
+            height: 40,
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: r.kenar),
+                left: BorderSide(color: secili ? r.birincil : Colors.transparent, width: 3),
+              ),
+            ),
+            padding: const EdgeInsets.only(left: 21, right: 24),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 12,
+                  child: ozet.okundu
+                      ? null
+                      : Container(
+                          key: const ValueKey('konusma-okunmamis'),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(color: r.birincil, shape: BoxShape.circle),
+                        ),
+                ),
+                Avatar(g.gorunen, boyut: 22, tohum: g.eposta),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 160,
+                  child: Text(
+                    g.gorunen,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    // Kalınlık sabit (genişlik değişmesin); okunmamış renkle ayrılır.
+                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: ozet.okundu ? r.metin.withValues(alpha: .75) : r.metin),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _ozetMetni(ozet, detay),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13.5, color: r.silik),
+                  ),
+                ),
+                if (ozet.ekVar || ekSayisi > 0) ...[const SizedBox(width: 8), Icon(Simge.ek, size: 14, color: r.silik, semanticLabel: 'Ekli')],
+                const SizedBox(width: 10),
+                Text(
+                  seritZamani(ozet.tarih),
+                  style: TextStyle(fontSize: 12, color: r.silik, fontFeatures: const [FontFeature.tabularFigures()]),
+                ),
+              ],
+            ),
           ),
         ),
       ),

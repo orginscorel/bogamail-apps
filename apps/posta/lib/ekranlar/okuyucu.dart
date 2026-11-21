@@ -82,6 +82,14 @@ class OkuyucuState extends State<Okuyucu> {
   /// Konuşmadaki iletiler (eskiden yeniye). 2+ ileti varsa konuşma görünümü kullanılır.
   List<IletiOzet>? _konusma;
 
+  /// Masaüstü konuşma: gövdesi bölmede gösterilen (etkin) ileti; null → açılan ileti.
+  String? _etkin;
+  final _etkinDetaylar = <String, IletiDetay>{};
+
+  /// Etkin iletinin ayrıntısı gelene kadar önceki gösterilir (boş bölme yok).
+  IletiDetay? _sonEtkin;
+  bool _oncekilerAcik = false;
+
   @override
   void initState() {
     super.initState();
@@ -98,14 +106,19 @@ class OkuyucuState extends State<Okuyucu> {
     if (oldWidget.id != widget.id) {
       acikIleti = widget.id;
       setState(() {
-        // Önyüklenmiş ileti bellekteyse ilk karede gösterilir (yükleniyor çarkı yok).
-        _d = Posta.iletiHemen(widget.id);
+        // Önyüklenmiş ileti bellekteyse ilk karede gösterilir (yükleniyor çarkı yok). Masaüstünde yoksa yenisi
+        // gelene kadar önceki ileti görünür kalır (boş / beyaz bölme yok; üstte ince gösterge).
+        _d = Posta.iletiHemen(widget.id) ?? (masaustuDuzeni ? _d : null);
         _hata = null;
         _gitti = false;
         _isaretlendi = false;
         _html = true;
         _ayrinti = false;
         _konusma = Posta.konusmaHemen(widget.id);
+        _etkin = null;
+        _etkinDetaylar.clear();
+        _sonEtkin = null;
+        _oncekilerAcik = false;
       });
       _yukle();
       unawaited(_konusmaYukle());
@@ -172,7 +185,7 @@ class OkuyucuState extends State<Okuyucu> {
       final v = await Posta.iletiHam(id, degisti: (x) => degisti = x);
       if (!mounted || id != widget.id) return;
       zamanLogu('ileti (ağ)', sw);
-      if (degisti || _d == null) {
+      if (degisti || _d?.ozet.id != id) {
         final d = IletiDetay.json(v);
         if (_isaretlendi) d.ozet.okundu = true;
         setState(() => _d = d);
@@ -180,14 +193,15 @@ class OkuyucuState extends State<Okuyucu> {
       _okundu(_d!);
     } on ApiHata catch (e) {
       if (!mounted || id != widget.id) return;
-      if ((sessiz || _d != null) && e.durum == 404) {
+      final buIleti = _d?.ozet.id == id;
+      if ((sessiz || buIleti) && e.durum == 404) {
         _kaldir();
-      } else if (!sessiz && _d == null) {
+      } else if (!sessiz && !buIleti) {
         setState(() => _hata = e.durum == 404 ? 'İleti bulunamadı; silinmiş veya taşınmış olabilir.' : e.mesaj);
       }
     } catch (_) {
       // Ağ yoksa önbellekteki sürüm gösterilmeye devam eder.
-      if (mounted && !sessiz && _d == null && id == widget.id) setState(() => _hata = 'İleti açılamadı.');
+      if (mounted && !sessiz && _d?.ozet.id != id && id == widget.id) setState(() => _hata = 'İleti açılamadı.');
     }
   }
 
@@ -235,14 +249,17 @@ class OkuyucuState extends State<Okuyucu> {
 
   // ---- dışarıdan çağrılan eylemler (klavye kısayolları) ----
 
+  /// Yanıt / iletme hedefi: masaüstü konuşmada etkin ileti, yoksa açılan.
+  IletiDetay? get _hedef => masaustuDuzeni && _konusmaVar ? (_etkinDetaylar[_etkin] ?? _sonEtkin ?? _d) : _d;
+
   void yanitla({bool tumu = false}) {
-    final d = _d;
+    final d = _hedef;
     if (d == null || _taslak) return;
     yazmaAc(context, yanitHazirla(d, ben: Uyg.adres, tumu: tumu));
   }
 
   void ilet() {
-    final d = _d;
+    final d = _hedef;
     if (d == null) return;
     yazmaAc(context, iletHazirla(d));
   }
@@ -585,8 +602,16 @@ class OkuyucuState extends State<Okuyucu> {
               ],
             ),
           ),
-          if (_mesgul) const LinearProgressIndicator(minHeight: 2),
-          Expanded(child: govde),
+          // İşlem sürüyor ya da yeni ileti yükleniyor (önceki görünür): içeriği itmeyen ince çizgi.
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(child: govde),
+                if (_mesgul || (_d != null && _d!.ozet.id != widget.id))
+                  const Positioned(top: 0, left: 0, right: 0, child: LinearProgressIndicator(minHeight: 2)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -612,6 +637,7 @@ class OkuyucuState extends State<Okuyucu> {
     if (_hata != null) return Durum.hata(_hata!, tekrar: _yukle);
     final d = _d;
     if (d == null) return const OkuyucuIskeleti();
+    if (masaustuDuzeni) return _masaustuGovde(d);
     final r = context.r;
     final v = d.gorunum;
     final htmlVar = v.html.trim().isNotEmpty;
@@ -622,87 +648,13 @@ class OkuyucuState extends State<Okuyucu> {
       return KonusmaGorunumu(key: ValueKey('konusma-${d.ozet.id}'), acilan: d, ogeler: k!, yenile: yenileKonusma);
     }
     Widget yanli(Widget c, {double ust = 0, double alt = 0}) => Padding(padding: EdgeInsets.fromLTRB(_yan, ust, _yan, alt), child: c);
-    // Web: Biçimli / Düz metin küçük düğmeleri (h-7; seçili olan ikincil zeminli).
-    Widget bicim(String t, bool secili, VoidCallback f) => TextButton(
-      onPressed: f,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(0, 28),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        backgroundColor: secili ? r.ic : null,
-        foregroundColor: r.metin,
-        textStyle: TextStyle(fontFamily: govdeYaziTipi, fontSize: 13, fontWeight: FontWeight.w500),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Text(t),
-    );
     return RefreshIndicator(
       onRefresh: () => _yukle(sessiz: true),
       child: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
           _baslik(d),
-          for (final t in d.tehditler) GuvenlikBandi(tur: BantTuru.tehlike, baslik: 'Güvenlik uyarısı', metin: t, ikon: Simge.gereksiz),
-          ...sezgiselUyarilar(d),
-          if (_rol == 'junk')
-            GuvenlikBandi(
-              tur: BantTuru.uyari,
-              baslik: d.spamPuani == null ? 'Gereksiz (spam) ileti' : 'Gereksiz (spam) ileti (puan ${d.spamPuani!.toStringAsFixed(1)})',
-              metin: 'Bu ileti gereksiz olarak sınıflandırıldı. Bağlantılara ve eklere dikkat edin; görseller kendiliğinden yüklenmez.',
-              ikon: Simge.bildir,
-            ),
-          // Web: temiz iletide açılır "Spam denetimi: puan -0.7 (temiz)" + kurallar.
-          if (_rol != 'junk' && d.spamPuani != null && d.spamKurallari.isNotEmpty) yanli(SpamDenetimi(puan: d.spamPuani!, kurallar: d.spamKurallari), ust: 4),
-          if (d.ozet.ertelemeBitis != null)
-            yanli(
-              Container(
-                key: const ValueKey('erteleme-bandi'),
-                padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
-                decoration: BoxDecoration(color: const Color(0xFFF59E0B).withValues(alpha: .1), borderRadius: BorderRadius.circular(10)),
-                child: Row(
-                  children: [
-                    const Icon(Simge.ertele, size: 16, color: Color(0xFFD97706)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text("${tamZaman(d.ozet.ertelemeBitis)} tarihinde Gelen Kutusu'na geri gelecek.", style: const TextStyle(fontSize: 13))),
-                    TextButton(
-                      onPressed: _mesgul
-                          ? null
-                          : () => _eylem(() => Posta.guncelle(widget.id, {'snooze_until': null}), "Gelen Kutusu'na taşındı", kaldir: true),
-                      child: const Text('Şimdi geri al'),
-                    ),
-                  ],
-                ),
-              ),
-              ust: 8,
-            ),
-          if (v.kesik)
-            const GuvenlikBandi(
-              tur: BantTuru.bilgi,
-              baslik: 'İleti kısaltıldı',
-              metin: 'İleti çok uzun olduğu için kısaltıldı. Tamamı için iletiyi indirin.',
-              ikon: Simge.kes,
-            ),
-          if (v.ekler.any((e) => e.davetiye)) DavetKarti(key: ValueKey('davet-${d.ozet.id}'), iletiId: d.ozet.id),
-          // Ekler gövdeden önce (uzun HTML gövdenin altında kaybolmasın): kart, dokununca açılır/önizlenir, menüden
-          // paylaş / kaydet.
-          if (v.dosyaEkleri.isNotEmpty)
-            Padding(
-              key: const ValueKey('okuyucu-ekler'),
-              padding: EdgeInsets.fromLTRB(_girinti, 12, _yan, 0),
-              child: EkListesi(iletiId: d.ozet.id, ekler: v.dosyaEkleri),
-            ),
-          if (htmlVar && v.metin.trim().isNotEmpty)
-            yanli(
-              Row(
-                key: const ValueKey('bicim-secimi'),
-                children: [
-                  bicim('Biçimli', htmlGoster, () => setState(() => _html = true)),
-                  const SizedBox(width: 4),
-                  bicim('Düz metin', !htmlGoster, () => setState(() => _html = false)),
-                ],
-              ),
-              ust: 12,
-            ),
+          ..._ustParcalar(d),
           // Gövde: HTML belge kendi 16 px yan dolgusunu taşır, bu yüzden girinti 16 px az.
           Padding(
             // HTML gövdenin kendi 16 px dolgusu var: başlıkla aynı hizadan (_yan) başlar.
@@ -746,6 +698,231 @@ class OkuyucuState extends State<Okuyucu> {
     );
   }
 
+  /// Başlık ile gövde arasındaki bloklar: güvenlik bantları, spam denetimi, erteleme, davet, ekler, biçim seçimi.
+  List<Widget> _ustParcalar(IletiDetay d) {
+    final r = context.r;
+    final v = d.gorunum;
+    final htmlVar = v.html.trim().isNotEmpty;
+    final htmlGoster = htmlVar && (_html || v.metin.trim().isEmpty);
+    Widget yanli(Widget c, {double ust = 0, double alt = 0}) => Padding(padding: EdgeInsets.fromLTRB(_yan, ust, _yan, alt), child: c);
+    // Web: Biçimli / Düz metin küçük düğmeleri (h-7; seçili olan ikincil zeminli; aynı kalınlık, kaymaz).
+    Widget bicim(String t, bool secili, VoidCallback f) => TextButton(
+      onPressed: f,
+      style: TextButton.styleFrom(
+        minimumSize: const Size(0, 28),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        backgroundColor: secili ? r.ic : null,
+        foregroundColor: r.metin,
+        textStyle: TextStyle(fontFamily: govdeYaziTipi, fontSize: 13, fontWeight: FontWeight.w500),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(t),
+    );
+    return [
+      for (final t in d.tehditler) GuvenlikBandi(tur: BantTuru.tehlike, baslik: 'Güvenlik uyarısı', metin: t, ikon: Simge.gereksiz),
+      ...sezgiselUyarilar(d),
+      if (_rol == 'junk')
+        GuvenlikBandi(
+          tur: BantTuru.uyari,
+          baslik: d.spamPuani == null ? 'Gereksiz (spam) ileti' : 'Gereksiz (spam) ileti (puan ${d.spamPuani!.toStringAsFixed(1)})',
+          metin: 'Bu ileti gereksiz olarak sınıflandırıldı. Bağlantılara ve eklere dikkat edin; görseller kendiliğinden yüklenmez.',
+          ikon: Simge.bildir,
+        ),
+      // Web: temiz iletide açılır "Spam denetimi: puan -0.7 (temiz)" + kurallar.
+      if (_rol != 'junk' && d.spamPuani != null && d.spamKurallari.isNotEmpty) yanli(SpamDenetimi(puan: d.spamPuani!, kurallar: d.spamKurallari), ust: 4),
+      if (d.ozet.ertelemeBitis != null)
+        yanli(
+          Container(
+            key: const ValueKey('erteleme-bandi'),
+            padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+            decoration: BoxDecoration(color: const Color(0xFFF59E0B).withValues(alpha: .1), borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              children: [
+                const Icon(Simge.ertele, size: 16, color: Color(0xFFD97706)),
+                const SizedBox(width: 8),
+                Expanded(child: Text("${tamZaman(d.ozet.ertelemeBitis)} tarihinde Gelen Kutusu'na geri gelecek.", style: const TextStyle(fontSize: 13))),
+                TextButton(
+                  onPressed: _mesgul ? null : () => _eylem(() => Posta.guncelle(widget.id, {'snooze_until': null}), "Gelen Kutusu'na taşındı", kaldir: true),
+                  child: const Text('Şimdi geri al'),
+                ),
+              ],
+            ),
+          ),
+          ust: 8,
+        ),
+      if (v.kesik)
+        const GuvenlikBandi(
+          tur: BantTuru.bilgi,
+          baslik: 'İleti kısaltıldı',
+          metin: 'İleti çok uzun olduğu için kısaltıldı. Tamamı için iletiyi indirin.',
+          ikon: Simge.kes,
+        ),
+      if (v.ekler.any((e) => e.davetiye)) DavetKarti(key: ValueKey('davet-${d.ozet.id}'), iletiId: d.ozet.id),
+      // Ekler gövdeden önce (uzun HTML gövdenin altında kaybolmasın): kart, dokununca açılır/önizlenir, menüden
+      // paylaş / kaydet.
+      if (v.dosyaEkleri.isNotEmpty)
+        Padding(
+          key: const ValueKey('okuyucu-ekler'),
+          padding: EdgeInsets.fromLTRB(_girinti, 12, _yan, 0),
+          child: EkListesi(iletiId: d.ozet.id, ekler: v.dosyaEkleri),
+        ),
+      if (htmlVar && v.metin.trim().isNotEmpty)
+        yanli(
+          Row(
+            key: const ValueKey('bicim-secimi'),
+            children: [
+              bicim('Biçimli', htmlGoster, () => setState(() => _html = true)),
+              const SizedBox(width: 4),
+              bicim('Düz metin', !htmlGoster, () => setState(() => _html = false)),
+            ],
+          ),
+          ust: 12,
+        ),
+    ];
+  }
+
+  // ---- masaüstü (macOS / Windows / Linux): Outlook gibi sabit başlık + bölmeyi dolduran tek gövde ----
+
+  /// Konuşmada etkin iletiyi seçer; ayrıntı bellekte değilse yüklenir (bu arada önceki gösterilir).
+  Future<void> _etkinSec(IletiOzet o) async {
+    final id = o.id;
+    setState(() {
+      _etkin = id;
+      final h = id == _d?.ozet.id ? _d : (_etkinDetaylar[id] ?? Posta.iletiHemen(id));
+      if (h != null) _etkinDetaylar[id] = h;
+    });
+    if (!o.okundu) {
+      o.okundu = true;
+      PostaDurum.ben.okunduIsaretle(id);
+    }
+    if (_etkinDetaylar.containsKey(id)) return;
+    try {
+      final yerel = await Posta.iletiOnbellek(id).catchError((_) => null);
+      if (yerel != null && mounted && !_etkinDetaylar.containsKey(id)) setState(() => _etkinDetaylar[id] = yerel);
+      final d = await Posta.ileti(id);
+      if (mounted) setState(() => _etkinDetaylar[id] = d);
+    } catch (_) {
+      if (mounted && !_etkinDetaylar.containsKey(id)) bildir('İleti açılamadı', tur: MesajTur.hata);
+    }
+  }
+
+  /// Düz metin ileti masaüstünde de aynı web görünümünde gösterilir (tek görüntüleyici; bağlantılar tıklanır).
+  static String duzMetinHtml(String metin) {
+    final k = metindenHtml(metin).replaceAllMapped(_baglantiKalibi, (m) {
+      final u = m[0]!.replaceAll(RegExp(r'[.,;:!?)]+$'), '');
+      return '<a href="$u">$u</a>${m[0]!.substring(u.length)}';
+    });
+    return '<div style="font-size:15px;line-height:1.55;white-space:pre-wrap">$k</div>';
+  }
+
+  static final _baglantiKalibi = RegExp(r'(https?://[^\s<>"]+|mailto:[^\s<>"]+)', caseSensitive: false);
+
+  Widget _masaustuGovde(IletiDetay d) {
+    final r = context.r;
+    final konusma = _konusmaVar ? _konusma! : null;
+    var a = d;
+    if (konusma != null && _etkin != null && _etkin != d.ozet.id) {
+      a = _etkinDetaylar[_etkin] ?? _sonEtkin ?? d;
+    }
+    _sonEtkin = a;
+    final v = a.gorunum;
+    final htmlVar = v.html.trim().isNotEmpty;
+    final htmlGoster = htmlVar && (_html || v.metin.trim().isEmpty);
+    final tehlikeli = _rol == 'junk' || a.tehditler.isNotEmpty;
+    final govdeHtml = htmlGoster ? v.html : (v.metin.trim().isEmpty ? '<p style="color:#888">(Bu iletinin gövdesi boş.)</p>' : duzMetinHtml(v.metin));
+    final etkinId = a.ozet.id;
+    return LayoutBuilder(
+      builder: (context, k) {
+        final ust = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (konusma != null) ...[_baslik(d, gonderenGoster: false), _konusmaSatirlari(konusma, etkinId), _baslik(a, konuGoster: false)] else _baslik(d),
+            ..._ustParcalar(a),
+            const SizedBox(height: 10),
+          ],
+        );
+        return Column(
+          key: const ValueKey('masaustu-okuyucu'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Başlık bloğu: en çok bölmenin %55'i (uzun konuşmada kendi içinde kayar); gövde hep hemen altında.
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: k.maxHeight * .55),
+              child: SingleChildScrollView(key: const ValueKey('okuyucu-ust'), child: ust),
+            ),
+            Divider(height: 1, color: r.kenar),
+            // Gövde: bölmenin geri kalanını dolduran tek web görünümü; kendi içinde kayar (tekerlek / iz paneli).
+            // Anahtar sabit: ileti değişince görüntüleyici korunur, yalnız belge değişir.
+            Expanded(
+              key: const ValueKey('okuyucu-govde-alani'),
+              child: HtmlGovde(
+                key: const ValueKey('okuyucu-html'),
+                iletiId: htmlGoster ? etkinId : '$etkinId-duz',
+                html: govdeHtml,
+                ekler: v.ekler,
+                baglantilar: a.baglantilar,
+                otomatikGorsel: htmlGoster && Tercihler.uzakGorseller.value && !tehlikeli,
+                alintiyiKatla: htmlGoster,
+                epostaBaglantisi: (u) => yazmaAc(context, mailtoBaslangic(u)),
+              ),
+            ),
+            if (!_taslak)
+              Container(
+                key: const ValueKey('masaustu-yanit-cubugu'),
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: r.kart,
+                  border: Border(top: BorderSide(color: r.kenar)),
+                ),
+                child: Row(
+                  children: [
+                    TextButton.icon(onPressed: yanitla, icon: const Icon(Simge.yanitla, size: 16), label: const Text('Yanıtla')),
+                    TextButton.icon(onPressed: () => yanitla(tumu: true), icon: const Icon(Simge.tumuneYanitla, size: 16), label: const Text('Tümünü yanıtla')),
+                    TextButton.icon(onPressed: ilet, icon: const Icon(Simge.ilet, size: 16), label: const Text('İlet')),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Masaüstü konuşma: iletiler sıkı satırlar (gönderen, zaman, tek satır önizleme, okundu); etkin olan vurgulu.
+  /// Eski ve okunmuş iletiler "▸ N önceki ileti" arkasında.
+  Widget _konusmaSatirlari(List<IletiOzet> l, String etkinId) {
+    final gizli = <String>{
+      for (var i = 0; i < l.length - 3; i++)
+        if (l[i].id != etkinId && l[i].okundu) l[i].id,
+    };
+    final katla = gizli.length >= 2 && !_oncekilerAcik;
+    return Column(
+      key: const ValueKey('konusma-satirlari'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (gizli.length >= 2)
+          OncekiDenetimi(
+            key: const ValueKey('konusma-daha'),
+            sayi: gizli.length,
+            acik: _oncekilerAcik,
+            degistir: () => setState(() => _oncekilerAcik = !_oncekilerAcik),
+          ),
+        for (final o in l)
+          if (!katla || !gizli.contains(o.id))
+            KonusmaSatiri(
+              key: ValueKey('konusma-satir-${o.id}'),
+              ozet: o,
+              detay: _etkinDetaylar[o.id] ?? (o.id == _d?.ozet.id ? _d : Posta.iletiHemen(o.id)),
+              secili: o.id == etkinId,
+              ac: () => _etkinSec(o),
+            ),
+        Divider(height: 1, color: context.r.kenar),
+      ],
+    );
+  }
+
   /// Web gibi "Kime: bana, Ali" (+ "Bilgi: N kişi").
   String _aliciOzeti(IletiGorunum v) {
     final ben = Uyg.adres.toLowerCase();
@@ -755,7 +932,7 @@ class OkuyucuState extends State<Okuyucu> {
 
   /// Web başlığı: konu (text-lg font-semibold) + önemli / yıldız; klasör ve etiket çipleri; gönderen satırı (32 px
   /// avatar, ad kalın + `<adres>` soluk, "Kime: bana ▾" ayrıntıyı açar, sağda tarih).
-  Widget _baslik(IletiDetay d) {
+  Widget _baslik(IletiDetay d, {bool konuGoster = true, bool gonderenGoster = true}) {
     final r = context.r;
     final v = d.gorunum;
     final gonderen = v.kimden.isNotEmpty ? v.kimden.first : adresCoz(d.ozet.kimden);
@@ -785,152 +962,154 @@ class OkuyucuState extends State<Okuyucu> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(_yan, 12, _yan - 6, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SelectableText(
-                      konu,
-                      key: const ValueKey('okuyucu-konu'),
-                      style: TextStyle(fontSize: 18, height: 1.375, fontWeight: FontWeight.w600, color: r.metin),
-                    ),
-                  ),
-                  isaret(
-                    Simge.uyari,
-                    d.ozet.onemli ? 'Önemli işaretini kaldır' : 'Önemli',
-                    d.ozet.onemli ? const Color(0xFFF97316) : r.silik.withValues(alpha: .5),
-                    _mesgul ? null : () => _menu('onemli'),
-                  ),
-                  isaret(
-                    d.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz,
-                    d.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla',
-                    d.ozet.yildizli ? yildizRengi : r.silik.withValues(alpha: .5),
-                    _mesgul ? null : () => _menu('yildiz'),
-                  ),
-                ],
-              ),
-              if (klasor != null || etiketler.isNotEmpty || d.ozet.takip || v.dosyaEkleri.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      if (klasor != null) cip(klasor.gorunenAd),
-                      if (d.ozet.takip) cip('Takipte', renk: const Color(0xFFF43F5E)),
-                      if (v.dosyaEkleri.isNotEmpty) cip('${v.dosyaEkleri.length} ek'),
-                      for (final e in etiketler) cip(e.ad, renk: etiketRengi(e.renk)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(_yan, 12, _yan, 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Avatar(gonderen.gorunen, boyut: 32, tohum: gonderen.eposta),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+        if (konuGoster)
+          Padding(
+            padding: EdgeInsets.fromLTRB(_yan, 12, _yan - 6, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: gonderen.gorunen,
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: r.metin),
-                          ),
-                          if (gonderen.ad.isNotEmpty)
-                            TextSpan(
-                              text: '  <${gonderen.eposta}>',
-                              style: TextStyle(fontSize: 14, color: r.silik),
-                            ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    InkWell(
-                      key: const ValueKey('gonderen-karti'),
-                      onTap: () => setState(() => _ayrinti = !_ayrinti),
-                      borderRadius: BorderRadius.circular(4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              _aliciOzeti(v),
-                              key: const ValueKey('okuyucu-kime'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, height: 16 / 12, color: r.silik),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          AnimatedRotation(
-                            turns: _ayrinti ? .5 : 0,
-                            duration: const Duration(milliseconds: 150),
-                            child: Icon(Simge.asagi, size: 14, color: r.silik),
-                          ),
-                        ],
+                    Expanded(
+                      child: SelectableText(
+                        konu,
+                        key: const ValueKey('okuyucu-konu'),
+                        style: TextStyle(fontSize: 18, height: 1.375, fontWeight: FontWeight.w600, color: r.metin),
                       ),
                     ),
-                    if (_ayrinti)
-                      Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: r.ic.withValues(alpha: .3),
-                          border: Border.all(color: r.kenar),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    isaret(
+                      Simge.uyari,
+                      d.ozet.onemli ? 'Önemli işaretini kaldır' : 'Önemli',
+                      d.ozet.onemli ? const Color(0xFFF97316) : r.silik.withValues(alpha: .5),
+                      _mesgul ? null : () => _menu('onemli'),
+                    ),
+                    isaret(
+                      d.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz,
+                      d.ozet.yildizli ? 'Yıldızı kaldır' : 'Yıldızla',
+                      d.ozet.yildizli ? yildizRengi : r.silik.withValues(alpha: .5),
+                      _mesgul ? null : () => _menu('yildiz'),
+                    ),
+                  ],
+                ),
+                if (klasor != null || etiketler.isNotEmpty || d.ozet.takip || v.dosyaEkleri.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (klasor != null) cip(klasor.gorunenAd),
+                        if (d.ozet.takip) cip('Takipte', renk: const Color(0xFFF43F5E)),
+                        if (v.dosyaEkleri.isNotEmpty) cip('${v.dosyaEkleri.length} ek'),
+                        for (final e in etiketler) cip(e.ad, renk: etiketRengi(e.renk)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        if (gonderenGoster)
+          Padding(
+            padding: EdgeInsets.fromLTRB(_yan, 12, _yan, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Avatar(gonderen.gorunen, boyut: 32, tohum: gonderen.eposta),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
+                        TextSpan(
                           children: [
-                            _satir('Kimden', v.kimden.map(adresYaz).join(', ')),
-                            if (v.yanitAdresi.isNotEmpty) _satir('Yanıt adresi', v.yanitAdresi.map(adresYaz).join(', ')),
-                            _satir('Kime', v.kime.map(adresYaz).join(', ')),
-                            if (v.bilgi.isNotEmpty) _satir('Bilgi', v.bilgi.map(adresYaz).join(', ')),
-                            _satir('Tarih', tamZaman(tarih)),
-                            if (d.ozet.boyut > 0) _satir('Boyut', boyutYaz(d.ozet.boyut)),
-                            if (d.dogrulama.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 2),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 84,
-                                      child: Text('Doğrulama', style: TextStyle(color: r.silik, fontSize: 12)),
-                                    ),
-                                    Expanded(child: DogrulamaCipleri(sonuclar: d.dogrulama)),
-                                  ],
-                                ),
+                            TextSpan(
+                              text: gonderen.gorunen,
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: r.metin),
+                            ),
+                            if (gonderen.ad.isNotEmpty)
+                              TextSpan(
+                                text: '  <${gonderen.eposta}>',
+                                style: TextStyle(fontSize: 14, color: r.silik),
                               ),
-                            if (d.spamPuani != null) _satir('Spam puanı', d.spamPuani!.toStringAsFixed(1)),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      InkWell(
+                        key: const ValueKey('gonderen-karti'),
+                        onTap: () => setState(() => _ayrinti = !_ayrinti),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _aliciOzeti(v),
+                                key: const ValueKey('okuyucu-kime'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, height: 16 / 12, color: r.silik),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            AnimatedRotation(
+                              turns: _ayrinti ? .5 : 0,
+                              duration: const Duration(milliseconds: 150),
+                              child: Icon(Simge.asagi, size: 14, color: r.silik),
+                            ),
                           ],
                         ),
                       ),
-                  ],
+                      if (_ayrinti)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: r.ic.withValues(alpha: .3),
+                            border: Border.all(color: r.kenar),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _satir('Kimden', v.kimden.map(adresYaz).join(', ')),
+                              if (v.yanitAdresi.isNotEmpty) _satir('Yanıt adresi', v.yanitAdresi.map(adresYaz).join(', ')),
+                              _satir('Kime', v.kime.map(adresYaz).join(', ')),
+                              if (v.bilgi.isNotEmpty) _satir('Bilgi', v.bilgi.map(adresYaz).join(', ')),
+                              _satir('Tarih', tamZaman(tarih)),
+                              if (d.ozet.boyut > 0) _satir('Boyut', boyutYaz(d.ozet.boyut)),
+                              if (d.dogrulama.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 84,
+                                        child: Text('Doğrulama', style: TextStyle(color: r.silik, fontSize: 12)),
+                                      ),
+                                      Expanded(child: DogrulamaCipleri(sonuclar: d.dogrulama)),
+                                    ],
+                                  ),
+                                ),
+                              if (d.spamPuani != null) _satir('Spam puanı', d.spamPuani!.toStringAsFixed(1)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Tooltip(
-                message: tamZaman(tarih),
-                child: Text(tamZaman(tarih), style: TextStyle(color: r.silik, fontSize: 12)),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: tamZaman(tarih),
+                  child: Text(tamZaman(tarih), style: TextStyle(color: r.silik, fontSize: 12)),
+                ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }

@@ -47,7 +47,7 @@ class FiltreCubugu extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         children: [
           for (final f in ListeFiltresi.values) ...[
-            _Bolum(filtre: f, secili: f == secili, sayi: sayilar[f], dokun: () => degisti(f)),
+            _Bolum(filtre: f, secili: f == secili, sayi: sayilar[f], dokun: () => degisti(f), yerAyir: f == ListeFiltresi.okunmamis),
             const SizedBox(width: 4),
           ],
         ],
@@ -57,8 +57,11 @@ class FiltreCubugu extends StatelessWidget {
 }
 
 class _Bolum extends StatefulWidget {
-  const _Bolum({required this.filtre, required this.secili, required this.sayi, required this.dokun});
+  const _Bolum({required this.filtre, required this.secili, required this.sayi, required this.dokun, this.yerAyir = false});
   final ListeFiltresi filtre;
+
+  /// Sayı yeri her zaman ayrılır (sayı gelince / değişince sekmeler kaymaz).
+  final bool yerAyir;
   final bool secili;
   final int? sayi;
   final VoidCallback dokun;
@@ -88,6 +91,7 @@ class _BolumState extends State<_Bolum> {
           onTap: widget.dokun,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 140),
+            // Yalnız renk değişir; kenar boşluğu / kalınlık aynı (sekme boyutu seçimle değişmez).
             height: 32,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             alignment: Alignment.center,
@@ -105,18 +109,30 @@ class _BolumState extends State<_Bolum> {
                   softWrap: false,
                   style: TextStyle(fontSize: 14, height: 20 / 14, color: secili ? Colors.white : (_uzerinde ? r.metin : r.silik)),
                 ),
-                // 1.4'teki gibi okunmamış sayısı sekmede (küçük, soluk).
-                if (sayiVar) ...[
+                // 1.4'teki gibi okunmamış sayısı sekmede (küçük). Sabit genişlikli yer: sayı gelince, değişince ya da
+                // seçim değişince sekmeler kaymaz (yanlış tıklama olmaz).
+                if (widget.yerAyir || sayiVar) ...[
                   const SizedBox(width: 5),
-                  Text(
-                    sayiYaz(widget.sayi!),
-                    key: ValueKey('filtre-sayi-${widget.filtre.name}'),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: secili ? Colors.white.withValues(alpha: .85) : r.birincil,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                  SizedBox(
+                    key: ValueKey('filtre-sayi-yeri-${widget.filtre.name}'),
+                    width: 30,
+                    child: sayiVar
+                        ? FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              widget.sayi! > 999 ? '999+' : sayiYaz(widget.sayi!),
+                              key: ValueKey('filtre-sayi-${widget.filtre.name}'),
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: secili ? Colors.white.withValues(alpha: .85) : r.birincil,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                          )
+                        : null,
                   ),
                 ],
               ],

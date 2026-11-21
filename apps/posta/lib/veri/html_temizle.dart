@@ -65,6 +65,7 @@ TemizHtml htmlTemizle(
   Map<String, String>? cid,
   String? kok,
   bool uzakKalsin = false,
+  bool isaretle = false,
 }) {
   final belge = ayristir.parse(ham);
   var engellenen = 0;
@@ -90,12 +91,17 @@ TemizHtml htmlTemizle(
             el.attributes[anahtar] = c;
           } else {
             el.attributes.remove(anahtar);
+            if (isaretle && (ad == 'src' || ad == 'background')) {
+              el.attributes['data-bm-c'] = v.substring(4).trim().replaceAll(RegExp(r'^<|>$'), '').toLowerCase();
+            }
           }
         } else if (uzakKalsin && (ad == 'src' || ad == 'background') && RegExp(r'^https?://', caseSensitive: false).hasMatch(v)) {
           // korunur
         } else if (!_yerel(v)) {
           el.attributes.remove(anahtar);
           engellenen++;
+          // Sonradan (yeniden yüklemeden) yerleştirilecek uzak görsel: adresi işaretlenir.
+          if (isaretle && (ad == 'src' || ad == 'background') && _uzakGorsel.hasMatch(v)) el.attributes['data-bm-g'] = v;
         }
       } else if (ad == 'href') {
         final v = deger.trim();

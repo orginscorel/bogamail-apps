@@ -20,6 +20,7 @@ import 'package:posta/ekranlar/ileti_listesi.dart';
 import 'package:posta/ekranlar/ileti_satiri.dart';
 import 'package:posta/ekranlar/okuyucu.dart';
 import 'package:posta/ekranlar/okuyucu_parcalari.dart';
+import 'package:posta/ortak/html_govde.dart';
 import 'package:posta/ekranlar/takvim/takvim_ekrani.dart';
 import 'package:posta/ekranlar/sol_ray.dart';
 import 'package:posta/ekranlar/yan_menu.dart';
@@ -208,7 +209,7 @@ void main() {
           ],
         );
       } else {
-        final x = birlesik ? (k.maxWidth >= 1280 ? 400.0 : 340.0) : bolmeBoyu(alan: kalanEn, oran: .36, enAz: 340, enCok: 600, kalan: 600);
+        final x = birlesik ? (k.maxWidth >= 1280 ? 400.0 : 340.0) : bolmeBoyu(alan: kalanEn, oran: listeVarsayilanOrani, enAz: 380, enCok: 760, kalan: 520);
         bolme = Row(
           children: [
             SizedBox(width: x, child: liste),
@@ -579,6 +580,48 @@ void main() {
         final sc = find.descendant(of: find.byKey(const ValueKey('konusma')), matching: find.byType(Scrollable)).first;
         t.state<ScrollableState>(sc).position.jumpTo(0);
         await t.pump();
+      },
+    );
+  });
+
+  testWidgets('masaüstü düzeni 1440×900: okuyucu (tek gövde bölmeyi doldurur), konuşma (etkin ileti), süzgeç sekmeleri', (t) async {
+    masaustuZorla = true;
+    addTearDown(() => masaustuZorla = null);
+    konusmaKur(s);
+    const boyut = Size(1440, 900);
+    await ciz(
+      t,
+      'masaustu-okuyucu-1440',
+      boyut,
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}, seciliId: 'k1'),
+        okuyucu: const Okuyucu(id: 'k1'),
+      ),
+    );
+    await ciz(
+      t,
+      'masaustu-konusma-1440',
+      boyut,
+      () => genis(
+        IletiListesi(konum: const Konum.klasor('g'), ac: (_) {}),
+        okuyucu: const Okuyucu(id: 'k8'),
+      ),
+      hazirla: () async {
+        await t.pump(const Duration(milliseconds: 200));
+        await t.tap(find.byKey(const ValueKey('konusma-satir-k6')));
+        for (var i = 0; i < 4; i++) {
+          await t.pump(const Duration(milliseconds: 50));
+        }
+      },
+    );
+    await ciz(
+      t,
+      'masaustu-sekmeler-1440',
+      boyut,
+      () => genis(IletiListesi(konum: const Konum.klasor('g'), ac: (_) {})),
+      hazirla: () async {
+        await t.tap(find.byKey(const ValueKey('filtre-yildizli')));
+        await t.pump(const Duration(milliseconds: 300));
       },
     );
   });
