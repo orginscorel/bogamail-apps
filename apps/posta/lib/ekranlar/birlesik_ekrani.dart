@@ -82,6 +82,9 @@ class BirlesikListeState extends State<BirlesikListe> {
   int _istek = 0;
   final _abonelikler = <StreamSubscription<Object?>>[];
 
+  /// Çoklu seçim (satırdaki kutucuk): anahtar = BirlesikOge.anahtar.
+  final _secilen = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -180,31 +183,41 @@ class BirlesikListeState extends State<BirlesikListe> {
     setState(() {
       _klasor = k;
       _ogeler = [];
+      _secilen.clear();
     });
     _yukle();
   }
 
   /// İşlem: iyimser (satır hemen güncellenir/çıkar), hata olursa geri alınır.
-  Future<void> _eylem(BirlesikOge o, String eylem) async {
+  Future<void> _eylem(BirlesikOge o, String eylem) => _toplu([o], eylem);
+
+  Future<void> _toplu(List<BirlesikOge> os, String eylem) async {
+    if (os.isEmpty) return;
     final kaldir = const {'archive', 'trash', 'spam'}.contains(eylem);
     final onceki = List<BirlesikOge>.from(_ogeler);
-    final eskiOkundu = o.ozet.okundu, eskiYildiz = o.ozet.yildizli;
+    final eski = {for (final o in os) o.anahtar: (o.ozet.okundu, o.ozet.yildizli)};
+    final anahtarlar = {for (final o in os) o.anahtar};
     setState(() {
-      switch (eylem) {
-        case 'seen':
-          o.ozet.okundu = true;
-        case 'unseen':
-          o.ozet.okundu = false;
-        case 'flag':
-          o.ozet.yildizli = true;
-        case 'unflag':
-          o.ozet.yildizli = false;
+      for (final o in os) {
+        switch (eylem) {
+          case 'seen':
+            o.ozet.okundu = true;
+          case 'unseen':
+            o.ozet.okundu = false;
+          case 'flag':
+            o.ozet.yildizli = true;
+          case 'unflag':
+            o.ozet.yildizli = false;
+        }
       }
-      if (kaldir) _ogeler.removeWhere((x) => x.anahtar == o.anahtar);
+      if (kaldir) {
+        _ogeler.removeWhere((x) => anahtarlar.contains(x.anahtar));
+        _secilen.removeAll(anahtarlar);
+      }
     });
-    if (kaldir) widget.kaldirildi?.call({o.anahtar});
+    if (kaldir) widget.kaldirildi?.call(anahtarlar);
     try {
-      await Birlesik.eylem([o], eylem);
+      await Birlesik.eylem(os, eylem);
       unawaited(BirlesikDurum.ben.sayilariYenile());
       if (kaldir) {
         bildir(switch (eylem) {
@@ -217,11 +230,73 @@ class BirlesikListeState extends State<BirlesikListe> {
       if (!mounted) return;
       setState(() {
         _ogeler = onceki;
-        o.ozet.okundu = eskiOkundu;
-        o.ozet.yildizli = eskiYildiz;
+        for (final o in os) {
+          final e = eski[o.anahtar];
+          if (e != null) {
+            o.ozet.okundu = e.$1;
+            o.ozet.yildizli = e.$2;
+          }
+        }
       });
       bildir('İşlem tamamlanamadı', mesaj: hataMetni(e), tur: MesajTur.hata);
     }
+  }
+
+  void _secDegistir(BirlesikOge o) => setState(() {
+    if (!_secilen.remove(o.anahtar)) _secilen.add(o.anahtar);
+  });
+
+  /// Seçim varken klasör/hesap sırasının yerine geçen toplu işlem çubuğu (web unified-view ile aynı işlemler).
+  Widget _secimCubugu(Renkler r, List<BirlesikOge> gorunen) {
+    final secilen = gorunen.where((o) => _secilen.contains(o.anahtar)).toList();
+    final hepsi = secilen.length == gorunen.length && gorunen.isNotEmpty;
+    final hepsiOkundu = secilen.every((o) => o.ozet.okundu);
+    final hepsiYildizli = secilen.every((o) => o.ozet.yildizli);
+    Widget d(IconData i, String t, VoidCallback f, {Color? renk}) => IconButton(
+      tooltip: t,
+      visualDensity: VisualDensity.compact,
+      icon: Icon(i, size: 19, color: renk ?? r.metin),
+      onPressed: f,
+    );
+    return Container(
+      key: const ValueKey('birlesik-secim'),
+      color: r.vurguYumusak,
+      padding: const EdgeInsets.fromLTRB(4, 2, 8, 2),
+      child: Row(
+        children: [
+          d(Simge.kapat, 'Seçimi kaldır', () => setState(_secilen.clear)),
+          Expanded(
+            child: Text(
+              '${_secilen.length} seçili',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: r.metin),
+            ),
+          ),
+          d(hepsi ? Simge.secimiKaldir : Simge.tumunuSec, hepsi ? 'Hiçbiri' : 'Tümünü seç', () {
+            setState(() {
+              if (hepsi) {
+                _secilen.clear();
+              } else {
+                _secilen.addAll(gorunen.map((o) => o.anahtar));
+              }
+            });
+          }),
+          d(
+            hepsiOkundu ? Simge.okunmadiYap : Simge.okunduYap,
+            hepsiOkundu ? 'Okunmadı yap' : 'Okundu yap',
+            () => _toplu(secilen, hepsiOkundu ? 'unseen' : 'seen'),
+          ),
+          d(
+            hepsiYildizli ? Simge.yildizDolu : Simge.yildiz,
+            hepsiYildizli ? 'Yıldızı kaldır' : 'Yıldızla',
+            () => _toplu(secilen, hepsiYildizli ? 'unflag' : 'flag'),
+          ),
+          if (_klasor != 'archive') d(Simge.arsiv, 'Arşivle', () => _toplu(secilen, 'archive')),
+          if (_klasor != 'trash') d(Simge.sil, 'Sil', () => _toplu(secilen, 'trash'), renk: Marka.gul),
+        ],
+      ),
+    );
   }
 
   void _ac(BirlesikOge o) {
@@ -315,7 +390,12 @@ class BirlesikListeState extends State<BirlesikListe> {
     }
 
     final ogeler = [
-      hap(key: const ValueKey('birlesik-hesap-hepsi'), secili: _hesapSuzgeci == null, f: () => setState(() => _hesapSuzgeci = null), metin: 'Hepsi'),
+      hap(
+        key: const ValueKey('birlesik-hesap-hepsi'),
+        secili: _hesapSuzgeci == null,
+        f: () => setState(() => _hesapSuzgeci = null),
+        metin: 'Hepsi',
+      ),
       for (final h in _hesaplar)
         hap(
           key: ValueKey('birlesik-hesap-${h.id}'),
@@ -330,8 +410,10 @@ class BirlesikListeState extends State<BirlesikListe> {
       height: _hap,
       child: ShaderMask(
         // Sağ kenarda yumuşak solma: taşan hesaplar kesik görünmez.
-        shaderCallback: (rect) =>
-            LinearGradient(colors: const [Colors.white, Colors.white, Colors.transparent], stops: [0, (rect.width - 24) / rect.width, 1]).createShader(rect),
+        shaderCallback: (rect) => LinearGradient(
+          colors: const [Colors.white, Colors.white, Colors.transparent],
+          stops: [0, (rect.width - 24) / rect.width, 1],
+        ).createShader(rect),
         blendMode: BlendMode.dstIn,
         child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.only(right: 20), children: ogeler),
       ),
@@ -391,20 +473,23 @@ class BirlesikListeState extends State<BirlesikListe> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!context.genis) const EsitlemeDurumu(serit: true),
-          // Tek sıra: klasör seçici (Gelen ▾) + hesap süzgeci (renkli noktalar). Ekrana sığar; sığmazsa kayar.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: Row(
-              children: [
-                _klasorSecici(r),
-                const SizedBox(width: 8),
-                if (_hesaplar.length > 1)
-                  Expanded(
-                    child: ListenableBuilder(listenable: b, builder: (_, _) => _hesapSuzgeciSirasi(r)),
-                  ),
-              ],
+          if (_secilen.isNotEmpty)
+            _secimCubugu(r, l)
+          else
+            // Tek sıra: klasör seçici (Gelen ▾) + hesap süzgeci (renkli noktalar). Ekrana sığar; sığmazsa kayar.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              child: Row(
+                children: [
+                  _klasorSecici(r),
+                  const SizedBox(width: 8),
+                  if (_hesaplar.length > 1)
+                    Expanded(
+                      child: ListenableBuilder(listenable: b, builder: (_, _) => _hesapSuzgeciSirasi(r)),
+                    ),
+                ],
+              ),
             ),
-          ),
           Divider(height: 1, color: r.kenar.withValues(alpha: .6)),
           Expanded(
             child: _yukleniyor && _ogeler.isEmpty
@@ -431,13 +516,13 @@ class BirlesikListeState extends State<BirlesikListe> {
                           key: ValueKey('birlesik-${o.anahtar}'),
                           child: IletiSatiri(
                             ileti: o.ozet,
-                            secili: false,
+                            secili: _secilen.contains(o.anahtar),
                             acik: widget.seciliAnahtar == o.anahtar,
-                            secimModu: false,
+                            secimModu: _secilen.isNotEmpty,
                             copte: false,
                             arsivde: false,
-                            dokun: () => _ac(o),
-                            sec: () {},
+                            dokun: () => _secilen.isNotEmpty ? _secDegistir(o) : _ac(o),
+                            sec: () => _secDegistir(o),
                             okundu: () => _eylem(o, o.ozet.okundu ? 'unseen' : 'seen'),
                             yildiz: () => _eylem(o, o.ozet.yildizli ? 'unflag' : 'flag'),
                             arsivle: () => _eylem(o, 'archive'),
@@ -502,7 +587,9 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
       setState(() => _d = d);
     } catch (e) {
       if (!mounted || a != o.anahtar) return;
-      if (_d == null) setState(() => _hata = e is ApiHata && e.durum == 404 ? 'İleti bulunamadı; silinmiş veya taşınmış olabilir.' : hataMetni(e));
+      if (_d == null) {
+        setState(() => _hata = e is ApiHata && e.durum == 404 ? 'İleti bulunamadı; silinmiş veya taşınmış olabilir.' : hataMetni(e));
+      }
     }
   }
 
@@ -544,7 +631,12 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
         icon: Icon(o.ozet.yildizli ? Simge.yildizDolu : Simge.yildiz, color: o.ozet.yildizli ? const Color(0xFFEAB308) : null),
         onPressed: () => _eylem(o.ozet.yildizli ? 'unflag' : 'flag', o.ozet.yildizli ? 'Yıldız kaldırıldı' : 'Yıldızlandı'),
       ),
-      IconButton(key: const ValueKey('birlesik-arsiv'), tooltip: 'Arşivle', icon: const Icon(Simge.arsiv), onPressed: () => _eylem('archive', 'Arşivlendi')),
+      IconButton(
+        key: const ValueKey('birlesik-arsiv'),
+        tooltip: 'Arşivle',
+        icon: const Icon(Simge.arsiv),
+        onPressed: () => _eylem('archive', 'Arşivlendi'),
+      ),
       IconButton(
         key: const ValueKey('birlesik-cop'),
         tooltip: 'Çöp Kutusu\'na taşı',
@@ -624,7 +716,10 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
                     children: [
                       Text(kimden?.gorunen ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
                       Text(
-                        [if (kimden != null) kimden.eposta, if (v.kime.isNotEmpty) 'Kime: ${v.kime.map((a) => a.gorunen).join(', ')}'].join(' · '),
+                        [
+                          if (kimden != null) kimden.eposta,
+                          if (v.kime.isNotEmpty) 'Kime: ${v.kime.map((a) => a.gorunen).join(', ')}',
+                        ].join(' · '),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: r.silik, fontSize: 12.5),
@@ -660,7 +755,11 @@ class _BirlesikOkuyucuState extends State<BirlesikOkuyucu> {
                 icon: const Icon(Simge.yanitla),
                 label: const Text('Yanıtla'),
               ),
-              OutlinedButton.icon(onPressed: () => birlesikYaz(context, o, 'tumu'), icon: const Icon(Simge.tumuneYanitla), label: const Text('Tümünü yanıtla')),
+              OutlinedButton.icon(
+                onPressed: () => birlesikYaz(context, o, 'tumu'),
+                icon: const Icon(Simge.tumuneYanitla),
+                label: const Text('Tümünü yanıtla'),
+              ),
               OutlinedButton.icon(
                 key: const ValueKey('birlesik-ilet'),
                 onPressed: () => birlesikYaz(context, o, 'ilet'),

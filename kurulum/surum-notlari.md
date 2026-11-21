@@ -1,3 +1,7 @@
+## 1.5.2
+
+- Tüm hesaplar: satırdaki kutucukla seçim çalışır; seçince üstte toplu işlem çubuğu (Tümünü seç, Okundu/Okunmadı, Yıldız, Arşivle, Sil).
+
 ## 1.5.1
 
 - macOS/Windows: HTML postalar küçük bir kutuda kesik açılıyordu; artık okuma alanının tamamını kullanır ve içerik kaydırılarak okunur.

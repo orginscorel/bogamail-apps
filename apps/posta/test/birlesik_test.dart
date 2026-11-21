@@ -164,6 +164,28 @@ void main() {
     await t.pump(const Duration(seconds: 5));
   });
 
+  testWidgets('liste: kutucukla seçim ve toplu işlem (seçili tüm hesaplardaki iletiler)', (t) async {
+    await t.pumpWidget(uyg(BirlesikListe(ac: (_, _) {})));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 50));
+    // Avatar/kutucuk alanına dokunmak (ya da uzun basmak) seçer.
+    await t.longPress(find.text('Toplantı'));
+    await t.pump();
+    expect(find.byKey(const ValueKey('birlesik-secim')), findsOneWidget);
+    expect(find.text('1 seçili'), findsOneWidget);
+    await t.tap(find.byTooltip('Tümünü seç'));
+    await t.pump();
+    expect(find.text('2 seçili'), findsOneWidget);
+    await t.tap(find.byTooltip('Arşivle'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 50));
+    final items = (s.bul('POST', '$_u/actions').last.json['items'] as List).map((e) => (e as Map)['mailbox_id']).toSet();
+    expect(items, {'k1', 'k2'});
+    expect(find.byKey(const ValueKey('birlesik-secim')), findsNothing);
+    await t.pumpWidget(const SizedBox());
+    await t.pump(const Duration(seconds: 5));
+  });
+
   testWidgets('okuyucu: hesap değiştirmeden okur; yanıtla önce o hesaba geçer', (t) async {
     Uyg.kutu.value = {'mailbox_id': 'k1', 'address': 'ayse@ornek.com'};
     s.yollar['GET $_u/messages/k2/m2'] = (200, _detay('m2', 'k2'));
