@@ -1,3 +1,8 @@
+## 1.7.2
+
+- Çoklu hesap: başka bir hesaba gelen posta/sohbet bildirimine dokununca o hesaba geçilir ve ileti/oda açılır (uygulama açıkken, arka planda ya da kapalıyken; "Tüm hesaplar" görünümü açıkken de).
+- Etkin hesabın bildirimi, başka bir bölüm (Sohbet, Takvim, Tüm hesaplar) açıkken de iletiyi açar.
+
 ## 1.7.1
 
 - BogaMail'e özgü bildirim sesleri: posta için iki notalı çan, sohbet için kısa parlak ses (iPhone, Mac, Android, Windows).
