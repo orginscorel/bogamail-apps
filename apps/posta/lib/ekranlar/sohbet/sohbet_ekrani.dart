@@ -438,7 +438,7 @@ class _SohbetEkraniState extends State<SohbetEkrani> {
       ),
       floatingActionButton: d.kapali
           ? null
-          : FloatingActionButton.extended(onPressed: _yeni, icon: const Icon(Simge.yorumEkle), label: const Text('Yeni sohbet')),
+          : FloatingActionButton.extended(heroTag: 'fab-sohbet', onPressed: _yeni, icon: const Icon(Simge.yorumEkle), label: const Text('Yeni sohbet')),
       body: govde,
     );
   }

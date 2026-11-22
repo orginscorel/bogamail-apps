@@ -53,8 +53,12 @@ void main() {
     test('diğer hesabın postası öndeyken de bildirilir; yük hesabı taşır', () {
       final b = olayBildirimi('unified_new', {...posta, 'account': 'Info@Ornek.com'}, onPlanda: true);
       expect(b?.yuk, 'hesap:info@ornek.com|m1');
-      expect(hesapYukuCoz(b!.yuk), ('info@ornek.com', 'm1'));
+      expect(hesapYukuCoz(b!.yuk), (adres: 'info@ornek.com', ileti: 'm1', kutu: ''));
       expect(hesapYukuCoz('m1'), isNull);
+      // Sunucu kutu kimliğini de gönderir: hesap önce onunla eşlenir.
+      final k = olayBildirimi('unified_new', {...posta, 'account': 'info@ornek.com', 'mailbox_id': 'k7'});
+      expect(k?.yuk, 'hesap:info@ornek.com|m1|k7');
+      expect(hesapYukuCoz(k!.yuk), (adres: 'info@ornek.com', ileti: 'm1', kutu: 'k7'));
     });
     test('sohbet: kendi iletisi ve öndeyken açık oda bildirilmez', () {
       final s = {'room_id': 'o1', 'sender_id': 'k2', 'sender_name': 'Can', 'preview': 'Selam'};

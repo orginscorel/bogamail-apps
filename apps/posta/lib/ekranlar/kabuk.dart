@@ -58,6 +58,14 @@ class Kabuk extends StatefulWidget {
   const Kabuk({super.key});
   @override
   State<Kabuk> createState() => _KabukState();
+
+  /// Testler: etkin kabukta bir bildirime dokunulmuş gibi (APNs yükü).
+  @visibleForTesting
+  static Future<void> bildirimeDokun(Map<String, dynamic> v) async => _KabukState._etkin?._bildirimAcildi(v);
+
+  /// Soğuk açılışta uygulamayı açan APNs bildirimi (testlerde değiştirilir).
+  @visibleForTesting
+  static Future<Map<String, dynamic>?> Function() acilisBildirimi = Push.baslangic;
 }
 
 class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
@@ -84,10 +92,23 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     _durum.sifirla();
     _durum.addListener(_degisti);
     _durum.yukle();
+    final gecis = _etkin != null;
     _etkin = this;
     _abonelikler.add(Canli.ben.olaylar.listen(_canliOlay));
-    Canli.ben.durdur(); // hesap değiştiyse yeni oturumla yeniden bağlan
-    Canli.ben.baslat();
+    void canliyiBaslat() {
+      Canli.ben.durdur(); // hesap değiştiyse yeni oturumla yeniden bağlan
+      Canli.ben.baslat();
+    }
+
+    if (gecis) {
+      // Hesap geçişi: eski kabuk geçiş boyunca ağaçta; bağlantı durumu değişikliği onun göstergelerini bu kurulum
+      // (çizim) sırasında yeniden çizdirmesin diye kare sonunda başlatılır.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_etkin == this) canliyiBaslat();
+      });
+    } else {
+      canliyiBaslat();
+    }
     // Önce yerel: arka plan eşitlemesi (bekleyen değişiklikler, Giden Kutusu, klasörler, gövde önyükleme).
     GidenKutusu.gonderildi = () {
       _durum.sayilariYenile();
@@ -167,8 +188,15 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     }
     final bekleyen = Uyg.bekleyenBildirim;
     if (bekleyen != null) {
+      // Başka hesabın bildirimi için bu hesaba geçildi: şimdi açılır.
       Uyg.bekleyenBildirim = null;
       unawaited(_bildirimAcildi(bekleyen));
+    } else {
+      // Soğuk açılış: uygulamayı açan bildirim izin tanıtımından ve abonelikten önce işlenir (tanıtım sayfası
+      // kullanıcıyı beklerken bildirim kaybolmasın).
+      final ilk = await Kabuk.acilisBildirimi();
+      if (!mounted) return;
+      if (ilk != null) unawaited(_bildirimAcildi(ilk));
     }
     // İlk açılış: izin istenmeden önce neden gerektiği anlatılır (iOS, macOS, Android 13+).
     final izinIste = await BildirimIzni.tanitimGerekirse(context);
@@ -179,8 +207,6 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     Arkaplan.durum(onPlanda: true, acikOda: SohbetDurum.ben.acikOda);
     if (Push.destekli) {
       _abonelikler.add(Push.acildi.listen(_bildirimAcildi));
-      final ilk = await Push.baslangic();
-      if (ilk != null) _bildirimAcildi(ilk);
       // Her açılışta ve hesap değişince (anahtar hesap+cihaz anahtarıdır); öne gelişte seyreltilmiş.
       if (izinIste) unawaited(PushKaydi.kaydet());
     }
@@ -205,7 +231,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     final h = hesapYukuCoz(yuk);
     if (h != null) {
       // Başka hesabın iletisi: önce o hesaba geçilir (yeni kabuk bekleyen bildirimi açar).
-      unawaited(_bildirimAcildi({'account': h.$1, 'message_id': h.$2, 'kind': 'mail'}));
+      unawaited(_bildirimAcildi({'account': h.adres, 'mailbox_id': h.kutu, 'message_id': h.ileti, 'kind': 'mail'}));
       return;
     }
     if (yuk.startsWith(Bildirim.sohbetOneki)) {
@@ -216,11 +242,14 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   }
 
   /// APNs bildirimine dokunuldu: başka hesaba aitse önce o hesaba geçilir (yeni kabuk açılışta yeniden işler).
+  /// Hesap önce kutu kimliğiyle (mailbox_id), yoksa adresle eşlenir.
   Future<void> _bildirimAcildi(Map<String, dynamic> v) async {
-    final hesap = '${v['account'] ?? ''}'.trim().toLowerCase();
-    if (hesap.isNotEmpty && hesap != Uyg.adres.toLowerCase()) {
+    final kutu = '${v['mailbox_id'] ?? ''}'.trim();
+    final hesap = '${v['account'] ?? ''}'.trim();
+    if (!Uyg.buHesapMi(kutu: kutu, adres: hesap)) {
+      if (_etkin != this) return;
       Uyg.bekleyenBildirim = v;
-      await Uyg.hesabaGec(adres: hesap);
+      await Uyg.hesabaGec(id: kutu.isEmpty ? null : kutu, adres: hesap.isEmpty ? null : hesap);
       return;
     }
     final tur = '${v['kind'] ?? 'mail'}';
@@ -230,36 +259,80 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       return;
     }
     final id = '${v['message_id'] ?? ''}';
-    if (tur == 'mail' && id.isNotEmpty) _iletiAc(id);
+    if ((tur == 'mail' || tur.isEmpty) && id.isNotEmpty) _iletiAc(id);
   }
 
   /// Bir sohbet odasını açar (bildirimden ya da başka bir ekrandan).
   void odaAc(String oda) {
     if (oda.isEmpty || !mounted) return;
     kokGezgin.currentState?.popUntil((r) => r.isFirst);
-    setState(() => _modulSec(Modul.sohbet));
     if (context.genis) {
-      setState(() => _seciliOda = oda);
+      setState(() {
+        _modulSec(Modul.sohbet);
+        _seciliOda = oda;
+      });
     } else {
-      final c = kokGezgin.currentContext;
-      if (c != null) sohbetOdasiAc(c, oda);
+      _modulIleAc(Modul.sohbet, (c) => sohbetOdasiAc(c, oda));
     }
   }
 
-  /// Bildirimden gelen ileti kimliğini açar.
+  /// Telefonda bölümü değiştirip üstüne sayfa açar. Bölüm değiştiyse sayfa bir kare sonra açılır: yeni bölüm
+  /// çizilmeden geçiş başlarsa iki bölümün düğmeleri (FAB Hero) aynı anda uçuşa katılır.
+  void _modulIleAc(Modul m, Future<void> Function(BuildContext c) ac) {
+    final degisti = _modul != m;
+    setState(() => _modulSec(m));
+    void it() {
+      final c = kokGezgin.currentContext;
+      if (mounted && c != null) unawaited(ac(c));
+    }
+
+    if (degisti) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => it());
+      WidgetsBinding.instance.scheduleFrame();
+    } else {
+      it();
+    }
+  }
+
+  /// Bildirimden gelen ileti kimliğini açar: hangi bölüm / klasör açık olursa olsun Posta'ya dönülür, ileti listede
+  /// olmasa da okuyucu açılır (kimlikle getirilir); klasörü bilinince o klasör seçilir (birleşik görünümdeyse önce
+  /// Gelen Kutusu).
   void _iletiAc(String id) {
     if (id.isEmpty || !mounted) return;
+    if (_durum.konum?.tur == KonumTur.birlesik) {
+      final g = _durum.rolu('inbox');
+      if (g != null) _durum.git(Konum.klasor(g.id));
+    }
     if (context.genis) {
+      kokGezgin.currentState?.popUntil((r) => r.isFirst);
       setState(() {
         _modulSec(Modul.posta);
         _secili = id;
+        _birlesikSecili = null;
       });
     } else {
       kokGezgin.currentState?.popUntil((r) => r.isFirst);
-      setState(() => _modulSec(Modul.posta));
-      final c = kokGezgin.currentContext;
-      if (c != null) okuyucuAc(c, id);
+      _modulIleAc(Modul.posta, (c) => okuyucuAc(c, id));
     }
+    unawaited(_iletininKlasorunuSec(id));
+  }
+
+  /// Bildirimden açılan iletinin klasörü (klasörler yüklenince) seçilir; seçili ileti korunur.
+  Future<void> _iletininKlasorunuSec(String id) async {
+    String klasor;
+    try {
+      klasor = (await Posta.ileti(id)).ozet.klasorId;
+    } catch (_) {
+      return;
+    }
+    if (klasor.isEmpty) return;
+    for (var i = 0; i < 50 && mounted && !_durum.yuklendi; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (!mounted || _durum.klasor(klasor) == null) return;
+    // Bu arada kullanıcı başka bir ileti açtıysa dokunulmaz.
+    if (context.genis && _secili != id) return;
+    _durum.git(Konum.klasor(klasor));
   }
 
   Future<void> _ac(IletiOzet m) async {
@@ -315,8 +388,13 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     setState(() => _modulSec(Modul.posta));
   }
 
-  Widget _yeniDugmesi() =>
-      FloatingActionButton.extended(onPressed: _yeni, tooltip: 'Yeni ileti (C)', icon: const Icon(Simge.duzenle), label: const Text('Yeni ileti'));
+  Widget _yeniDugmesi() => FloatingActionButton.extended(
+    heroTag: 'fab-posta',
+    onPressed: _yeni,
+    tooltip: 'Yeni ileti (C)',
+    icon: const Icon(Simge.duzenle),
+    label: const Text('Yeni ileti'),
+  );
 
   /// Gelen Kutusu dışındaki klasörlerdeki okunmamışlar (kullanıcı klasörleri + Arşiv).
   int get _digerOkunmamis => _durum.klasorler.where((k) => k.rol == null || k.rol == 'archive').fold(0, (t, k) => t + k.okunmamis);
@@ -760,8 +838,7 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
 
 /// Öndeyken gelen APNs bildirimi gösterilsin mi: aynı hesapta, açık sohbet odasına ya da açık iletiye aitse hayır.
 bool onPlandaGosterilsinMi(Map<String, dynamic> v) {
-  final hesap = '${v['account'] ?? ''}'.trim().toLowerCase();
-  if (hesap.isNotEmpty && hesap != Uyg.adres.toLowerCase()) return true;
+  if (!Uyg.buHesapMi(kutu: '${v['mailbox_id'] ?? ''}'.trim(), adres: '${v['account'] ?? ''}'.trim())) return true;
   final tur = '${v['kind'] ?? 'mail'}';
   if (tur == 'chat') {
     final oda = '${v['room_id'] ?? ''}';

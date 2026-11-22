@@ -279,7 +279,7 @@ class _TakvimEkraniState extends State<TakvimEkrani> {
       ),
       floatingActionButton: _kapali
           ? null
-          : FloatingActionButton.extended(onPressed: () => _yeni(), icon: const Icon(Simge.ekle), label: const Text('Etkinlik')),
+          : FloatingActionButton.extended(heroTag: 'fab-takvim', onPressed: () => _yeni(), icon: const Icon(Simge.ekle), label: const Text('Etkinlik')),
       body: Column(
         children: [
           if (_yukleniyor) LinearProgressIndicator(minHeight: 2, color: r.vurgu) else const SizedBox(height: 2),

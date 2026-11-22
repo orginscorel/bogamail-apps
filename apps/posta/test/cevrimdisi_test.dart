@@ -103,7 +103,9 @@ void main() {
     await Posta.etiketler();
     await Posta.liste(klasorId: 'f1');
     await Posta.iletiHam('a');
-    await Baglanti.ben.esitlendi(DateTime(2026, 11, 21, 14, 32));
+    // Bugün 14:32 (ipucu bugünse yalnız saati gösterir; sabit tarih ertesi gün testi bozuyordu).
+    final bugun = DateTime.now();
+    await Baglanti.ben.esitlendi(DateTime(bugun.year, bugun.month, bugun.day, 14, 32));
     await Future<void>.delayed(const Duration(milliseconds: 700)); // dizin indeksi yazılır
   }
 

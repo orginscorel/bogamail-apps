@@ -38,14 +38,15 @@ const _runAdi = 'BogaMail';
 const baglantiMetniBagli = 'Yeni e-postalar anında bildirilir';
 const baglantiMetniYok = 'Sunucuya ulaşılamıyor, yeniden denenecek';
 
-/// Bildirim yükü: başka hesabın iletisi `hesap:<adres>|<ileti>` biçimindedir (dokununca önce o hesaba geçilir).
+/// Bildirim yükü: başka hesabın iletisi `hesap:<adres>|<ileti>|<kutu kimliği>` biçimindedir (dokununca önce o
+/// hesaba geçilir; kutu kimliği yoksa adresle eşlenir, eski yükler `hesap:<adres>|<ileti>`).
 const hesapOneki = 'hesap:';
-String hesapYuku(String adres, String ileti) => '$hesapOneki${adres.toLowerCase()}|$ileti';
-(String, String)? hesapYukuCoz(String yuk) {
+String hesapYuku(String adres, String ileti, {String kutu = ''}) => '$hesapOneki${adres.toLowerCase()}|$ileti${kutu.isEmpty ? '' : '|$kutu'}';
+({String adres, String ileti, String kutu})? hesapYukuCoz(String yuk) {
   if (!yuk.startsWith(hesapOneki)) return null;
-  final i = yuk.indexOf('|');
-  if (i < 0) return null;
-  return (yuk.substring(hesapOneki.length, i), yuk.substring(i + 1));
+  final p = yuk.substring(hesapOneki.length).split('|');
+  if (p.length < 2) return null;
+  return (adres: p[0], ileti: p[1], kutu: p.length > 2 ? p[2] : '');
 }
 
 /// Bir canlı olaydan gösterilecek bildirim (yoksa null). Hizmet ve testler kullanır.
@@ -75,7 +76,7 @@ String hesapYuku(String adres, String ileti) => '$hesapOneki${adres.toLowerCase(
       final id = '${v['message_id'] ?? ''}';
       final hesap = '${v['account'] ?? ''}';
       if (id.isEmpty || hesap.isEmpty) return null;
-      return (baslik: gorunenAd('${v['from'] ?? ''}'), metin: '$hesap · ${konuVeOnizleme()}', yuk: hesapYuku(hesap, id));
+      return (baslik: gorunenAd('${v['from'] ?? ''}'), metin: '$hesap · ${konuVeOnizleme()}', yuk: hesapYuku(hesap, id, kutu: '${v['mailbox_id'] ?? ''}'));
     case 'chat_message':
       final oda = '${v['room_id'] ?? ''}';
       if (oda.isEmpty || (benId != null && '${v['sender_id'] ?? ''}' == benId)) return null;

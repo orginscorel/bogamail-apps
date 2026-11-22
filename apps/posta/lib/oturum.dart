@@ -59,6 +59,17 @@ class Uyg {
   static final kutu = ValueNotifier<Map<String, dynamic>?>(null);
 
   static String get adres => '${kutu.value?['address'] ?? ''}';
+  static String get kutuId => '${kutu.value?['mailbox_id'] ?? ''}';
+
+  /// Bir bildirimin hesabı (kutu kimliği, yoksa adres) oturumdaki hesap mı. İkisi de boşsa evet (eski yük).
+  static bool buHesapMi({String kutu = '', String adres = ''}) {
+    if (kutu.isNotEmpty) return kutu == kutuId;
+    if (adres.isNotEmpty) return adresEsit(adres, Uyg.adres);
+    return true;
+  }
+
+  /// Adres karşılaştırması: büyük/küçük harf ve boşluk duyarsız.
+  static bool adresEsit(String a, String b) => a.trim().toLowerCase() == b.trim().toLowerCase();
   static String get ad => '${kutu.value?['display_name'] ?? ''}';
 
   static const _kutuAnahtari = 'posta.kutu';
@@ -108,8 +119,11 @@ class Uyg {
   /// GET auth/me. [arka]: kabuk zaten yerel verilerle açık; bağlantı yoksa sessiz kalınır, oturum düştüyse giriş
   /// ekranına dönülür.
   static Future<bool> _kutuTazele({required bool arka}) async {
+    final nesil = _gecisNesli;
     try {
       final v = await api.get('/api/v1/mail/auth/me');
+      // Bu arada hesap değiştirildiyse (ör. soğuk açılışta başka hesabın bildirimine dokunuldu) eski yanıt yok sayılır.
+      if (arka && nesil != _gecisNesli) return true;
       final m = Map<String, dynamic>.from(v['mailbox'] as Map);
       final eski = '${kutu.value?['mailbox_id'] ?? ''}';
       final yeni = '${m['mailbox_id'] ?? ''}';
@@ -134,6 +148,9 @@ class Uyg {
   }
 
   static const _k = '/api/v1/mail/auth';
+
+  /// Her hesap geçişinde artar: geçişten önce başlamış bir kutu doğrulaması (auth/me) sonucu yeni kabuğu bozmasın.
+  static int _gecisNesli = 0;
 
   /// Başka hesaba ait bir bildirime dokunuldu: hesap değişince yeni kabuk bunu açar.
   static Map<String, dynamic>? bekleyenBildirim;
@@ -187,16 +204,23 @@ class Uyg {
   /// (hesap menüsünden) geçiş beklemesizdir: kabuk hedef hesabın önbelleğiyle hemen açılır, açık klasör rolü /
   /// görünüm korunur, sunucu doğrulaması, canlı akış ve push kaydı arka planda yapılır.
   static Future<bool> hesabaGec({String? id, String? adres, KayitliHesap? hesap}) async {
+    _gecisNesli++;
     try {
       var hedef = hesap?.id ?? id;
       var h = hesap;
       if (h == null) {
-        // Hesap bilgisi (ad, adres) önbellekle hemen açılış için gerekir.
+        // Hesap bilgisi (ad, adres) önbellekle hemen açılış için gerekir. Önce kutu kimliği, yoksa adres.
         final l = await hesaplar().catchError((_) => <KayitliHesap>[]);
-        h = l.where((x) => adres != null ? x.adres.toLowerCase() == adres.toLowerCase() : x.id == hedef).firstOrNull;
-        hedef ??= h?.id;
+        h =
+            (hedef != null && hedef.isNotEmpty ? l.where((x) => x.id == hedef).firstOrNull : null) ??
+            (adres != null && adres.isNotEmpty ? l.where((x) => adresEsit(x.adres, adres)).firstOrNull : null);
+        if (h != null) hedef = h.id;
       }
-      if (hedef == null || hedef.isEmpty) return false;
+      if (hedef == null || hedef.isEmpty) {
+        bekleyenBildirim = null;
+        bildir('Hesap bu cihazda bulunamadı', mesaj: adres == null ? null : '$adres hesabıyla yeniden giriş yapın.', tur: MesajTur.uyari);
+        return false;
+      }
       // Açık yer korunur: klasör rolü (Gelen → Gelen), görünüm ya da birleşik.
       final d = PostaDurum.ben;
       final k = d.konum;
