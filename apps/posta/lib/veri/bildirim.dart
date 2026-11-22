@@ -13,10 +13,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:workmanager/workmanager.dart';
 
 import 'arkaplan.dart';
 import 'bildirim_sesi.dart';
+import 'gorev_hatirlatma.dart';
 import 'modeller.dart';
 import 'yardimci.dart';
 
@@ -86,6 +88,97 @@ class Bildirim {
         );
       } catch (_) {}
     }
+    try {
+      await a.createNotificationChannel(
+        const AndroidNotificationChannel(
+          gorevKanali,
+          'Görev hatırlatmaları',
+          description: 'Görevlerin son tarihi yaklaşınca',
+          importance: Importance.high,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound('bogamail_posta'),
+          enableVibration: true,
+        ),
+      );
+    } catch (_) {}
+  }
+
+  /// Görev hatırlatmalarının Android kanalı (gorev_hatirlatma.dart).
+  static const gorevKanali = 'gorev_v1';
+
+  /// Görev hatırlatması için ayrıntı: kendi kanalı, BogaMail sesi. Windows'ta zamanlanmış bildirim sistem tarafından
+  /// (uygulama kapalıyken de) gösterilir; uygulama ses çalamayacağı için sistem sesi kullanılır.
+  @visibleForTesting
+  static NotificationDetails gorevAyrintisi(String metin, {required bool ses}) => NotificationDetails(
+    android: AndroidNotificationDetails(
+      gorevKanali,
+      'Görev hatırlatmaları',
+      channelDescription: 'Görevlerin son tarihi yaklaşınca',
+      importance: Importance.high,
+      priority: Priority.high,
+      category: AndroidNotificationCategory.reminder,
+      color: _renk,
+      playSound: ses,
+      sound: const RawResourceAndroidNotificationSound('bogamail_posta'),
+      silent: !ses,
+      styleInformation: BigTextStyleInformation(metin),
+    ),
+    windows: WindowsNotificationDetails(audio: ses ? null : WindowsNotificationAudio.silent()),
+  );
+
+  /// Bildirimi işletim sistemine zamanlar (Android AlarmManager, Windows zamanlanmış bildirim). Android'de tam zamanlı
+  /// alarm izni yoksa (Android 12+ "Alarmlar ve hatırlatıcılar") sistem birkaç dakika kaydırabilir (inexact).
+  static Future<bool> planla({required int id, required DateTime zaman, required String baslik, required String metin, required String yuk}) async {
+    await hazirla();
+    if (!_hazir) return false;
+    var ses = true;
+    try {
+      ses = (await SharedPreferences.getInstance()).getBool(_sesAnahtar) ?? true;
+    } catch (_) {}
+    try {
+      var kip = AndroidScheduleMode.inexactAllowWhileIdle;
+      if (android && (await _a?.canScheduleExactNotifications() ?? false)) kip = AndroidScheduleMode.exactAllowWhileIdle;
+      await _p.zonedSchedule(
+        id: id,
+        scheduledDate: tz.TZDateTime.from(zaman.toUtc(), tz.UTC),
+        notificationDetails: gorevAyrintisi(metin, ses: ses),
+        androidScheduleMode: kip,
+        title: baslik,
+        body: metin,
+        payload: yuk,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> iptal(int id) async {
+    await hazirla();
+    if (!_hazir) return;
+    try {
+      await _p.cancel(id: id);
+    } catch (_) {}
+  }
+
+  /// Android 12+: tam zamanlı alarm izni var mı (yoksa hatırlatmalar birkaç dakika gecikebilir).
+  static Future<bool> tamZamanliAlarm() async {
+    if (!android) return true;
+    await hazirla();
+    try {
+      return await _a?.canScheduleExactNotifications() ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Android 12+: "Alarmlar ve hatırlatıcılar" ayar sayfasını açar.
+  static Future<void> tamZamanliAlarmIste() async {
+    if (!android) return;
+    await hazirla();
+    try {
+      await _a?.requestExactAlarmsPermission();
+    } catch (_) {}
   }
 
   /// Uygulamayı bir bildirim açtıysa ileti kimliği (soğuk açılış).
@@ -247,7 +340,12 @@ class Bildirim {
     if (!android) return;
     try {
       await Workmanager().cancelByUniqueName(_gorevAdi);
-      await _p.cancelAll();
+      // Yalnızca görünen bildirimler kalkar; diğer hesapların zamanlanmış görev hatırlatmaları kalır (çıkılan hesabınkiler
+      // GorevHatirlatma.hesapKapandi ile ayrıca iptal edilir).
+      for (final b in await _p.getActiveNotifications()) {
+        final id = b.id;
+        if (id != null) await _p.cancel(id: id, tag: b.tag);
+      }
     } catch (_) {}
     final p = await SharedPreferences.getInstance();
     await p.remove(_sonAnahtar);
@@ -271,6 +369,12 @@ Future<void> _yeniIletileriDenetle() async {
   if (!await api.oturumVar()) return;
   final p = await SharedPreferences.getInstance();
   if (!(p.getBool(_arkaPlanAnahtar) ?? true)) return;
+  // Uygulama kapalıyken (ör. webmail'de) eklenen / değişen görevlerin hatırlatmaları da güncellenir.
+  try {
+    final me = await api.get('/api/v1/mail/auth/me');
+    final k = me is Map && me['mailbox'] is Map ? '${(me['mailbox'] as Map)['mailbox_id'] ?? ''}' : '';
+    if (k.isNotEmpty) await GorevHatirlatma.esitle(kutu: k, api: api);
+  } catch (_) {}
   final kv = await api.get('/api/v1/mail/folders');
   final klasorler = ((kv is Map ? kv['items'] : null) as List? ?? const []).map(Klasor.json);
   final gelen = klasorler.where((k) => k.rol == 'inbox').firstOrNull;

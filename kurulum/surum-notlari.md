@@ -1,3 +1,10 @@
+## 1.7.3
+
+**Görev hatırlatmaları**
+- iPhone, iPad ve Mac: görevler Apple Hatırlatıcılar ile iki yönlü eşitlenir (Görevler › Hatırlatmalar ya da Ayarlar › Bildirimler › "Apple Hatırlatıcılar ile eşitle": kurulum profili CalDAV hesabını ekler; "Görevler" listesi). Son tarihi olan görevler Hatırlatıcılar'da son tarih saatinde uyarır.
+- Android ve Windows: size atanan (ya da oluşturup atamadığınız) görevler için son tarihten 15 dakika önce cihaz bildirimi; uygulama kapalıyken de gelir, dokununca görev açılır (başka hesabınsa önce o hesaba geçilir). Ayarlar › Bildirimler › "Görev hatırlatmaları" ile kapatılabilir. Android 12+'da "Alarmlar ve hatırlatıcılar" izni verilmezse bildirim birkaç dakika gecikebilir.
+- Görev ayrıntısında "Takvime ekle": Android'de takvim uygulamasının yeni etkinlik ekranı, Windows'ta Outlook / Takvim'e eklenecek takvim dosyası (15 dakika önce uyarılı).
+
 ## 1.7.2
 
 - Çoklu hesap: başka bir hesaba gelen posta/sohbet bildirimine dokununca o hesaba geçilir ve ileti/oda açılır (uygulama açıkken, arka planda ya da kapalıyken; "Tüm hesaplar" görünümü açıkken de).

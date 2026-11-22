@@ -59,11 +59,11 @@ void main() {
     expect(cagrilar.first.method, 'deleteNotificationChannel');
     expect(cagrilar.first.arguments, 'yeni_posta');
     final olusan = cagrilar.where((c) => c.method == 'createNotificationChannel').map((c) => Map<String, dynamic>.from(c.arguments as Map)).toList();
-    expect(olusan.map((k) => k['id']), ['posta_v2', 'sohbet_v2']);
+    expect(olusan.map((k) => k['id']), ['posta_v2', 'sohbet_v2', 'gorev_v1']);
     for (final k in olusan) {
       expect(k['importance'], Importance.high.value);
       expect(k['playSound'], isTrue);
-      expect(k['sound'], k['id'] == 'posta_v2' ? 'bogamail_posta' : 'bogamail_sohbet');
+      expect(k['sound'], k['id'] == 'sohbet_v2' ? 'bogamail_sohbet' : 'bogamail_posta');
     }
   });
 
@@ -102,5 +102,16 @@ void main() {
     expect(find.text('Ses çalınamadı'), findsOneWidget);
     await t.pumpWidget(const SizedBox());
     await t.pump(const Duration(seconds: 10));
+  });
+
+  test('görev hatırlatması ayrıntısı: kendi kanalı, BogaMail sesi; ses kapalıysa sessiz', () {
+    final d = Bildirim.gorevAyrintisi('Son tarih: bugün 10:00', ses: true);
+    expect(d.android!.channelId, 'gorev_v1');
+    expect(d.android!.category, AndroidNotificationCategory.reminder);
+    expect((d.android!.sound as RawResourceAndroidNotificationSound).sound, 'bogamail_posta');
+    expect(d.windows!.audio?.isSilent ?? false, isFalse, reason: 'zamanlanmış bildirimde uygulama ses çalamaz, sistem sesi');
+    final sessiz = Bildirim.gorevAyrintisi('x', ses: false);
+    expect(sessiz.android!.silent, isTrue);
+    expect(sessiz.windows!.audio?.isSilent, isTrue);
   });
 }

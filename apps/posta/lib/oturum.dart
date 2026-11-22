@@ -18,6 +18,7 @@ import 'veri/onbellek.dart';
 import 'veri/posta_servisi.dart';
 import 'veri/push_kaydi.dart';
 import 'veri/sohbet_servisi.dart';
+import 'veri/gorev_hatirlatma.dart';
 
 /// Bu cihazda kayıtlı posta hesabı (GET /api/v1/mail/auth/accounts).
 class KayitliHesap {
@@ -293,6 +294,7 @@ class Uyg {
     // Çıkışta hesabın tüm yerel verisi (önbellek, bekleyen değişiklikler, Giden Kutusu) bu cihazdan silinir.
     await Esitleyici.ben.hesabiSil(eski);
     await Bildirim.temizle();
+    await GorevHatirlatma.hesapKapandi(eski);
     await Push.rozet(0);
     PushKaydi.sifirla();
     if (sonraki != null && await hesabaGec(id: sonraki)) return;

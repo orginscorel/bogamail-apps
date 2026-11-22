@@ -11,6 +11,8 @@ import '../ortak/html_govde.dart';
 import '../veri/esitleyici.dart';
 import '../veri/kuyruk.dart';
 import '../veri/bildirim.dart';
+import '../veri/gorev_hatirlatma.dart';
+import '../ortak/uyarlanir.dart';
 import '../veri/birlesik.dart';
 import '../veri/canli.dart';
 import '../veri/durum.dart';
@@ -177,6 +179,8 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     if (o.tur == 'scheduled') unawaited(GidenKutusu.ben.sunucuTazele());
     if (o.tur == 'new_mail' || o.tur == 'unified_new') unawaited(Bildirim.canliOlay(o));
     if (o.tur == 'chat_message' && '${o.veri['sender_id'] ?? ''}' != SohbetDurum.benId) unawaited(Bildirim.sohbetOlayi(o));
+    // Görev atandı / değişti / kaldırıldı: hatırlatmalar yeniden kurulur (Android, Windows).
+    if (o.tur == 'task') GorevHatirlatma.tazele(kutu: Uyg.kutuId);
   }
 
   Future<void> _bildirimleriKur() async {
@@ -213,6 +217,8 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
     if (Bildirim.yerel) {
       await Bildirim.hazirla();
       _abonelikler.add(Bildirim.acildi.listen(_yerelAcildi));
+      // Görev hatırlatmaları bu hesabın açık görevlerinden kurulur (paket kapalıysa iptal edilir).
+      unawaited(GorevHatirlatma.esitle(kutu: Uyg.kutuId));
       final ilk = await Bildirim.baslangic();
       if (ilk != null) _yerelAcildi(ilk);
       if (Bildirim.android) {
@@ -228,6 +234,11 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
   }
 
   void _yerelAcildi(String yuk) {
+    final gh = GorevHatirlatma.yukCoz(yuk);
+    if (gh != null) {
+      unawaited(_bildirimAcildi({'mailbox_id': gh.kutu, 'kind': 'task', 'task_id': gh.gorev}));
+      return;
+    }
     final h = hesapYukuCoz(yuk);
     if (h != null) {
       // Başka hesabın iletisi: önce o hesaba geçilir (yeni kabuk bekleyen bildirimi açar).
@@ -258,8 +269,20 @@ class _KabukState extends State<Kabuk> with WidgetsBindingObserver {
       if (oda.isNotEmpty) odaAc(oda);
       return;
     }
+    if (tur == 'task') {
+      final g = '${v['task_id'] ?? ''}';
+      if (g.isNotEmpty) gorevAc(g);
+      return;
+    }
     final id = '${v['message_id'] ?? ''}';
     if ((tur == 'mail' || tur.isEmpty) && id.isNotEmpty) _iletiAc(id);
+  }
+
+  /// Görevi açar (hatırlatma bildiriminden): Görevler bölümüne geçilir, ayrıntı açılır.
+  void gorevAc(String id) {
+    if (id.isEmpty || !mounted) return;
+    kokGezgin.currentState?.popUntil((r) => r.isFirst);
+    _modulIleAc(Modul.gorevler, (c) => uyarlanirAc<void>(c, (_) => GorevAyrinti(gorevId: id)));
   }
 
   /// Bir sohbet odasını açar (bildirimden ya da başka bir ekrandan).

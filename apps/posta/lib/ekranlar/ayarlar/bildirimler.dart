@@ -11,6 +11,7 @@ import '../../veri/bildirim_sesi.dart';
 import '../../veri/canli.dart';
 import '../../veri/posta_servisi.dart';
 import '../../veri/sohbet_servisi.dart';
+import '../gorevler/gorev_hatirlatma_karti.dart';
 import 'ayar_ortak.dart';
 
 const esitlemeSecenekleri = {15: '15 sn', 30: '30 sn', 60: '1 dk', 120: '2 dk', 300: '5 dk', 900: '15 dk', 1800: '30 dk', 3600: '60 dk'};
@@ -23,6 +24,8 @@ class BildirimlerAyari extends StatelessWidget {
     olustur: (context, a, kaydet) => [
       const _CihazBildirimleri(),
       if (SesCalar.destekli || BildirimSesiKarti.zorla) const BildirimSesiKarti(),
+      if (GorevHatirlatmaKarti.gosterilir(a.ozellikler))
+        GorevHatirlatmaKarti(ozellikler: a.ozellikler, imap: a.ozellik('imap') && a.baglanti.imapAcik, sunucu: a.baglanti.sunucu),
       _TercihFormu(key: ValueKey('bil-${a.bildirimMasaustu}|${a.bildirimSes}|${a.esitlemeSaniye}'), a: a, kaydet: kaydet),
       IkiSutun(children: [const _CanliKarti(), if (a.ozellik('chat')) const SohbetGizliligiKarti()]),
     ],

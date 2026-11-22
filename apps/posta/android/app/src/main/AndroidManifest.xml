@@ -10,6 +10,9 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- Görev hatırlatmaları (gorev_hatirlatma.dart): son tarihte tam zamanlı bildirim. Android 12+'da kullanıcı
+         "Alarmlar ve hatırlatıcılar" ayarından verir; yoksa yaklaşık zamanlı (inexact) planlanır. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <application
         android:label="BogaMail"
         android:name="${applicationName}"
@@ -45,6 +48,17 @@
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="remoteMessaging"
             android:exported="false" />
+        <!-- flutter_local_notifications zamanlanmış bildirimleri (görev hatırlatmaları): alarm alıcısı ve cihaz yeniden
+             başlayınca / uygulama güncellenince planları geri yükleyen alıcı. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

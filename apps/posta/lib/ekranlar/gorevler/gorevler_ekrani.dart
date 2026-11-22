@@ -4,7 +4,12 @@ import 'package:boga_ortak/boga_ortak.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../oturum.dart';
 import '../../veri/canli.dart';
+import '../../veri/durum.dart';
+import '../../veri/gorev_hatirlatma.dart';
+import '../../veri/takvime_ekle.dart';
+import 'gorev_hatirlatma_karti.dart';
 import '../../veri/modeller.dart';
 import '../../veri/takvim_servisi.dart';
 import '../../ortak/uyarlanir.dart';
@@ -89,6 +94,8 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
         _hata = null;
         _kapali = false;
       });
+      // Liste her yenilendiğinde (oluşturma, düzenleme, durum, silme sonrası da) hatırlatmalar güncellenir.
+      GorevHatirlatma.tazele(kutu: Uyg.kutuId);
     } catch (e) {
       if (!mounted || no != _no) return;
       setState(() {
@@ -158,6 +165,15 @@ class _GorevlerEkraniState extends State<GorevlerEkrani> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Görevler'),
+        actions: [
+          if (!_kapali && GorevHatirlatmaKarti.gosterilir(PostaDurum.ben.ayarlar?.ozellikler))
+            IconButton(
+              key: const ValueKey('gorev-hatirlaticilar'),
+              tooltip: GorevHatirlatmaKarti.platform == HatirlatmaPlatformu.apple ? 'Apple Hatırlatıcılar' : 'Hatırlatmalar',
+              icon: const Icon(Simge.hatirlatma),
+              onPressed: () => hatirlatmaSayfasi(context),
+            ),
+        ],
         bottom: _kapali
             ? null
             : PreferredSize(
@@ -416,6 +432,22 @@ class _GorevAyrintiState extends State<GorevAyrinti> {
       appBar: AppBar(
         title: const Text('Görev'),
         actions: [
+          if (g.bitis != null && !g.bitti && TakvimeEkle.yol != TakvimeEkleYolu.yok)
+            IconButton(
+              key: const ValueKey('gorev-takvime-ekle'),
+              tooltip: TakvimeEkle.yol == TakvimeEkleYolu.apple ? 'Hatırlatıcılara ekle' : 'Takvime ekle',
+              icon: const Icon(Simge.takvimDuzenle),
+              onPressed: () async {
+                if (TakvimeEkle.yol == TakvimeEkleYolu.apple) {
+                  // Tek kopya yerine CalDAV eşitlemesi: görev Hatırlatıcılar'da zaten (iki yönlü) görünür.
+                  await hatirlatmaSayfasi(context);
+                  return;
+                }
+                if (!await TakvimeEkle.ekle(g)) {
+                  bildir('Takvime eklenemedi', mesaj: 'Bu cihazda takvim uygulaması bulunamadı.', tur: MesajTur.uyari);
+                }
+              },
+            ),
           if (g.duzenleyebilir) ...[
             IconButton(
               tooltip: 'Düzenle',
@@ -813,3 +845,17 @@ class _GorevDuzenleyiciState extends State<GorevDuzenleyici> {
     );
   }
 }
+
+/// Görev hatırlatmaları / Apple Hatırlatıcılar kartını alt sayfada (geniş ekranda pencerede) açar.
+Future<void> hatirlatmaSayfasi(BuildContext context) => uyarlanirAc<void>(
+  context,
+  (c) => Scaffold(
+    appBar: AppBar(title: const Text('Hatırlatmalar')),
+    body: ListView(
+      padding: const EdgeInsets.all(12),
+      children: [GorevHatirlatmaKarti(ozellikler: PostaDurum.ben.ayarlar?.ozellikler)],
+    ),
+  ),
+  genislik: 560,
+  yukseklik: 520,
+);

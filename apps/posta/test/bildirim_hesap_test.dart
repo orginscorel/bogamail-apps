@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:posta/ekranlar/kabuk.dart';
+import 'package:posta/ekranlar/gorevler/gorevler_ekrani.dart';
 import 'package:posta/ekranlar/okuyucu.dart';
 import 'package:posta/ekranlar/sohbet/sohbet_odasi.dart';
 import 'package:posta/oturum.dart';
@@ -84,6 +85,16 @@ void main() {
       ))
       ..yollar['GET /api/v1/mail/labels'] = (200, {'items': []})
       ..yollar['GET /api/v1/mail/chat/rooms'] = (200, {'items': []})
+      ..yollar['GET /api/v1/mail/tasks'] = (200, {'items': []})
+      ..yollar['GET /api/v1/mail/tasks/t5'] = ((Istek _) => etkin == 'k2'
+          ? (
+              200,
+              {
+                'task': {'id': 't5', 'title': 'Teklif hatırlatması', 'status': 'todo', 'priority': 'normal', 'can_edit': true},
+                'comments': [],
+              },
+            )
+          : (404, {'error': 'yok'}))
       ..yollar['GET /api/v1/mail/folders/gelen-k1/messages'] = (200, {'items': [], 'total': 0, 'page': 1, 'page_size': 50})
       ..yollar['GET /api/v1/mail/folders/gelen-k2/messages'] = (200, {'items': [], 'total': 0, 'page': 1, 'page_size': 50})
       ..yollar['GET /api/v1/mail/messages/m9'] = ((Istek _) => etkin == 'k2' ? (200, _ileti('m9', 'Satış teklifi', 'proje-k2')) : (404, {'error': 'yok'}))
@@ -237,6 +248,16 @@ void main() {
     expect(Uyg.adres, 'info@ornek.com');
     expect(Uyg.bekleyenBildirim, isNull);
     expect(find.text('Hesap bu cihazda bulunamadı'), findsOneWidget);
+    await kapat(t);
+  });
+
+  testWidgets('başka hesabın görev hatırlatmasına dokununca o hesaba geçilir, görev açılır', (t) async {
+    await ac(t, const Size(390, 844));
+    await t.runAsync(() => Kabuk.bildirimeDokun({'mailbox_id': 'k2', 'kind': 'task', 'task_id': 't5'}));
+    await bekle(t, 20);
+    expect(Uyg.adres, 'satis@ornek.com');
+    expect(find.byWidgetPredicate((w) => w is GorevAyrinti && w.gorevId == 't5'), findsOneWidget);
+    expect(find.text('Teklif hatırlatması'), findsWidgets);
     await kapat(t);
   });
 }

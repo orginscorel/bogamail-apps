@@ -1,7 +1,7 @@
 name: posta
 description: "BogaMail — Bogahost kurumsal e-posta"
 publish_to: 'none'
-version: 1.7.2+1
+version: 1.7.3+1
 resolution: workspace
 
 environment:
@@ -21,6 +21,8 @@ dependencies:
   open_filex: ^5.0.0
   share_plus: ^13.3.1
   flutter_local_notifications: ^23.0.3
+  # flutter_local_notifications'ın zaten çözülmüş bağımlılığı (zamanlanmış bildirim TZDateTime'ı); yeni paket değil.
+  timezone: ^0.11.0
   workmanager: ^0.10.10
   html: ^0.15.7
   shared_preferences: ^2.5.6

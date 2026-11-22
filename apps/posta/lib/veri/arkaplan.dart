@@ -27,6 +27,7 @@ import 'package:win32_registry/win32_registry.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'bildirim.dart';
+import 'gorev_hatirlatma.dart';
 import 'yardimci.dart';
 
 const _arkaplanAnahtari = 'posta.arkaplan';
@@ -476,6 +477,12 @@ class _PostaGorevi extends TaskHandler {
       final m = jsonDecode(ham);
       if (m is! Map) return;
       final v = m['data'] is Map ? Map<String, dynamic>.from(m['data'] as Map) : <String, dynamic>{};
+      // Görev atandı / değişti: hatırlatmalar bu hizmetten de güncellenir (uygulama kapalıyken).
+      final ben = _benId;
+      if (m['kind'] == 'task' && ben != null && ben.isNotEmpty) {
+        unawaited(GorevHatirlatma.esitle(kutu: ben, api: _api));
+        return;
+      }
       final b = olayBildirimi('${m['kind'] ?? ''}', v, onPlanda: _onPlanda, acikOda: _acikOda, benId: _benId);
       if (b == null) return;
       await Bildirim.goster(iletiId: b.yuk, baslik: b.baslik, metin: b.metin);

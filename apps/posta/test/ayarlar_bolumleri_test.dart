@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:posta/ekranlar/ayarlar.dart';
 import 'package:posta/ekranlar/ayarlar/bildirimler.dart';
+import 'package:posta/ekranlar/gorevler/gorev_hatirlatma_karti.dart';
 import 'package:posta/ekranlar/ayarlar/genel.dart';
 import 'package:posta/ekranlar/ayarlar/klasorler.dart';
 import 'package:posta/ekranlar/ayarlar/kurulum.dart';
@@ -138,9 +139,13 @@ void main() {
   testWidgets('Bildirimler: ses/masaüstü/eşitleme kaydedilir; sohbet gizliliği PUT', (t) async {
     BildirimSesiKarti.zorla = true;
     addTearDown(() => BildirimSesiKarti.zorla = false);
+    GorevHatirlatmaKarti.platformZorla = HatirlatmaPlatformu.yerel;
+    addTearDown(() => GorevHatirlatmaKarti.platformZorla = null);
     await ac(t, const BildirimlerAyari());
     expect(find.byKey(const ValueKey('ses-dinle-posta')), findsOneWidget);
     expect(find.byKey(const ValueKey('ses-dinle-sohbet')), findsOneWidget);
+    // Görevler paketi açık: görev hatırlatmaları kartı (bu test Android/Windows kipinde).
+    expect(find.byKey(const ValueKey('gorev-hatirlatma-karti')), findsOneWidget);
     await dokun(t, find.descendant(of: find.byKey(const ValueKey('bildirim-ses')), matching: find.byType(Switch)));
     await dokun(t, find.byKey(const ValueKey('bildirim-esitleme')));
     await t.pump(const Duration(milliseconds: 300));
